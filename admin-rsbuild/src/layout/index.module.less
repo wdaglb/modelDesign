@@ -1,0 +1,45 @@
+.layout {
+  height: 100vh;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+}
+.headerBox {
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  :global(.ant-avatar) {
+    background: #fff;
+  }
+  :global {
+    .ant-dropdown-trigger {
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      &:hover {
+        background: #003f7a;
+      }
+    }
+  }
+}
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  gap: 8px;
+  width: 200px;
+  :global(img) {
+    height: 30px;
+  }
+}

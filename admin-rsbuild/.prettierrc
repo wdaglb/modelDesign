@@ -1,0 +1,15 @@
+{
+  "singleQuote": true,
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx", "*.js", "*.jsx", "*.css", "*.less"],
+      "options": {
+        "singleQuote": true
+      }
+    },
+    {
+      "files": ["!*.*"],
+      "ignore": true
+    }
+  ]
+}
