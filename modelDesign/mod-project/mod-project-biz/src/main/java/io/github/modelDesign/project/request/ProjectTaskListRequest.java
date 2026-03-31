@@ -59,4 +59,18 @@ public class ProjectTaskListRequest {
      */
     @Schema(description = "负责人 ID")
     private Long assigneeId;
+
+    /**
+     * 排序字段。
+     */
+    @Schema(description = "排序字段", allowableValues = {"priority", "startTime"})
+    @Size(max = 32, message = "排序字段长度不能超过 32 个字符")
+    private String sortField;
+
+    /**
+     * 排序方向。
+     */
+    @Schema(description = "排序方向", allowableValues = {"asc", "desc"})
+    @Size(max = 8, message = "排序方向长度不能超过 8 个字符")
+    private String sortOrder;
 }

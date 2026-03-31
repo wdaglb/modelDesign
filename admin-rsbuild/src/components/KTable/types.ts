@@ -8,7 +8,7 @@ export interface KTableActionRef {
 }
 
 export interface List<R> {
-  data: R[];
+  items: R[];
   total: number;
 }
 

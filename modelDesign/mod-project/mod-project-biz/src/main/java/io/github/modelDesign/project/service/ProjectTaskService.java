@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashSet;
@@ -57,6 +58,16 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
      * 可用优先级集合。
      */
     private static final Set<String> VALID_PRIORITY_SET = Set.of("low", "medium", "high");
+
+    /**
+     * 可用排序字段集合。
+     */
+    private static final Set<String> VALID_SORT_FIELD_SET = Set.of("priority", "startTime");
+
+    /**
+     * 可用排序方向集合。
+     */
+    private static final Set<String> VALID_SORT_ORDER_SET = Set.of("asc", "desc");
 
     /**
      * 当前登录用户接口。
@@ -176,6 +187,8 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         String title = normalizeKeyword(request.getTitle());
         String status = normalizeValue(request.getStatus());
         String priority = normalizeValue(request.getPriority());
+        String sortField = normalizeSortField(request.getSortField());
+        String sortOrder = normalizeSortOrder(request.getSortOrder());
         List<ProjectTask> allTasks = lambdaQuery()
                 .eq(ProjectTask::getProjectId, request.getProjectId())
                 .eq(ProjectTask::getDeleted, 0)
@@ -185,6 +198,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
                 .eq(request.getAssigneeId() != null, ProjectTask::getAssigneeId, request.getAssigneeId())
                 .orderByDesc(ProjectTask::getUpdateTime)
                 .list();
+        allTasks = sortTasks(allTasks, sortField, sortOrder);
         long total = allTasks.size();
         long fromIndex = Math.max((current - 1) * pageSize, 0);
         if (fromIndex >= total) {
@@ -327,6 +341,70 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         return getUserMap(userIds);
     }
 
+    private List<ProjectTask> sortTasks(List<ProjectTask> tasks, String sortField, String sortOrder) {
+        if (!StringUtils.hasText(sortField) || !StringUtils.hasText(sortOrder)) {
+            return tasks;
+        }
+        Comparator<ProjectTask> comparator = switch (sortField) {
+            case "priority" -> buildPriorityComparator(sortOrder);
+            case "startTime" -> buildStartTimeComparator(sortOrder);
+            default -> null;
+        };
+        if (comparator == null) {
+            return tasks;
+        }
+        return tasks.stream()
+                .sorted(comparator.thenComparing(ProjectTask::getUpdateTime, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+    }
+
+    private Comparator<ProjectTask> buildPriorityComparator(String sortOrder) {
+        Comparator<ProjectTask> comparator = Comparator.comparingInt(task -> getPriorityRank(task.getPriority()));
+        if ("desc".equals(sortOrder)) {
+            return comparator.reversed();
+        }
+        return comparator;
+    }
+
+    private Comparator<ProjectTask> buildStartTimeComparator(String sortOrder) {
+        return (left, right) -> {
+            int result = compareNullableDateTime(left.getStartTime(), right.getStartTime(), sortOrder);
+            if (result != 0) {
+                return result;
+            }
+            return 0;
+        };
+    }
+
+    private int compareNullableDateTime(LocalDateTime left, LocalDateTime right, String sortOrder) {
+        if (left == null && right == null) {
+            return 0;
+        }
+        if (left == null) {
+            return 1;
+        }
+        if (right == null) {
+            return -1;
+        }
+        if ("desc".equals(sortOrder)) {
+            return right.compareTo(left);
+        }
+        return left.compareTo(right);
+    }
+
+    private int getPriorityRank(String priority) {
+        if ("low".equals(priority)) {
+            return 1;
+        }
+        if ("medium".equals(priority)) {
+            return 2;
+        }
+        if ("high".equals(priority)) {
+            return 3;
+        }
+        return 0;
+    }
+
     private Map<Long, AuthUserSimpleDto> getUserMap(Set<Long> userIds) {
         if (userIds.isEmpty()) {
             return Collections.emptyMap();
@@ -439,6 +517,22 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
             return null;
         }
         return value.trim();
+    }
+
+    private String normalizeSortField(String value) {
+        String normalizedValue = normalizeValue(value);
+        if (!StringUtils.hasText(normalizedValue) || !VALID_SORT_FIELD_SET.contains(normalizedValue)) {
+            return null;
+        }
+        return normalizedValue;
+    }
+
+    private String normalizeSortOrder(String value) {
+        String normalizedValue = normalizeValue(value);
+        if (!StringUtils.hasText(normalizedValue) || !VALID_SORT_ORDER_SET.contains(normalizedValue)) {
+            return null;
+        }
+        return normalizedValue;
     }
 
     private String formatDateTime(LocalDateTime value) {

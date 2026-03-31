@@ -1,13 +1,14 @@
 import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { routeTree } from './routeTree.gen.ts';
-
-import './app.css';
-import { PageLoading } from '@/components';
-import NotFound from '@/404.tsx';
-import { KModalProvider } from '@/components/KModal';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
+
+import { KDrawerProvider } from '@/components/KDrawer';
+import { KModalProvider } from '@/components/KModal';
+import { PageLoading } from '@/components';
+import NotFound from '@/404.tsx';
+import { routeTree } from './routeTree.gen.ts';
+import './app.css';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,7 +35,9 @@ const App = () => {
     <ConfigProvider locale={zhCN}>
       <QueryClientProvider client={queryClient}>
         <KModalProvider>
-          <RouterProvider router={router} />
+          <KDrawerProvider>
+            <RouterProvider router={router} />
+          </KDrawerProvider>
         </KModalProvider>
       </QueryClientProvider>
     </ConfigProvider>

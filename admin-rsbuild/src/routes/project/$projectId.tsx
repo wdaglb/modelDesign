@@ -20,11 +20,12 @@ import {
 import { Helmet } from 'react-helmet-async';
 
 import { ApiProject } from '@/api';
+import { useKModal } from '@/components/KModal';
 import { DatabaseTypeLabel } from '@/api/modules/project.types';
 import queryKey from '@/constants/queryKey';
 import Icons from '@/icons';
-import { useKModal } from '@/components/KModal';
 import ProjectForm from './components/#ProjectForm';
+import TaskCreateForm from './components/#TaskCreateForm';
 
 export const Route = createFileRoute('/project/$projectId')({
   loader: async ({ params }) => {
@@ -44,6 +45,11 @@ export const projectManageTabs = [
     label: '基本信息',
     value: 'overview',
     to: '/project/$projectId',
+  },
+  {
+    label: '任务',
+    value: 'tasks',
+    to: '/project/$projectId/tasks',
   },
   {
     label: '数据表',
@@ -86,7 +92,7 @@ function RouteComponent() {
     })?.value ?? 'overview';
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['projectDetail', numericProjectId],
+    queryKey: queryKey.project.detail(numericProjectId),
     queryFn: () => ApiProject.getDetail(numericProjectId),
     enabled: isValidProjectId,
     initialData: loaderData ?? undefined,
@@ -297,7 +303,7 @@ function RouteComponent() {
 
                   await Promise.all([
                     queryClient.invalidateQueries({
-                      queryKey: ['projectDetail', numericProjectId],
+                      queryKey: queryKey.project.detail(numericProjectId),
                     }),
                     queryClient.invalidateQueries({
                       queryKey: queryKey.project.list(),
@@ -306,6 +312,41 @@ function RouteComponent() {
                 }}
               >
                 编辑项目
+              </Button>
+
+              <Button
+                icon={<Icons.Plus />}
+                onClick={async () => {
+                  try {
+                    await modal.open({
+                      title: '新建任务',
+                      width: 960,
+                      styles: {
+                        body: {
+                          height: 580,
+                          overflowX: 'hidden',
+                          overflowY: 'auto',
+                        },
+                      },
+                      children: <TaskCreateForm projectId={numericProjectId} />,
+                    });
+
+                    await Promise.all([
+                      queryClient.invalidateQueries({
+                        queryKey: queryKey.project.taskList(numericProjectId),
+                      }),
+                      queryClient.invalidateQueries({
+                        queryKey: queryKey.todo.list(),
+                      }),
+                    ]);
+                  } catch (modalError) {
+                    if (modalError !== 'KModal cancel') {
+                      throw modalError;
+                    }
+                  }
+                }}
+              >
+                新建任务
               </Button>
 
               <Button>

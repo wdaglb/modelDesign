@@ -19,6 +19,7 @@ import { Route as SystemUserIndexRouteImport } from './routes/system/user/index'
 import { Route as SystemRoleIndexRouteImport } from './routes/system/role/index'
 import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
+import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$projectId.tasks'
 import { Route as ProjectProjectIdTablesRouteImport } from './routes/project/$projectId.tables'
 import { Route as ProjectProjectIdMembersRouteImport } from './routes/project/$projectId.members'
 
@@ -72,6 +73,11 @@ const ProjectProjectIdIndexRoute = ProjectProjectIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProjectProjectIdRoute,
 } as any)
+const ProjectProjectIdTasksRoute = ProjectProjectIdTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => ProjectProjectIdRoute,
+} as any)
 const ProjectProjectIdTablesRoute = ProjectProjectIdTablesRouteImport.update({
   id: '/tables',
   path: '/tables',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/project/': typeof ProjectIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
+  '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/project': typeof ProjectIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
+  '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
   '/system/menu': typeof SystemMenuIndexRoute
   '/system/role': typeof SystemRoleIndexRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/project/': typeof ProjectIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
+  '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/project/'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
+    | '/project/$projectId/tasks'
     | '/project/$projectId/'
     | '/system/menu/'
     | '/system/role/'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/project'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
+    | '/project/$projectId/tasks'
     | '/project/$projectId'
     | '/system/menu'
     | '/system/role'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/project/'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
+    | '/project/$projectId/tasks'
     | '/project/$projectId/'
     | '/system/menu/'
     | '/system/role/'
@@ -253,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectIdIndexRouteImport
       parentRoute: typeof ProjectProjectIdRoute
     }
+    '/project/$projectId/tasks': {
+      id: '/project/$projectId/tasks'
+      path: '/tasks'
+      fullPath: '/project/$projectId/tasks'
+      preLoaderRoute: typeof ProjectProjectIdTasksRouteImport
+      parentRoute: typeof ProjectProjectIdRoute
+    }
     '/project/$projectId/tables': {
       id: '/project/$projectId/tables'
       path: '/tables'
@@ -273,12 +292,14 @@ declare module '@tanstack/react-router' {
 interface ProjectProjectIdRouteChildren {
   ProjectProjectIdMembersRoute: typeof ProjectProjectIdMembersRoute
   ProjectProjectIdTablesRoute: typeof ProjectProjectIdTablesRoute
+  ProjectProjectIdTasksRoute: typeof ProjectProjectIdTasksRoute
   ProjectProjectIdIndexRoute: typeof ProjectProjectIdIndexRoute
 }
 
 const ProjectProjectIdRouteChildren: ProjectProjectIdRouteChildren = {
   ProjectProjectIdMembersRoute: ProjectProjectIdMembersRoute,
   ProjectProjectIdTablesRoute: ProjectProjectIdTablesRoute,
+  ProjectProjectIdTasksRoute: ProjectProjectIdTasksRoute,
   ProjectProjectIdIndexRoute: ProjectProjectIdIndexRoute,
 }
 

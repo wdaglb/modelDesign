@@ -1,6 +1,6 @@
 ---
 name: 'ant-design'
-description: '提供 Ant Design 组件的使用参考和文档查询。当用户提到使用 Ant Design 组件、编写 UI、创建表单、弹窗、表格等企业级后台组件时调用此 skill。'
+description: '提供组件的使用参考和文档查询。当用户提到使用组件、编写 UI、创建表单、弹窗、表格等企业级后台组件时调用此 skill。'
 ---
 
 # Ant Design 组件使用指南

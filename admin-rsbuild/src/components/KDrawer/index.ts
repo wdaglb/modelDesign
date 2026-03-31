@@ -1,8 +1,7 @@
-import { useKModal } from '@/components/KModal';
-import OpenButton from '@/components/KModal/components/OpenButton.tsx';
-import Form from '@/components/KModal/components/Form.tsx';
-
-export const useKDrawer = useKModal;
+export { default as useKDrawer } from './useKDrawer.tsx';
+export { globalDrawerContext, KDrawerProvider } from './context.tsx';
+import OpenButton from './components/OpenButton.tsx';
+import Form from './components/Form.tsx';
 
 const KDrawer = {
   OpenButton,

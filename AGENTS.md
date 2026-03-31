@@ -1,6 +1,4 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# AI编码助手
 
 ## 交流与语言
 
@@ -57,6 +55,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 禁止使用三元表达式，特别是嵌套的
 - 项目已经在使用 Ant Design v6 风格 API，避免继续使用已废弃组件与属性，废弃的组件与参数可以阅读(https://ant.design/llms.txt)
 - 分页接口响应格式：{"items": [...], "total": 总数}
+- 不需要执行命令验证
 
 ## 后端
 
