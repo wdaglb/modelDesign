@@ -7,6 +7,9 @@ import io.github.modelDesign.project.request.ProjectListRequest;
 import io.github.modelDesign.project.response.PageResponse;
 import io.github.modelDesign.project.response.ProjectDetailVo;
 import io.github.modelDesign.project.service.ProjectService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 项目接口。
  */
+@Tag(name = "项目管理")
 @RestController
 @RequestMapping("/project")
 @RequiredArgsConstructor
@@ -37,6 +41,7 @@ public class ProjectController {
      * @param request 列表请求
      * @return 分页结果
      */
+    @Operation(summary = "获取项目列表")
     @GetMapping("/list")
     public PageResponse<ProjectDetailVo> list(@Valid ProjectListRequest request) {
         return projectService.getList(request);
@@ -48,8 +53,9 @@ public class ProjectController {
      * @param id 项目 ID
      * @return 项目详情
      */
+    @Operation(summary = "获取项目详情")
     @GetMapping("/detail")
-    public ProjectDetailVo detail(@RequestParam @NotNull(message = "项目 ID 不能为空") Long id) {
+    public ProjectDetailVo detail(@Parameter(description = "项目 ID", required = true) @RequestParam @NotNull(message = "项目 ID 不能为空") Long id) {
         return projectService.getDetail(id);
     }
 
@@ -59,6 +65,7 @@ public class ProjectController {
      * @param request 创建请求
      * @return 项目详情
      */
+    @Operation(summary = "创建项目")
     @PostMapping("/create")
     public ProjectDetailVo create(@Valid @RequestBody ProjectCreateRequest request) {
         return projectService.create(request);
@@ -71,8 +78,9 @@ public class ProjectController {
      * @param request 编辑请求
      * @return 项目详情
      */
+    @Operation(summary = "编辑项目")
     @PostMapping("/edit")
-    public ProjectDetailVo edit(@RequestParam @NotNull(message = "项目 ID 不能为空") Long id, @Valid @RequestBody ProjectEditRequest request) {
+    public ProjectDetailVo edit(@Parameter(description = "项目 ID", required = true) @RequestParam @NotNull(message = "项目 ID 不能为空") Long id, @Valid @RequestBody ProjectEditRequest request) {
         return projectService.edit(id, request);
     }
 
@@ -82,6 +90,7 @@ public class ProjectController {
      * @param request 删除请求
      * @return 删除数量
      */
+    @Operation(summary = "删除项目")
     @PostMapping("/deleted")
     public Integer deleted(@Valid @RequestBody ProjectDeleteRequest request) {
         return projectService.deleted(request.getIds());

@@ -19,21 +19,25 @@ export enum TodoPriority {
 }
 
 /**
- * 我的待办状态。
+ * 我的待办状态（与后端 ProjectTask.status 保持一致）。
  */
 export enum TodoStatus {
   /**
    * 待处理。
    */
-  Pending = 'pending',
+  Todo = 'todo',
   /**
-   * 处理中。
+   * 进行中。
    */
-  Processing = 'processing',
+  InProgress = 'inProgress',
   /**
    * 已完成。
    */
-  Completed = 'completed',
+  Done = 'done',
+  /**
+   * 已取消。
+   */
+  Canceled = 'canceled',
 }
 
 /**
@@ -49,9 +53,10 @@ export const TodoPriorityLabel = {
  * 我的待办状态中文映射。
  */
 export const TodoStatusLabel = {
-  [TodoStatus.Pending]: '待处理',
-  [TodoStatus.Processing]: '处理中',
-  [TodoStatus.Completed]: '已完成',
+  [TodoStatus.Todo]: '待处理',
+  [TodoStatus.InProgress]: '进行中',
+  [TodoStatus.Done]: '已完成',
+  [TodoStatus.Canceled]: '已取消',
 };
 
 /**
@@ -70,9 +75,10 @@ export const TodoPriorityOptions = [
  * 我的待办状态选项。
  */
 export const TodoStatusOptions = [
-  TodoStatus.Pending,
-  TodoStatus.Processing,
-  TodoStatus.Completed,
+  TodoStatus.Todo,
+  TodoStatus.InProgress,
+  TodoStatus.Done,
+  TodoStatus.Canceled,
 ].map((item) => ({
   label: TodoStatusLabel[item],
   value: item,

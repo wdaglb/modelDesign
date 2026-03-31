@@ -10,6 +10,9 @@ import io.github.modelDesign.auth.response.PageResponse;
 import io.github.modelDesign.auth.response.UserListItemVo;
 import io.github.modelDesign.auth.service.PermissionService;
 import io.github.modelDesign.auth.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ import java.util.List;
  * 提供后台用户列表查询、添加、编辑以及状态切换能力。
  * 当前删除语义已经收敛为禁用/启用，因此这里不提供物理删除接口。
  */
+@Tag(name = "用户管理")
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -52,6 +56,7 @@ public class UserController {
      * @param request 列表请求
      * @return 分页结果
      */
+    @Operation(summary = "获取用户列表")
     @GetMapping("/list")
     public PageResponse<UserListItemVo> list(@Valid UserListRequest request) {
         return userService.getList(request);
@@ -65,6 +70,7 @@ public class UserController {
      * @param request 新增请求
      * @return 用户信息
      */
+    @Operation(summary = "新增用户")
     @PostMapping("/add")
     public UserListItemVo add(@Valid @RequestBody UserAddRequest request) {
         return userService.add(request);
@@ -79,8 +85,9 @@ public class UserController {
      * @param request 编辑请求
      * @return 用户信息
      */
+    @Operation(summary = "编辑用户")
     @PostMapping("/update")
-    public UserListItemVo update(@RequestParam @NotNull(message = "用户 ID 不能为空") Long id,
+    public UserListItemVo update(@Parameter(description = "用户 ID", required = true) @RequestParam @NotNull(message = "用户 ID 不能为空") Long id,
                                  @Valid @RequestBody UserUpdateRequest request) {
         return userService.update(id, request);
     }
@@ -92,6 +99,7 @@ public class UserController {
      *
      * @param request 状态请求
      */
+    @Operation(summary = "修改单个用户状态")
     @PostMapping("/update_status")
     public void updateStatus(@Valid @RequestBody UserUpdateStatusRequest request) {
         userService.updateStatus(request);
@@ -104,6 +112,7 @@ public class UserController {
      *
      * @param request 批量状态请求
      */
+    @Operation(summary = "批量修改用户状态")
     @PostMapping("/batch_update_status")
     public void batchUpdateStatus(@Valid @RequestBody UserBatchUpdateStatusRequest request) {
         userService.batchUpdateStatus(request);
@@ -115,8 +124,9 @@ public class UserController {
      * @param userId 用户 ID
      * @return 角色编码列表
      */
+    @Operation(summary = "获取用户已绑定角色")
     @GetMapping("/roles")
-    public List<String> getRoles(@RequestParam @NotNull(message = "用户 ID 不能为空") Long userId) {
+    public List<String> getRoles(@Parameter(description = "用户 ID", required = true) @RequestParam @NotNull(message = "用户 ID 不能为空") Long userId) {
         userService.requireUser(userId);
         return permissionService.getUserRoles(String.valueOf(userId));
     }
@@ -129,8 +139,9 @@ public class UserController {
      * @param userId  用户 ID
      * @param request 角色编码列表
      */
+    @Operation(summary = "更新用户绑定角色")
     @PostMapping("/roles/update")
-    public void updateRoles(@RequestParam @NotNull(message = "用户 ID 不能为空") Long userId,
+    public void updateRoles(@Parameter(description = "用户 ID", required = true) @RequestParam @NotNull(message = "用户 ID 不能为空") Long userId,
                             @Valid @RequestBody UserRoleUpdateRequest request) {
         userService.requireUser(userId);
         permissionService.updateUserRoles(String.valueOf(userId), request.getRoleCodes());

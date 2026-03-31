@@ -72,7 +72,7 @@ function RootComponent() {
   const title = route?.title ?? '';
 
   const { isLoading } = useQuery({
-    queryKey: ['initState'],
+    queryKey: ['initState', location.pathname],
     staleTime: 0,
     enabled: location.pathname !== '/login',
     queryFn: async () => {

@@ -3,6 +3,9 @@ package io.github.modelDesign.project.controller;
 import io.github.modelDesign.project.request.ProjectMemberUpdateRequest;
 import io.github.modelDesign.project.response.ProjectMemberVo;
 import io.github.modelDesign.project.service.ProjectMemberService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +22,7 @@ import java.util.List;
 /**
  * 项目成员接口。
  */
+@Tag(name = "项目成员")
 @RestController
 @RequestMapping("/project/member")
 @RequiredArgsConstructor
@@ -35,8 +39,9 @@ public class ProjectMemberController {
      * @param projectId 项目 ID
      * @return 项目成员列表
      */
+    @Operation(summary = "获取项目成员列表")
     @GetMapping("/list")
-    public List<ProjectMemberVo> list(@RequestParam @NotNull(message = "项目 ID 不能为空") Long projectId) {
+    public List<ProjectMemberVo> list(@Parameter(description = "项目 ID", required = true) @RequestParam @NotNull(message = "项目 ID 不能为空") Long projectId) {
         return projectMemberService.getList(projectId);
     }
 
@@ -46,6 +51,7 @@ public class ProjectMemberController {
      * @param request 成员变更请求
      * @return 新增数量
      */
+    @Operation(summary = "添加项目成员")
     @PostMapping("/add")
     public Integer add(@Valid @RequestBody ProjectMemberUpdateRequest request) {
         return projectMemberService.add(request);
@@ -57,6 +63,7 @@ public class ProjectMemberController {
      * @param request 成员变更请求
      * @return 删除数量
      */
+    @Operation(summary = "删除项目成员")
     @PostMapping("/delete")
     public Integer delete(@Valid @RequestBody ProjectMemberUpdateRequest request) {
         return projectMemberService.delete(request);

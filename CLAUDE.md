@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `admin-rsbuild/`：React 18 + TypeScript + Rsbuild + Ant Design 前端
 - `modelDesign/`：Spring Boot 3.5 + Spring AI + Maven 多模块后端
+- 接口文档：http://localhost:9999/v3/api-docs；openapi格式
 
 ## 前端
 
@@ -59,10 +60,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 后端
 
-- server/
-- 基于golang1.26+gin+gorm框架
+- modelDesign/
 - 数据库postgresql+redis
 - 注释应该只保留有必要的文档注释，模型、请求体字段的注释是必要的
-- 方法不应只有方法注释，字段的注释也是必要的
-- 注释风格应该使用golang的风格，而不是/** */
-- 接口的增删改、参数变更都需要通过apifox mcp同步到projectId=8022980
+- 方法不应只有方法注释，字段的注释也是必要的；但是注释不要泛滥，简单的注释可以不需要
+- 接口需要增加swagger的注解
+- 不需要执行编译验证

@@ -5,17 +5,17 @@ import lombok.Builder;
 import lombok.Data;
 
 /**
- * 项目成员。
+ * 项目任务成员。
  */
 @Data
 @Builder
-@Schema(description = "项目成员")
-public class ProjectMemberVo {
+@Schema(description = "项目任务成员")
+public class ProjectTaskMemberVo {
     /**
-     * 项目 ID。
+     * 任务 ID。
      */
-    @Schema(description = "项目 ID")
-    private Long projectId;
+    @Schema(description = "任务 ID")
+    private Long taskId;
 
     /**
      * 用户 ID。

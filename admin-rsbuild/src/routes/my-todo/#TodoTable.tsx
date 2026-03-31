@@ -28,18 +28,14 @@ const priorityColorMap: Record<TodoPriority, string> = {
  * 状态颜色映射。
  */
 const statusColorMap: Record<TodoStatus, string> = {
-  [TodoStatus.Pending]: 'orange',
-  [TodoStatus.Processing]: 'blue',
-  [TodoStatus.Completed]: 'green',
+  [TodoStatus.Todo]: 'orange',
+  [TodoStatus.InProgress]: 'blue',
+  [TodoStatus.Done]: 'green',
+  [TodoStatus.Canceled]: 'default',
 };
 
 /**
  * 我的待办表格。
- *
- * 说明：
- * - 使用项目封装的 `KTable` 作为列表承载组件
- * - 当前阶段使用前端静态占位数据，便于先完成页面结构与字段展示
- * - 后续接入真实接口时，仅需替换 `ApiTodo.getList` 的内部实现
  */
 const TodoTable = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });

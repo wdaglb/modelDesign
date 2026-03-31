@@ -8,17 +8,17 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 项目成员变更请求。
+ * 项目任务成员变更请求。
  */
 @Data
-@Schema(description = "项目成员变更请求")
-public class ProjectMemberUpdateRequest {
+@Schema(description = "项目任务成员变更请求")
+public class ProjectTaskMemberUpdateRequest {
     /**
-     * 项目 ID。
+     * 任务 ID。
      */
-    @Schema(description = "项目 ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "项目 ID 不能为空")
-    private Long projectId;
+    @Schema(description = "任务 ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "任务 ID 不能为空")
+    private Long taskId;
 
     /**
      * 用户 ID 列表。

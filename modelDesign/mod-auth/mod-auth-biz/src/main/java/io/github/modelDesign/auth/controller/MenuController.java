@@ -6,6 +6,9 @@ import io.github.modelDesign.auth.request.MenuEditRequest;
 import io.github.modelDesign.auth.request.MenuSwapSortRequest;
 import io.github.modelDesign.auth.response.MenuVo;
 import io.github.modelDesign.auth.service.MenuService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ import java.util.List;
 /**
  * 菜单管理接口。
  */
+@Tag(name = "菜单管理")
 @RestController
 @RequestMapping("/menu")
 @RequiredArgsConstructor
@@ -37,6 +41,7 @@ public class MenuController {
      *
      * @return 菜单列表
      */
+    @Operation(summary = "获取菜单列表")
     @GetMapping("/list")
     public List<MenuVo> list() {
         return menuService.getList();
@@ -48,6 +53,7 @@ public class MenuController {
      * @param request 创建请求
      * @return 菜单信息
      */
+    @Operation(summary = "创建菜单")
     @PostMapping("/create")
     public MenuVo create(@Valid @RequestBody MenuCreateRequest request) {
         return menuService.create(request);
@@ -60,8 +66,9 @@ public class MenuController {
      * @param request 编辑请求
      * @return 菜单信息
      */
+    @Operation(summary = "编辑菜单")
     @PostMapping("/edit")
-    public MenuVo edit(@RequestParam @NotNull(message = "菜单 ID 不能为空") Long id,
+    public MenuVo edit(@Parameter(description = "菜单 ID", required = true) @RequestParam @NotNull(message = "菜单 ID 不能为空") Long id,
                        @Valid @RequestBody MenuEditRequest request) {
         return menuService.edit(id, request);
     }
@@ -72,6 +79,7 @@ public class MenuController {
      * @param request 删除请求
      * @return 删除数量
      */
+    @Operation(summary = "删除菜单")
     @PostMapping("/delete")
     public Integer delete(@Valid @RequestBody MenuDeleteRequest request) {
         return menuService.delete(request.getIds());
@@ -82,6 +90,7 @@ public class MenuController {
      *
      * @param request 排序请求
      */
+    @Operation(summary = "交换菜单排序")
     @PostMapping("/swap_sort")
     public void swapSort(@Valid @RequestBody MenuSwapSortRequest request) {
         menuService.swapSort(request.getSource(), request.getTarget());

@@ -12,6 +12,9 @@ import io.github.modelDesign.auth.response.RoleListItemVo;
 import io.github.modelDesign.auth.response.RolePermissionVo;
 import io.github.modelDesign.auth.service.PermissionService;
 import io.github.modelDesign.auth.service.RoleService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,6 +35,7 @@ import java.util.List;
  * 提供后台角色列表查询、添加、编辑以及状态切换能力。
  * 当前删除语义已经收敛为禁用/启用，因此这里不提供物理删除接口。
  */
+@Tag(name = "角色管理")
 @RestController
 @RequestMapping("/role")
 @RequiredArgsConstructor
@@ -55,6 +59,7 @@ public class RoleController {
      * @param request 列表请求
      * @return 分页结果
      */
+    @Operation(summary = "获取角色列表")
     @GetMapping("/list")
     public PageResponse<RoleListItemVo> list(@Valid RoleListRequest request) {
         return roleService.getList(request);
@@ -68,6 +73,7 @@ public class RoleController {
      * @param request 新增请求
      * @return 角色信息
      */
+    @Operation(summary = "新增角色")
     @PostMapping("/add")
     public RoleListItemVo add(@Valid @RequestBody RoleAddRequest request) {
         return roleService.add(request);
@@ -82,8 +88,9 @@ public class RoleController {
      * @param request 编辑请求
      * @return 角色信息
      */
+    @Operation(summary = "编辑角色")
     @PostMapping("/update")
-    public RoleListItemVo update(@RequestParam @NotNull(message = "角色 ID 不能为空") Long id,
+    public RoleListItemVo update(@Parameter(description = "角色 ID", required = true) @RequestParam @NotNull(message = "角色 ID 不能为空") Long id,
                                  @Valid @RequestBody RoleUpdateRequest request) {
         return roleService.update(id, request);
     }
@@ -95,6 +102,7 @@ public class RoleController {
      *
      * @param request 状态请求
      */
+    @Operation(summary = "修改单个角色状态")
     @PostMapping("/update_status")
     public void updateStatus(@Valid @RequestBody RoleUpdateStatusRequest request) {
         roleService.updateStatus(request);
@@ -107,6 +115,7 @@ public class RoleController {
      *
      * @param request 批量状态请求
      */
+    @Operation(summary = "批量修改角色状态")
     @PostMapping("/batch_update_status")
     public void batchUpdateStatus(@Valid @RequestBody RoleBatchUpdateStatusRequest request) {
         roleService.batchUpdateStatus(request);
@@ -118,9 +127,10 @@ public class RoleController {
      * @param roleCode 角色编码
      * @return 角色权限信息
      */
+    @Operation(summary = "查询角色权限配置")
     @GetMapping("/permission")
     public RolePermissionVo getPermission(
-            @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode) {
+            @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode) {
         return permissionService.getRolePermission(roleCode);
     }
 
@@ -130,9 +140,10 @@ public class RoleController {
      * @param roleCode 角色编码
      * @param request  权限更新请求
      */
+    @Operation(summary = "更新角色权限配置")
     @PostMapping("/permission/update")
     public void updatePermission(
-            @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode,
+            @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode,
             @Valid @RequestBody RolePermissionUpdateRequest request) {
         permissionService.updateRoleMenuPermissions(roleCode, request.getMenus());
     }
@@ -143,9 +154,10 @@ public class RoleController {
      * @param roleCode 角色编码
      * @return 用户 ID 列表
      */
+    @Operation(summary = "获取角色已绑定用户")
     @GetMapping("/users")
     public List<Long> getRoleUsers(
-            @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode) {
+            @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode) {
         roleService.requireRoleByCode(roleCode);
         return permissionService.getRoleUsers(roleCode);
     }
@@ -158,9 +170,10 @@ public class RoleController {
      * @param roleCode 角色编码
      * @param request  用户 ID 列表
      */
+    @Operation(summary = "更新角色绑定用户")
     @PostMapping("/users/update")
     public void updateRoleUsers(
-            @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode,
+            @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode,
             @Valid @RequestBody RoleUserUpdateRequest request) {
         roleService.requireRoleByCode(roleCode);
         permissionService.updateRoleUsers(roleCode, request.getUserIds());
