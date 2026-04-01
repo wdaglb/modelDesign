@@ -24,8 +24,8 @@ import { useKModal } from '@/components/KModal';
 import { DatabaseTypeLabel } from '@/api/modules/project.types';
 import queryKey from '@/constants/queryKey';
 import Icons from '@/icons';
+import { openTaskModal } from '@/service/taskModalService.tsx';
 import ProjectForm from './components/#ProjectForm';
-import TaskCreateForm from './components/#TaskCreateForm';
 
 export const Route = createFileRoute('/project/$projectId')({
   loader: async ({ params }) => {
@@ -317,33 +317,22 @@ function RouteComponent() {
               <Button
                 icon={<Icons.Plus />}
                 onClick={async () => {
-                  try {
-                    await modal.open({
-                      title: '新建任务',
-                      width: 960,
-                      styles: {
-                        body: {
-                          height: 580,
-                          overflowX: 'hidden',
-                          overflowY: 'auto',
-                        },
-                      },
-                      children: <TaskCreateForm projectId={numericProjectId} />,
-                    });
+                  const submitted = await openTaskModal(modal, {
+                    projectId: numericProjectId,
+                  });
 
-                    await Promise.all([
-                      queryClient.invalidateQueries({
-                        queryKey: queryKey.project.taskList(numericProjectId),
-                      }),
-                      queryClient.invalidateQueries({
-                        queryKey: queryKey.todo.list(),
-                      }),
-                    ]);
-                  } catch (modalError) {
-                    if (modalError !== 'KModal cancel') {
-                      throw modalError;
-                    }
+                  if (!submitted) {
+                    return;
                   }
+
+                  await Promise.all([
+                    queryClient.invalidateQueries({
+                      queryKey: queryKey.project.taskList(numericProjectId),
+                    }),
+                    queryClient.invalidateQueries({
+                      queryKey: queryKey.todo.list(),
+                    }),
+                  ]);
                 }}
               >
                 新建任务

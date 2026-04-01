@@ -1,6 +1,11 @@
 import { request } from '@/utils';
 import { md5 } from 'js-md5';
-import { CurrentInfoVo, PassportCurrentPermission } from './passport.types.ts';
+import {
+  CurrentInfoVo,
+  LoginHistoryVo,
+  PassportCurrentPermission,
+  UpdateCurrentProfileParams,
+} from './passport.types.ts';
 
 export interface ChangePasswordParams {
   oldPassword: string;
@@ -13,6 +18,16 @@ export interface ChangePasswordParams {
 export const getCurrentUser = () => {
   return request<CurrentInfoVo>('/passport/current_info', {
     method: 'get',
+  });
+};
+
+/**
+ * 更新当前登录用户基础资料。
+ */
+export const updateCurrentProfile = (data: UpdateCurrentProfileParams) => {
+  return request<CurrentInfoVo>('/passport/update_current_profile', {
+    method: 'post',
+    data,
   });
 };
 
@@ -48,6 +63,15 @@ export const changePassword = (data: ChangePasswordParams) => {
       oldPassword: md5(data.oldPassword),
       newPassword: md5(data.newPassword),
     },
+  });
+};
+
+/**
+ * 获取当前登录用户最近登录历史。
+ */
+export const getLoginHistory = () => {
+  return request<LoginHistoryVo[]>('/passport/login_history', {
+    method: 'get',
   });
 };
 

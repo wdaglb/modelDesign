@@ -37,4 +37,10 @@ public class UserListRequest {
      */
     @Schema(description = "用户昵称关键字")
     private String nickname;
+
+    /**
+     * 租户 ID。
+     */
+    @Schema(description = "租户 ID")
+    private Long tenantId;
 }

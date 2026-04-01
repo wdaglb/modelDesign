@@ -11,6 +11,8 @@ import io.github.modelDesign.auth.request.UserUpdateRequest;
 import io.github.modelDesign.auth.request.UserUpdateStatusRequest;
 import io.github.modelDesign.auth.response.PageResponse;
 import io.github.modelDesign.auth.response.UserListItemVo;
+import io.github.modelDesign.auth.session.AuthContext;
+import io.github.modelDesign.auth.session.CurrentAdmin;
 import io.github.modelDesign.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,7 +22,10 @@ import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 后台管理员服务。
@@ -35,6 +40,11 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * 密码编码器。
      */
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    /**
+     * 租户服务。
+     */
+    private final TenantService tenantService;
 
     /**
      * 按用户名查询管理员。
@@ -65,13 +75,18 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
     public PageResponse<UserListItemVo> getList(UserListRequest request) {
         long current = request.getCurrent();
         long pageSize = request.getPageSize();
-        List<Long> ids = request.getIds() == null
-                ? Collections.emptyList()
-                : request.getIds().stream().filter(Objects::nonNull).distinct().toList();
-        String nickname = request.getNickname() == null ? null : request.getNickname().trim();
+        List<Long> ids = Collections.emptyList();
+        if (request.getIds() != null) {
+            ids = request.getIds().stream().filter(Objects::nonNull).distinct().toList();
+        }
+        String nickname = null;
+        if (request.getNickname() != null) {
+            nickname = request.getNickname().trim();
+        }
         List<User> allUsers = lambdaQuery()
                 .in(!ids.isEmpty(), User::getId, ids)
                 .like(StringUtils.hasText(nickname), User::getNickname, nickname)
+                .eq(request.getTenantId() != null, User::getTenantId, request.getTenantId())
                 .orderByDesc(User::getUpdateTime)
                 .list();
         long total = allUsers.size();
@@ -81,7 +96,12 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
         }
         long toIndex = Math.min(fromIndex + pageSize, total);
         List<User> pageUsers = allUsers.subList((int) fromIndex, (int) toIndex);
-        return new PageResponse<>(pageUsers.stream().map(this::toUserListItem).toList(), total);
+        Set<Long> tenantIds = pageUsers.stream()
+                .map(User::getTenantId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> tenantNameMap = tenantService.getDisplayNameMapByIds(tenantIds);
+        return new PageResponse<>(pageUsers.stream().map(user -> toUserListItem(user, tenantNameMap)).toList(), total);
     }
 
     /**
@@ -98,8 +118,9 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
         User user = new User();
         user.setNickname(request.getNickname().trim());
         user.setUsername(request.getUsername().trim());
+        user.setTenantId(resolveTenantIdForCreate(request.getTenantId()));
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setStatus(Boolean.TRUE.equals(request.getIsDisable()) ? 0 : 1);
+        user.setStatus(resolveStatus(request.getIsDisable()));
         save(user);
         return toUserListItem(user);
     }
@@ -118,7 +139,8 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
         validateUsername(request.getUsername(), id);
         user.setNickname(request.getNickname().trim());
         user.setUsername(request.getUsername().trim());
-        user.setStatus(Boolean.TRUE.equals(request.getIsDisable()) ? 0 : 1);
+        user.setTenantId(resolveTenantIdForUpdate(request.getTenantId(), user.getTenantId()));
+        user.setStatus(resolveStatus(request.getIsDisable()));
         if (StringUtils.hasText(request.getPassword())) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
@@ -137,7 +159,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
         requireUser(request.getId());
         lambdaUpdate()
                 .eq(User::getId, request.getId())
-                .set(User::getStatus, Boolean.TRUE.equals(request.getIsDisable()) ? 0 : 1)
+                .set(User::getStatus, resolveStatus(request.getIsDisable()))
                 .update();
     }
 
@@ -155,7 +177,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
         }
         lambdaUpdate()
                 .in(User::getId, ids)
-                .set(User::getStatus, Boolean.TRUE.equals(request.getIsDisable()) ? 0 : 1)
+                .set(User::getStatus, resolveStatus(request.getIsDisable()))
                 .update();
     }
 
@@ -182,7 +204,10 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @param currentId 当前用户 ID，可为空
      */
     private void validateUsername(String username, Long currentId) {
-        String normalizedUsername = username == null ? null : username.trim();
+        String normalizedUsername = null;
+        if (username != null) {
+            normalizedUsername = username.trim();
+        }
         if (!StringUtils.hasText(normalizedUsername)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "用户名不能为空");
         }
@@ -204,12 +229,114 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @return 用户列表项
      */
     private UserListItemVo toUserListItem(User user) {
+        return toUserListItem(user, Collections.emptyMap());
+    }
+
+    /**
+     * 将用户实体转换为列表项。
+     *
+     * @param user 用户实体
+     * @param tenantNameMap 租户名称映射
+     * @return 用户列表项
+     */
+    private UserListItemVo toUserListItem(User user, Map<Long, String> tenantNameMap) {
+        String tenantName = "";
+        if (user.getTenantId() != null) {
+            String mappedName = tenantNameMap.get(user.getTenantId());
+            if (mappedName != null) {
+                tenantName = mappedName;
+            }
+        }
         return UserListItemVo.builder()
                 .id(user.getId())
                 .nickname(user.getNickname())
                 .username(user.getUsername())
+                .tenantId(user.getTenantId())
+                .tenantName(tenantName)
                 .avatarId(user.getAvatarId())
-                .isDisable(!Objects.equals(user.getStatus(), 1))
+                .isDisable(resolveDisable(user.getStatus()))
                 .build();
+    }
+
+    /**
+     * 解析新增场景下的租户 ID。
+     *
+     * @param requestTenantId 请求中的租户 ID
+     * @return 最终租户 ID
+     */
+    private Long resolveTenantIdForCreate(Long requestTenantId) {
+        Long targetTenantId = requestTenantId;
+        if (targetTenantId != null) {
+            return tenantService.requireAssignableTenantId(targetTenantId);
+        }
+        targetTenantId = getCurrentTenantId();
+        if (targetTenantId != null) {
+            return tenantService.requireAssignableTenantId(targetTenantId);
+        }
+        targetTenantId = TenantService.DEFAULT_TENANT_ID;
+        return tenantService.requireAssignableTenantId(targetTenantId);
+    }
+
+    /**
+     * 解析编辑场景下的租户 ID。
+     *
+     * @param requestTenantId  请求中的租户 ID
+     * @param existingTenantId 当前用户已有租户 ID
+     * @return 最终租户 ID
+     */
+    private Long resolveTenantIdForUpdate(Long requestTenantId, Long existingTenantId) {
+        Long targetTenantId = requestTenantId;
+        if (targetTenantId != null) {
+            return tenantService.requireAssignableTenantId(targetTenantId);
+        }
+        targetTenantId = existingTenantId;
+        if (targetTenantId != null) {
+            return tenantService.requireAssignableTenantId(targetTenantId);
+        }
+        targetTenantId = getCurrentTenantId();
+        if (targetTenantId != null) {
+            return tenantService.requireAssignableTenantId(targetTenantId);
+        }
+        targetTenantId = TenantService.DEFAULT_TENANT_ID;
+        return tenantService.requireAssignableTenantId(targetTenantId);
+    }
+
+    /**
+     * 解析用户状态值。
+     *
+     * @param isDisable 是否禁用
+     * @return 数据库存储值
+     */
+    private Integer resolveStatus(Boolean isDisable) {
+        if (Boolean.TRUE.equals(isDisable)) {
+            return 0;
+        }
+        return 1;
+    }
+
+    /**
+     * 解析列表中的禁用状态。
+     *
+     * @param status 数据库存储状态
+     * @return 是否禁用
+     */
+    private Boolean resolveDisable(Integer status) {
+        if (Objects.equals(status, 1)) {
+            return Boolean.FALSE;
+        }
+        return Boolean.TRUE;
+    }
+
+    /**
+     * 获取当前登录租户 ID。
+     *
+     * @return 当前租户 ID
+     */
+    private Long getCurrentTenantId() {
+        CurrentAdmin currentAdmin = AuthContext.get();
+        if (currentAdmin == null) {
+            return null;
+        }
+        return currentAdmin.getTenantId();
     }
 }

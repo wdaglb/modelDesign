@@ -23,13 +23,21 @@ export enum TodoPriority {
  */
 export enum TodoStatus {
   /**
-   * 待处理。
+   * 待执行。
    */
   Todo = 'todo',
   /**
-   * 进行中。
+   * 执行中。
    */
   InProgress = 'inProgress',
+  /**
+   * 待测试。
+   */
+  PendingTest = 'pendingTest',
+  /**
+   * 待发布。
+   */
+  PendingRelease = 'pendingRelease',
   /**
    * 已完成。
    */
@@ -53,8 +61,10 @@ export const TodoPriorityLabel = {
  * 我的待办状态中文映射。
  */
 export const TodoStatusLabel = {
-  [TodoStatus.Todo]: '待处理',
-  [TodoStatus.InProgress]: '进行中',
+  [TodoStatus.Todo]: '待执行',
+  [TodoStatus.InProgress]: '执行中',
+  [TodoStatus.PendingTest]: '待测试',
+  [TodoStatus.PendingRelease]: '待发布',
   [TodoStatus.Done]: '已完成',
   [TodoStatus.Canceled]: '已取消',
 };
@@ -77,6 +87,8 @@ export const TodoPriorityOptions = [
 export const TodoStatusOptions = [
   TodoStatus.Todo,
   TodoStatus.InProgress,
+  TodoStatus.PendingTest,
+  TodoStatus.PendingRelease,
   TodoStatus.Done,
   TodoStatus.Canceled,
 ].map((item) => ({
@@ -107,6 +119,11 @@ export interface TodoItem {
    * 优先级。
    */
   priority: TodoPriority;
+
+  /**
+   * 预计工时（人天）。
+   */
+  workDays?: number;
 
   /**
    * 状态。

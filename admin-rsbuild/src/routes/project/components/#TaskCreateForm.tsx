@@ -1,28 +1,64 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Col, DatePicker, Form, Input, Row, Select } from 'antd';
+import { Col, DatePicker, Form, Input, InputNumber, Row, Select } from 'antd';
 import dayjs from 'dayjs';
 
 import { ApiProject, ApiProjectTask } from '@/api';
 import type { Project } from '@/api/modules/project.types';
+import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import {
   TaskPriority,
   TaskPriorityOptions,
   TaskStatus,
+  TaskStatusLabel,
   TaskStatusOptions,
   type EditProjectTaskParams,
   type ProjectTaskDetail,
 } from '@/api/modules/project-task.types';
 import type { CreateProjectTaskParams } from '@/api/modules/project-task.types';
-import { UserSelect } from '@/components';
+import { KMarkdownEditor, UserSelect } from '@/components';
 import KModal from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
 
 interface TaskCreateFormProps {
   /** 默认项目 ID。 */
   projectId?: number;
+  /** 状态配置列表。 */
+  statusConfigs?: TaskStatusConfig[];
   /** 编辑时传入的任务详情。 */
   task?: ProjectTaskDetail;
+}
+
+/**
+ * 规范化提交到接口的负责人值。
+ *
+ * 前端清空选择时需要继续传 0，才能让后端反序列化为未分配。
+ */
+function getSubmitAssigneeId(value?: number) {
+  if (value === undefined) {
+    return 0;
+  }
+
+  return value;
+}
+
+/**
+ * 校验预计工时输入值。
+ *
+ * @param value 工时值
+ * @return 是否合法
+ */
+function validateWorkDaysValue(value?: number | null) {
+  if (value === undefined || value === null) {
+    return true;
+  }
+  if (value <= 0) {
+    return false;
+  }
+  if (!Number.isInteger(value * 2)) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -46,6 +82,53 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
     }),
   );
 
+  const statusOptions = useMemo(() => {
+    if (props.statusConfigs && props.statusConfigs.length > 0) {
+      const options = props.statusConfigs.map((item) => {
+        return {
+          label: item.name,
+          value: item.code,
+        };
+      });
+
+      const taskStatusExists = props.task?.status
+        ? props.statusConfigs.some((item) => item.code === props.task?.status)
+        : true;
+
+      if (taskStatusExists) {
+        return options;
+      }
+
+      if (!props.task?.status) {
+        return options;
+      }
+
+      return [
+        ...options,
+        {
+          label: `${props.task.status}（历史状态）`,
+          value: props.task.status,
+          disabled: true,
+        },
+      ];
+    }
+
+    const options = [...TaskStatusOptions];
+
+    if (props.task?.status !== TaskStatus.Canceled) {
+      return options;
+    }
+
+    return [
+      ...options,
+      {
+        label: `${TaskStatusLabel[TaskStatus.Canceled]}（历史状态）`,
+        value: TaskStatus.Canceled,
+        disabled: true,
+      },
+    ];
+  }, [props.statusConfigs, props.task?.status]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       form.focusField('title');
@@ -68,6 +151,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
         assigneeId: props.task?.assigneeId,
         status: props.task?.status ?? TaskStatus.Todo,
         priority: props.task?.priority ?? TaskPriority.Low,
+        workDays: props.task?.workDays,
         startTime: props.task?.startTime
           ? dayjs(props.task.startTime)
           : undefined,
@@ -79,7 +163,8 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
           description: values.description,
           status: values.status,
           priority: values.priority,
-          assigneeId: values.assigneeId,
+          workDays: values.workDays,
+          assigneeId: getSubmitAssigneeId(values.assigneeId),
           startTime: values.startTime
             ? dayjs(values.startTime).format('YYYY-MM-DD HH:mm:ss')
             : undefined,
@@ -106,7 +191,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
       <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
         <Row gutter={16} align={'stretch'} style={{ height: '100%' }}>
           {/* 左侧：标题 + 描述 */}
-          <Col span={14} style={{ display: 'flex' }}>
+          <Col span={18} style={{ display: 'flex' }}>
             <div
               style={{
                 width: '100%',
@@ -143,15 +228,14 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
                     lineHeight: '22px',
                   }}
                 >
-                  任务描述
+                  任务详情
                 </div>
 
                 <Form.Item name={'description'} noStyle>
-                  <Input.TextArea
-                    placeholder={'请输入任务描述'}
-                    style={{ flex: 1, minHeight: 0, resize: 'none' }}
-                    maxLength={1000}
-                    showCount
+                  <KMarkdownEditor
+                    placeholder={'请输入任务详情，支持 Markdown 和粘贴图片上传'}
+                    height={520}
+                    toolbarPreset={'compact'}
                   />
                 </Form.Item>
               </div>
@@ -159,7 +243,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
           </Col>
 
           {/* 右侧：项目、负责人、状态、优先级、开始时间、截止时间 */}
-          <Col span={10} style={{ display: 'flex' }}>
+          <Col span={6} style={{ display: 'flex' }}>
             <div
               style={{
                 width: '100%',
@@ -193,10 +277,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
                 label={'状态'}
                 rules={[{ required: true, message: '请选择任务状态' }]}
               >
-                <Select
-                  placeholder={'请选择状态'}
-                  options={TaskStatusOptions}
-                />
+                <Select placeholder={'请选择状态'} options={statusOptions} />
               </Form.Item>
 
               <Form.Item
@@ -207,6 +288,32 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
                 <Select
                   placeholder={'请选择优先级'}
                   options={TaskPriorityOptions}
+                />
+              </Form.Item>
+
+              <Form.Item
+                name={'workDays'}
+                label={'预计工时（人天）'}
+                rules={[
+                  {
+                    validator: async (_, value) => {
+                      if (validateWorkDaysValue(value)) {
+                        return;
+                      }
+
+                      throw new Error(
+                        '预计工时必须大于 0 且按 0.5 人天递增',
+                      );
+                    },
+                  },
+                ]}
+              >
+                <InputNumber
+                  min={0.5}
+                  step={0.5}
+                  precision={1}
+                  placeholder={'请输入预计工时'}
+                  style={{ width: '100%' }}
                 />
               </Form.Item>
 

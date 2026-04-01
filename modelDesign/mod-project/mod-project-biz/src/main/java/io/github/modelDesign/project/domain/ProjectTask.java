@@ -5,6 +5,7 @@ import io.github.modelDesign.entity.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -48,6 +49,11 @@ public class ProjectTask extends BaseEntity {
      * 负责人 ID。
      */
     private Long assigneeId;
+
+    /**
+     * 预计工时（人天）。
+     */
+    private BigDecimal workDays;
 
     /**
      * 开始时间。

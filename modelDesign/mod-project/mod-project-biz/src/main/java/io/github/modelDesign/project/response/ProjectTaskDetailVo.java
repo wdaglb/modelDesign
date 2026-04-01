@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 项目任务详情。
  */
@@ -36,16 +38,28 @@ public class ProjectTaskDetailVo {
     private String description;
 
     /**
-     * 任务状态。
+     * 任务状态编码。
      */
-    @Schema(description = "任务状态", allowableValues = {"todo", "inProgress", "done", "canceled"})
+    @Schema(description = "任务状态编码", allowableValues = {"todo", "inProgress", "pendingTest", "pendingRelease", "done", "canceled"})
     private String status;
+
+    /**
+     * 项目名称。
+     */
+    @Schema(description = "项目名称")
+    private String projectName;
 
     /**
      * 任务优先级。
      */
     @Schema(description = "任务优先级", allowableValues = {"low", "medium", "high"})
     private String priority;
+
+    /**
+     * 预计工时（人天）。
+     */
+    @Schema(description = "预计工时（人天）")
+    private BigDecimal workDays;
 
     /**
      * 负责人 ID。

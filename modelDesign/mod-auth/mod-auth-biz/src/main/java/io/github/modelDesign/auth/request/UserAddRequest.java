@@ -34,6 +34,14 @@ public class UserAddRequest {
     private String username;
 
     /**
+     * 默认租户 ID。
+     *
+     * 不传时默认沿用当前登录管理员所在租户；若当前上下文不存在租户，则回退为默认租户 1。
+     */
+    @Schema(description = "默认租户 ID")
+    private Long tenantId;
+
+    /**
      * 密码。
      *
      * 前端会先传入一次 md5 处理后的值，后端再继续进行 BCrypt 编码后入库。

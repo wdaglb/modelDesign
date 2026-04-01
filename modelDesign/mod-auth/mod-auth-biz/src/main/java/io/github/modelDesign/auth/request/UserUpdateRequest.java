@@ -34,6 +34,14 @@ public class UserUpdateRequest {
     private String username;
 
     /**
+     * 默认租户 ID。
+     *
+     * 不传时保持原租户不变。
+     */
+    @Schema(description = "默认租户 ID")
+    private Long tenantId;
+
+    /**
      * 密码。
      *
      * 允许为空；为空时表示保留原密码不变。

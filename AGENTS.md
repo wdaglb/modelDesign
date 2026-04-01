@@ -9,19 +9,30 @@
 
 这是一个全栈 monorepo，目前实际工作区包含两个主要部分：
 
+- 这是一个多租户的项目，区分租户以tenantId作数据隔离
+- 不需要做移动端的布局兼容
 - `admin-rsbuild/`：React 18 + TypeScript + Rsbuild + Ant Design 前端
 - `modelDesign/`：Spring Boot 3.5 + Spring AI + Maven 多模块后端
 - 接口文档：http://localhost:9999/v3/api-docs；openapi格式
+
+## 强制规范
+
+- 一定要补充好代码注释，但不能太泛滥；注释格式：/** */，不能使用单行
+- 禁止使用三元表达式，特别是嵌套的
+- 不需要执行命令验证
+- 单个文件超过400行，就需要考虑逻辑切割
 
 ## 前端
 
 ### 架构与构建
 
 - 使用 Rsbuild + React 插件，配置见 `admin-rsbuild/rsbuild.config.ts`。
+- UI框架使用Ant Design，尽量避免自己造组件
 - TanStack Router 通过 `@tanstack/router-plugin` 自动扫描 `src/routes/` 生成 `src/routeTree.gen.ts`。
 - `#` 前缀文件会被路由生成器忽略，适合作为页面私有子组件。
 - 新增路由时必须使用 `createFileRoute(...)` 导出 `Route`，不要只默认导出组件。
 - `src/routeTree.gen.ts` 是生成文件，不要手改。
+- 简单样式可以直接写style，复杂样式需要使用styled-components编写
 
 ### 分层结构
 
@@ -51,17 +62,11 @@
 - 页面中的弹窗与抽屉优先使用项目封装的 `KModal`、`KDrawer`，不要直接使用原生 `Modal`、`Drawer` 作为业务承载容器；`Modal.confirm()` 这类轻量确认场景除外
 - 页面中的表格渲染优先使用项目封装的 `KTable`，只有在现有 `KTable` 明显不适用时才使用原生 `Table`
 - 使用 `KTable` 时，工具栏按钮优先使用 `KTable.Button`，它会自动触发 `KTable` 刷新
-- 一定要补充好代码注释
-- 禁止使用三元表达式，特别是嵌套的
 - 项目已经在使用 Ant Design v6 风格 API，避免继续使用已废弃组件与属性，废弃的组件与参数可以阅读(https://ant.design/llms.txt)
 - 分页接口响应格式：{"items": [...], "total": 总数}
-- 不需要执行命令验证
 
 ## 后端
 
 - modelDesign/
 - 数据库postgresql+redis
-- 注释应该只保留有必要的文档注释，模型、请求体字段的注释是必要的
-- 方法不应只有方法注释，字段的注释也是必要的；但是注释不要泛滥，简单的注释可以不需要
 - 接口需要增加swagger的注解
-- 不需要执行编译验证

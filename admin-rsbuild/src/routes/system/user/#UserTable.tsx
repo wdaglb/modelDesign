@@ -1,6 +1,5 @@
 import React, { Key, useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Avatar, Empty, Flex, Input, Space, Tag, Typography } from 'antd';
+import { Avatar, Empty, Flex, Input, InputNumber, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 
 import { ApiUser } from '@/api';
@@ -14,6 +13,7 @@ import Icons from '@/icons';
 import BatchUpdateForm from './#BatchUpdateForm';
 import CreateUserForm from './#CreateUserForm';
 import RoleDrawer from './#RoleDrawer';
+import { getUserTenantText } from './#tenantHelper';
 import UpdateUserForm from './#UpdateUserForm';
 
 /**
@@ -55,10 +55,10 @@ const UserInfoCell = ({ item }: { item: User }) => {
  */
 const UserTable = () => {
   const modal = useKModal();
-  const queryClient = useQueryClient();
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [nickname, setNickname] = useState('');
+  const [tenantId, setTenantId] = useState<number>();
 
   /**
    * 列表查询参数。
@@ -69,8 +69,9 @@ const UserTable = () => {
     () => ({
       ...pagination,
       nickname: nickname.trim() || undefined,
+      tenantId,
     }),
-    [nickname, pagination],
+    [nickname, pagination, tenantId],
   );
 
   const columns: TableColumnsType<User> = [
@@ -85,6 +86,15 @@ const UserTable = () => {
       dataIndex: 'id',
       key: 'id',
       width: 120,
+    },
+    {
+      title: '租户',
+      dataIndex: 'tenantName',
+      key: 'tenantName',
+      width: 220,
+      render: (_, record) => {
+        return getUserTenantText(record);
+      },
     },
     {
       title: '状态',
@@ -167,18 +177,6 @@ const UserTable = () => {
     },
   ];
 
-  /**
-   * 当前分页总数。
-   *
-   * 直接从 query cache 中读取最近一次查询结果，用于自定义分页器展示总条数。
-   */
-  const total =
-    (
-      queryClient.getQueryData([...queryKey.user.list(), params]) as
-        | { total?: number }
-        | undefined
-    )?.total || 0;
-
   return (
     <KTable<User>
       queryKey={[...queryKey.user.list(), params]}
@@ -204,6 +202,22 @@ const UserTable = () => {
               onSearch={(value) => {
                 setPagination((prev) => ({ ...prev, current: 1 }));
                 setNickname(value);
+              }}
+            />
+
+            <InputNumber
+              min={1}
+              precision={0}
+              style={{ width: 180 }}
+              placeholder={'按租户 ID 筛选'}
+              value={tenantId}
+              onChange={(value) => {
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                if (typeof value === 'number') {
+                  setTenantId(value);
+                  return;
+                }
+                setTenantId(undefined);
               }}
             />
           </Space>

@@ -5,16 +5,20 @@ import {
   Form,
   Input,
   Radio,
+  Select,
   Space,
   Typography,
   message,
 } from 'antd';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { ApiUser } from '@/api';
+import { ApiTenant, ApiUser } from '@/api';
 import KModal from '@/components/KModal';
 import { modalContext } from '@/components/KModal/Modal.tsx';
 import queryKey from '@/constants/queryKey';
+import useAuthStore from '@/store/auth.ts';
+
+import { buildTenantSelectOptions } from './#tenantHelper';
 
 /**
  * 密码录入模式。
@@ -33,6 +37,11 @@ interface CreateUserFormValues {
    * 用户名。
    */
   username: string;
+
+  /**
+   * 默认租户 ID。
+   */
+  tenantId?: number;
 
   /**
    * 密码模式。
@@ -103,6 +112,14 @@ const CreateUserForm = () => {
   const queryClient = useQueryClient();
   const modal = useContext(modalContext);
   const [result, setResult] = useState<CreateResult>();
+  const currentInfo = useAuthStore((state) => state.currentInfo);
+
+  const { data: tenantOptionsData = [], isLoading: tenantLoading } = useQuery({
+    queryKey: queryKey.tenant.options(),
+    queryFn: ApiTenant.getOptions,
+  });
+
+  const tenantOptions = buildTenantSelectOptions(tenantOptionsData);
 
   /**
    * 在“系统生成”模式下刷新表单中的密码值。
@@ -124,12 +141,16 @@ const CreateUserForm = () => {
   };
 
   useEffect(() => {
-    form.setFieldsValue({
+    const initialValues: Partial<CreateUserFormValues> = {
       passwordMode: 'system',
       password: generatePassword(),
       isDisable: false,
-    });
-  }, [form]);
+    };
+    if (currentInfo?.tenantId !== undefined) {
+      initialValues.tenantId = currentInfo.tenantId;
+    }
+    form.setFieldsValue(initialValues);
+  }, [currentInfo?.tenantId, form]);
 
   if (result) {
     return (
@@ -198,6 +219,20 @@ const CreateUserForm = () => {
         rules={[{ required: true, message: '请输入用户名' }]}
       >
         <Input placeholder={'请输入用户名'} />
+      </Form.Item>
+
+      <Form.Item
+        name={'tenantId'}
+        label={'默认租户'}
+        rules={[{ required: true, message: '请选择默认租户' }]}
+      >
+        <Select
+          showSearch
+          loading={tenantLoading}
+          options={tenantOptions}
+          placeholder={'请选择默认租户'}
+          optionFilterProp={'label'}
+        />
       </Form.Item>
 
       <Form.Item name={'passwordMode'} label={'密码模式'} required>

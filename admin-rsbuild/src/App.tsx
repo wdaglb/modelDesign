@@ -9,6 +9,7 @@ import { PageLoading } from '@/components';
 import NotFound from '@/404.tsx';
 import { routeTree } from './routeTree.gen.ts';
 import './app.css';
+import 'dayjs/locale/zh-cn';
 
 export const queryClient = new QueryClient({
   defaultOptions: {

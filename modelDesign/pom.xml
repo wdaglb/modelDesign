@@ -21,6 +21,8 @@
         <module>mod-ai</module>
         <module>mod-auth</module>
         <module>mod-project</module>
+        <module>mod-system</module>
+        <module>mod-third-party</module>
         <module>mod-dependencies</module>
     </modules>
 
@@ -65,6 +67,26 @@
             <dependency>
                 <groupId>io.github.modelDesign</groupId>
                 <artifactId>mod-project-biz</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.modelDesign</groupId>
+                <artifactId>mod-system-api</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.modelDesign</groupId>
+                <artifactId>mod-system-biz</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.modelDesign</groupId>
+                <artifactId>mod-third-party-api</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.modelDesign</groupId>
+                <artifactId>mod-third-party-biz</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
             </dependency>
             <dependency>

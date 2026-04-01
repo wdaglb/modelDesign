@@ -5,7 +5,9 @@ import ShieldEdit from '~icons/mdi/shield-edit-outline';
 import AccountKey from '~icons/mdi/account-key-outline';
 import AccountGroup from '~icons/mdi/account-group-outline';
 import ArrowLeft from '~icons/mdi/arrow-left';
+import ChevronDown from '~icons/mdi/chevron-down';
 import UnfoldMoreHorizontal from '~icons/mdi/unfold-more-horizontal';
+import Subtasks from '~icons/mdi/subtasks';
 
 const Icons = {
   Plus,
@@ -15,7 +17,9 @@ const Icons = {
   AccountKey,
   AccountGroup,
   ArrowLeft,
+  ChevronDown,
   UnfoldMoreHorizontal,
+  Subtasks,
 };
 
 export default Icons;

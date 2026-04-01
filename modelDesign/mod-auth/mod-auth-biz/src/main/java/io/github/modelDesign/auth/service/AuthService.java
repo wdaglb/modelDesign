@@ -4,7 +4,9 @@ import io.github.modelDesign.auth.domain.User;
 import io.github.modelDesign.common.exception.BusinessException;
 import io.github.modelDesign.auth.request.ChangePasswordRequest;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
+import io.github.modelDesign.auth.request.UpdateCurrentProfileRequest;
 import io.github.modelDesign.auth.response.CurrentInfoVo;
+import io.github.modelDesign.auth.response.LoginHistoryVo;
 import io.github.modelDesign.auth.response.UserLoginVo;
 import io.github.modelDesign.auth.session.AuthContext;
 import io.github.modelDesign.auth.session.CurrentAdmin;
@@ -15,8 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -36,9 +40,19 @@ public class AuthService {
     private final SessionRepository sessionRepository;
 
     /**
+     * 租户服务。
+     */
+    private final TenantService tenantService;
+
+    /**
      * JWT 服务。
      */
     private final TokenService tokenService;
+
+    /**
+     * 登录历史服务。
+     */
+    private final UserLoginHistoryService userLoginHistoryService;
 
     /**
      * 密码编码器。
@@ -63,9 +77,14 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "账号或密码错误");
         }
+        if (user.getTenantId() == null) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "用户未绑定租户");
+        }
+        tenantService.validateLoginTenant(user.getTenantId());
 
         CurrentAdmin currentAdmin = CurrentAdmin.builder()
                 .userId(user.getId())
+                .tenantId(user.getTenantId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .avatarId(user.getAvatarId())
@@ -80,6 +99,7 @@ public class AuthService {
                 .set(User::getLastLoginIp, currentAdmin.getLoginIp())
                 .set(User::getLastLoginTime, currentAdmin.getTokenCreateTime())
                 .update();
+        userLoginHistoryService.recordPasswordLogin(currentAdmin);
 
         return UserLoginVo.builder()
                 .token(tokenService.createToken(currentAdmin))
@@ -94,15 +114,30 @@ public class AuthService {
      */
     public CurrentInfoVo getCurrentInfo() {
         CurrentAdmin currentAdmin = AuthContext.get();
-        return CurrentInfoVo.builder()
-                .avatarId(currentAdmin.getAvatarId())
-                .loginId(currentAdmin.getLoginId())
-                .loginIp(currentAdmin.getLoginIp())
-                .nickname(currentAdmin.getNickname())
-                .tokenCreateTime(currentAdmin.getTokenCreateTime())
-                .userId(currentAdmin.getUserId())
-                .username(currentAdmin.getUsername())
-                .build();
+        return toCurrentInfoVo(currentAdmin);
+    }
+
+    /**
+     * 更新当前登录用户基础资料。
+     *
+     * @param request 更新请求
+     * @return 更新后的当前登录用户信息
+     */
+    public CurrentInfoVo updateCurrentProfile(UpdateCurrentProfileRequest request) {
+        CurrentAdmin currentAdmin = requireCurrentAdmin();
+        User user = userService.requireUser(currentAdmin.getUserId());
+        String nickname = normalizeNickname(request.getNickname());
+        String avatarId = normalizeAvatarId(request.getAvatarId());
+
+        user.setNickname(nickname);
+        user.setAvatarId(avatarId);
+        userService.updateById(user);
+
+        currentAdmin.setNickname(nickname);
+        currentAdmin.setAvatarId(avatarId);
+        sessionRepository.save(currentAdmin);
+
+        return toCurrentInfoVo(currentAdmin);
     }
 
     /**
@@ -130,6 +165,19 @@ public class AuthService {
     }
 
     /**
+     * 获取当前登录用户最近登录历史。
+     *
+     * @return 最近登录历史
+     */
+    public List<LoginHistoryVo> getLoginHistory() {
+        CurrentAdmin currentAdmin = requireCurrentAdmin();
+        return userLoginHistoryService.getRecentLoginHistory(
+                currentAdmin.getUserId(),
+                currentAdmin.getTenantId()
+        );
+    }
+
+    /**
      * 注销当前登录会话。
      */
     public void logout() {
@@ -151,5 +199,36 @@ public class AuthService {
             return forwardedFor.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private CurrentInfoVo toCurrentInfoVo(CurrentAdmin currentAdmin) {
+        return CurrentInfoVo.builder()
+                .avatarId(currentAdmin.getAvatarId())
+                .loginId(currentAdmin.getLoginId())
+                .loginIp(currentAdmin.getLoginIp())
+                .nickname(currentAdmin.getNickname())
+                .tokenCreateTime(currentAdmin.getTokenCreateTime())
+                .tenantId(currentAdmin.getTenantId())
+                .userId(currentAdmin.getUserId())
+                .username(currentAdmin.getUsername())
+                .build();
+    }
+
+    private String normalizeNickname(String nickname) {
+        String normalizedNickname = "";
+        if (nickname != null) {
+            normalizedNickname = nickname.trim();
+        }
+        if (!StringUtils.hasText(normalizedNickname)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "用户昵称不能为空");
+        }
+        return normalizedNickname;
+    }
+
+    private String normalizeAvatarId(String avatarId) {
+        if (!StringUtils.hasText(avatarId)) {
+            return "";
+        }
+        return avatarId.trim();
     }
 }

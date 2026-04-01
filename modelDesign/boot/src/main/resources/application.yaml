@@ -32,6 +32,19 @@ spring:
       host: 127.0.0.1
       port: 16379
       database: 0
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:model-design}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      missing-topics-fatal: false
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -40,6 +53,10 @@ spring:
     url: ${spring.datasource.url}
     user: ${spring.datasource.username}
     password: ${spring.datasource.password}
+  servlet:
+    multipart:
+      max-file-size: ${MODEL_DESIGN_FILE_MAX_FILE_SIZE:20MB}
+      max-request-size: ${MODEL_DESIGN_FILE_MAX_REQUEST_SIZE:20MB}
   mvc:
     throw-exception-if-no-handler-found: true
 
@@ -54,11 +71,42 @@ mybatis-plus:
       column-format: '"%s"'
       table-format: '"%s"'
 
+dromara:
+  x-file-storage:
+    default-platform: local-plus-1
+    thumbnail-suffix: '.thumbnail.jpg'
+    local-plus:
+      - platform: local-plus-1
+        enable-storage: true
+        enable-access: false
+        domain: ''
+        base-path: 'system-file/'
+        storage-path: ${MODEL_DESIGN_FILE_STORAGE_PATH:./storage/}
+
 model-design:
   auth:
     jwt-secret: ${AUTH_JWT_SECRET:change-this-jwt-secret-change-this-jwt-secret}
     token-expire-seconds: ${AUTH_TOKEN_EXPIRE_SECONDS:7200}
     session-key-prefix: ${AUTH_SESSION_KEY_PREFIX:auth:admin:token:}
+  qywork:
+    base-url: ${QYWORK_BASE_URL:https://qyapi.weixin.qq.com}
+    access-token-cache-key-prefix: ${QYWORK_ACCESS_TOKEN_CACHE_KEY_PREFIX:qywork:access-token:}
+    access-token-refresh-advance-seconds: ${QYWORK_ACCESS_TOKEN_REFRESH_ADVANCE_SECONDS:300}
+  system:
+    file:
+      storage-path: ${MODEL_DESIGN_FILE_STORAGE_PATH:./storage/}
+      thumbnail:
+        enabled: ${MODEL_DESIGN_FILE_THUMBNAIL_ENABLED:true}
+        width: ${MODEL_DESIGN_FILE_THUMBNAIL_WIDTH:200}
+        height: ${MODEL_DESIGN_FILE_THUMBNAIL_HEIGHT:200}
+    message:
+      kafka:
+        push-topic: ${MODEL_DESIGN_SYSTEM_MESSAGE_PUSH_TOPIC:model-design.system-message.push}
+        push-dlt-topic: ${MODEL_DESIGN_SYSTEM_MESSAGE_PUSH_DLT_TOPIC:model-design.system-message.push.dlt}
+        retry-max-attempts: ${MODEL_DESIGN_SYSTEM_MESSAGE_RETRY_MAX_ATTEMPTS:3}
+        retry-backoff-seconds: ${MODEL_DESIGN_SYSTEM_MESSAGE_RETRY_BACKOFF_SECONDS:300}
+        republish-interval-seconds: ${MODEL_DESIGN_SYSTEM_MESSAGE_REPUBLISH_INTERVAL_SECONDS:30}
+        republish-batch-size: ${MODEL_DESIGN_SYSTEM_MESSAGE_REPUBLISH_BATCH_SIZE:100}
 
 logging:
   level:

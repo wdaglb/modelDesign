@@ -1,6 +1,7 @@
 package io.github.modelDesign.project.controller;
 
 import io.github.modelDesign.project.request.MyTodoListRequest;
+import io.github.modelDesign.project.request.ProjectTaskBoardRequest;
 import io.github.modelDesign.project.request.ProjectTaskCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskDeleteRequest;
 import io.github.modelDesign.project.request.ProjectTaskEditRequest;
@@ -8,6 +9,7 @@ import io.github.modelDesign.project.request.ProjectTaskListRequest;
 import io.github.modelDesign.project.response.MyTodoItemVo;
 import io.github.modelDesign.project.response.PageResponse;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
+import io.github.modelDesign.project.service.ProjectTaskBoardQueryService;
 import io.github.modelDesign.project.service.ProjectTaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * 项目任务接口。
  */
@@ -36,6 +40,11 @@ public class ProjectTaskController {
      * 项目任务服务。
      */
     private final ProjectTaskService projectTaskService;
+
+    /**
+     * 项目任务敏捷面板查询服务。
+     */
+    private final ProjectTaskBoardQueryService projectTaskBoardQueryService;
 
     /**
      * 获取我的待办列表。
@@ -59,6 +68,30 @@ public class ProjectTaskController {
     @GetMapping("/list")
     public PageResponse<ProjectTaskDetailVo> list(@Valid ProjectTaskListRequest request) {
         return projectTaskService.getList(request);
+    }
+
+    /**
+     * 获取敏捷面板任务列表。
+     *
+     * @param request 列表请求
+     * @return 任务列表
+     */
+    @Operation(summary = "获取敏捷面板任务列表")
+    @GetMapping("/board")
+    public List<ProjectTaskDetailVo> board(@Valid ProjectTaskBoardRequest request) {
+        return projectTaskBoardQueryService.getBoard(request);
+    }
+
+    /**
+     * 获取敏捷面板专用任务列表。
+     *
+     * @param request 列表请求
+     * @return 按优先级排序的任务列表
+     */
+    @Operation(summary = "获取敏捷面板专用任务列表（按优先级从高到低排序）")
+    @GetMapping("/agile-board")
+    public List<ProjectTaskDetailVo> agileBoard(@Valid ProjectTaskBoardRequest request) {
+        return projectTaskBoardQueryService.getAgileBoard(request);
     }
 
     /**

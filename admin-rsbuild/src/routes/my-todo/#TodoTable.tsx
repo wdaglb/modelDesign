@@ -30,8 +30,21 @@ const priorityColorMap: Record<TodoPriority, string> = {
 const statusColorMap: Record<TodoStatus, string> = {
   [TodoStatus.Todo]: 'orange',
   [TodoStatus.InProgress]: 'blue',
+  [TodoStatus.PendingTest]: 'cyan',
+  [TodoStatus.PendingRelease]: 'geekblue',
   [TodoStatus.Done]: 'green',
   [TodoStatus.Canceled]: 'default',
+};
+
+/**
+ * 获取工时展示文案。
+ */
+const getWorkDaysText = (value?: number) => {
+  if (value === undefined || value === null) {
+    return '-';
+  }
+
+  return `${value} 人天`;
 };
 
 /**
@@ -90,6 +103,15 @@ const TodoTable = () => {
       render: (value: TodoItem['priority']) => (
         <Tag color={priorityColorMap[value]}>{TodoPriorityLabel[value]}</Tag>
       ),
+    },
+    {
+      title: '预计工时（人天）',
+      dataIndex: 'workDays',
+      key: 'workDays',
+      width: 132,
+      render: (value: TodoItem['workDays']) => {
+        return getWorkDaysText(value);
+      },
     },
     {
       title: '状态',

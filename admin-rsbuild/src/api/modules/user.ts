@@ -23,6 +23,16 @@ export interface User {
   username: string;
 
   /**
+   * 默认租户 ID。
+   */
+  tenantId?: number;
+
+  /**
+   * 默认租户名称。
+   */
+  tenantName?: string;
+
+  /**
    * 头像文件 ID。
    */
   avatarId: string;
@@ -58,6 +68,11 @@ export interface UserPageParams {
    * 按昵称关键字筛选。
    */
   nickname?: string;
+
+  /**
+   * 按租户 ID 筛选。
+   */
+  tenantId?: number;
 }
 
 /**
@@ -80,6 +95,11 @@ export interface UserCreateParams {
    * 前端发送前会先做一次 md5，后端再进行 BCrypt 编码入库。
    */
   password: string;
+
+  /**
+   * 默认租户 ID。
+   */
+  tenantId?: number;
 
   /**
    * 是否禁用。
@@ -107,6 +127,11 @@ export interface UserUpdateParams {
    * 编辑场景下允许为空；为空时表示不修改原密码。
    */
   password?: string;
+
+  /**
+   * 默认租户 ID。
+   */
+  tenantId?: number;
 
   /**
    * 是否禁用。

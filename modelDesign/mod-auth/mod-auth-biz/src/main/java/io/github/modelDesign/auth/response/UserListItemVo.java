@@ -30,6 +30,18 @@ public class UserListItemVo {
     private String username;
 
     /**
+     * 默认租户 ID。
+     */
+    @Schema(description = "默认租户 ID")
+    private Long tenantId;
+
+    /**
+     * 默认租户名称。
+     */
+    @Schema(description = "默认租户名称")
+    private String tenantName;
+
+    /**
      * 头像文件 ID。
      */
     @Schema(description = "头像文件 ID")

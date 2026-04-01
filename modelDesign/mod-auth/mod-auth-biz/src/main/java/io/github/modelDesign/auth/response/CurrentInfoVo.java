@@ -48,6 +48,12 @@ public class CurrentInfoVo {
     private LocalDateTime tokenCreateTime;
 
     /**
+     * 当前租户 ID。
+     */
+    @Schema(description = "当前租户 ID")
+    private Long tenantId;
+
+    /**
      * 用户 ID。
      */
     @Schema(description = "用户 ID")

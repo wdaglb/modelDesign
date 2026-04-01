@@ -20,6 +20,7 @@ interface AuthStore {
   loadState: number;
   initState: (location: ParsedLocation) => Promise<void>;
   setToken: (token: string) => void;
+  setCurrentInfo: (currentInfo?: CurrentInfoVo) => void;
   clearAuth: () => void;
 }
 
@@ -59,6 +60,9 @@ const useAuthStore = create<AuthStore>((set, get) => {
     setToken(token) {
       localStorage.setItem('token', token);
       set({ token });
+    },
+    setCurrentInfo(currentInfo) {
+      set({ currentInfo });
     },
     clearAuth() {
       localStorage.removeItem('token');

@@ -1,6 +1,8 @@
 import request from '@/utils/request.ts';
 
 import type {
+  ProjectTaskBoardParams,
+  ProjectTaskBoardResponse,
   CreateProjectTaskParams,
   EditProjectTaskParams,
   ProjectTaskDetail,
@@ -15,6 +17,30 @@ export const getList = (
   params: ProjectTaskListParams,
 ): Promise<ProjectTaskPageResponse> => {
   return request('/project/task/list', {
+    method: 'get',
+    params,
+  });
+};
+
+/**
+ * 获取敏捷面板任务列表。
+ */
+export const getBoard = (
+  params?: ProjectTaskBoardParams,
+): Promise<ProjectTaskBoardResponse> => {
+  return request('/project/task/board', {
+    method: 'get',
+    params,
+  });
+};
+
+/**
+ * 获取敏捷面板专用任务列表。
+ */
+export const getAgileBoard = (
+  params?: ProjectTaskBoardParams,
+): Promise<ProjectTaskBoardResponse> => {
+  return request('/project/task/agile-board', {
     method: 'get',
     params,
   });

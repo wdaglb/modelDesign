@@ -32,6 +32,7 @@ public class TokenService {
         return Jwts.builder()
                 .subject(String.valueOf(currentAdmin.getUserId()))
                 .claim("loginId", currentAdmin.getLoginId())
+                .claim("tenantId", currentAdmin.getTenantId())
                 .claim("username", currentAdmin.getUsername())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expireAt))

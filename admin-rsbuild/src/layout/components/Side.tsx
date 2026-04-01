@@ -1,11 +1,20 @@
-import React, { memo, ReactNode, useEffect, useMemo, useState } from 'react';
+import { memo, ReactNode, useEffect, useMemo, useState } from 'react';
 import { Avatar, Dropdown, Layout, Menu } from 'antd';
 import { ItemType } from 'antd/es/menu/interface';
 import { Icon } from '@iconify/react';
+import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useShallow } from 'zustand/react/shallow';
 
+import { ApiSystemMessage } from '@/api';
+import { useKDrawer } from '@/components/KDrawer';
 import { useKModal } from '@/components/KModal';
+import {
+  MessageCenterDrawer,
+  MessageNotificationButton,
+} from '@/components';
+import queryKey from '@/constants/queryKey';
+import useFileUrl from '@/hooks/useFileUrl.ts';
 import { logout } from '@/service/loginService.ts';
 import useAuthStore from '@/store/auth.ts';
 
@@ -30,9 +39,15 @@ const Side = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const drawer = useKDrawer();
   const modal = useKModal();
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const { data: unreadCountData } = useQuery({
+    queryKey: queryKey.systemMessage.unreadCount(),
+    queryFn: () => ApiSystemMessage.getUnreadCount(),
+    enabled: Boolean(currentInfo?.userId),
+  });
 
   const { menuData, parentKeys } = useMemo(() => {
     const result: MenuItem[] = [];
@@ -105,8 +120,9 @@ const Side = () => {
   }, [menus]);
 
   const displayName = currentInfo?.nickname || currentInfo?.username || '未登录用户';
-  const subTitle = currentInfo?.username || '点击查看操作';
   const avatarText = (displayName[0] || 'U').toUpperCase();
+  const avatarUrl = useFileUrl(currentInfo?.avatarId);
+  const unreadCount = unreadCountData?.unreadCount || 0;
 
   useEffect(() => {
     /**
@@ -130,6 +146,11 @@ const Side = () => {
   }, [location.pathname, parentKeys]);
 
   const handleUserAction = async (key: string) => {
+    if (key === 'personalCenter') {
+      navigate({ to: '/personal-center' });
+      return;
+    }
+
     if (key === 'changePassword') {
       await modal.open({
         title: '修改密码',
@@ -142,6 +163,21 @@ const Side = () => {
     if (key === 'logout') {
       await logout(true);
     }
+  };
+
+  const openMessageDrawer = () => {
+    drawer.open({
+      placement: 'left',
+      size: 408,
+      title: null,
+      closable: false,
+      styles: {
+        body: {
+          padding: 0,
+        },
+      },
+      children: <MessageCenterDrawer />,
+    });
   };
 
   return (
@@ -165,90 +201,111 @@ const Side = () => {
         }}
       >
         <div style={{ padding: '16px 12px 12px' }}>
-          <Dropdown
-            trigger={['click']}
-            menu={{
-              items: [
-                { key: 'changePassword', label: '修改密码' },
-                { key: 'logout', label: '注销登录' },
-              ],
-              onClick: async ({ key }) => {
-                await handleUserAction(key);
-              },
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              minWidth: 0,
+              minHeight: 58,
+              padding: '10px 12px',
+              borderRadius: 18,
+              background:
+                'linear-gradient(135deg, rgba(59, 130, 246, 0.44) 0%, rgba(37, 99, 235, 0.26) 48%, rgba(15, 23, 42, 0.16) 100%)',
+              border: '1px solid rgba(96, 165, 250, 0.36)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 12px 28px rgba(37, 99, 235, 0.18)',
             }}
           >
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '14px 12px',
-                cursor: 'pointer',
-                borderRadius: 14,
-                background: 'linear-gradient(135deg, rgba(22, 119, 255, 0.2) 0%, rgba(22, 119, 255, 0.08) 100%)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
-                transition: 'all 0.2s ease',
+                position: 'relative',
+                width: 40,
+                height: 40,
+                flexShrink: 0,
               }}
             >
               <Avatar
                 size={40}
+                src={avatarUrl}
                 style={{
-                  background: 'linear-gradient(135deg, #4096ff 0%, #1677ff 100%)',
+                  background:
+                    'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)',
                   color: '#fff',
                   fontWeight: 600,
-                  flexShrink: 0,
-                  boxShadow: '0 6px 16px rgba(22, 119, 255, 0.28)',
+                  boxShadow: '0 8px 20px rgba(37, 99, 235, 0.34)',
                 }}
               >
                 {avatarText}
               </Avatar>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div
-                  style={{
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    lineHeight: '22px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {displayName}
-                </div>
-                <div
-                  style={{
-                    color: 'rgba(255, 255, 255, 0.65)',
-                    fontSize: 12,
-                    lineHeight: '20px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {subTitle}
-                </div>
-              </div>
+
+              <MessageNotificationButton
+                unreadCount={unreadCount}
+                onClick={openMessageDrawer}
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -4,
+                }}
+              />
+            </div>
+
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div
                 style={{
-                  width: 28,
-                  height: 28,
-                  display: 'flex',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  lineHeight: '20px',
+                  textShadow: '0 1px 10px rgba(37, 99, 235, 0.22)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {displayName}
+              </div>
+            </div>
+
+            <Dropdown
+              trigger={['click']}
+              placement={'bottomRight'}
+              menu={{
+                items: [
+                  { key: 'personalCenter', label: '个人中心' },
+                  { key: 'changePassword', label: '修改密码' },
+                  { key: 'logout', label: '注销登录' },
+                ],
+                onClick: async ({ key }) => {
+                  await handleUserAction(key);
+                },
+              }}
+            >
+              <button
+                type={'button'}
+                style={{
+                  width: 24,
+                  height: 24,
+                  display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderRadius: 999,
-                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: 'rgba(255, 255, 255, 0.72)',
+                  cursor: 'pointer',
                   flexShrink: 0,
                 }}
               >
                 <Icon
                   icon={'mdi:chevron-down'}
-                  style={{ color: 'rgba(255, 255, 255, 0.75)', fontSize: 18 }}
+                  style={{
+                    fontSize: 15,
+                  }}
                 />
-              </div>
-            </div>
-          </Dropdown>
+              </button>
+            </Dropdown>
+          </div>
         </div>
 
         <div

@@ -11,17 +11,21 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MyTodoRouteImport } from './routes/my-todo'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AgileBoardRouteImport } from './routes/agile-board'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectIndexRouteImport } from './routes/project/index'
+import { Route as PersonalCenterIndexRouteImport } from './routes/personal-center/index'
 import { Route as ProjectProjectIdRouteImport } from './routes/project/$projectId'
 import { Route as AiChatRouteImport } from './routes/ai.chat'
 import { Route as SystemUserIndexRouteImport } from './routes/system/user/index'
+import { Route as SystemTenantIndexRouteImport } from './routes/system/tenant/index'
 import { Route as SystemRoleIndexRouteImport } from './routes/system/role/index'
 import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
 import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$projectId.tasks'
 import { Route as ProjectProjectIdTablesRouteImport } from './routes/project/$projectId.tables'
 import { Route as ProjectProjectIdMembersRouteImport } from './routes/project/$projectId.members'
+import { Route as SystemThirdPartyQyworkIndexRouteImport } from './routes/system/third-party/qywork/index'
 
 const MyTodoRoute = MyTodoRouteImport.update({
   id: '/my-todo',
@@ -33,6 +37,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgileBoardRoute = AgileBoardRouteImport.update({
+  id: '/agile-board',
+  path: '/agile-board',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -41,6 +50,11 @@ const IndexRoute = IndexRouteImport.update({
 const ProjectIndexRoute = ProjectIndexRouteImport.update({
   id: '/project/',
   path: '/project/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PersonalCenterIndexRoute = PersonalCenterIndexRouteImport.update({
+  id: '/personal-center/',
+  path: '/personal-center/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
@@ -56,6 +70,11 @@ const AiChatRoute = AiChatRouteImport.update({
 const SystemUserIndexRoute = SystemUserIndexRouteImport.update({
   id: '/system/user/',
   path: '/system/user/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SystemTenantIndexRoute = SystemTenantIndexRouteImport.update({
+  id: '/system/tenant/',
+  path: '/system/tenant/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SystemRoleIndexRoute = SystemRoleIndexRouteImport.update({
@@ -88,13 +107,21 @@ const ProjectProjectIdMembersRoute = ProjectProjectIdMembersRouteImport.update({
   path: '/members',
   getParentRoute: () => ProjectProjectIdRoute,
 } as any)
+const SystemThirdPartyQyworkIndexRoute =
+  SystemThirdPartyQyworkIndexRouteImport.update({
+    id: '/system/third-party/qywork/',
+    path: '/system/third-party/qywork/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agile-board': typeof AgileBoardRoute
   '/login': typeof LoginRoute
   '/my-todo': typeof MyTodoRoute
   '/ai/chat': typeof AiChatRoute
   '/project/$projectId': typeof ProjectProjectIdRouteWithChildren
+  '/personal-center/': typeof PersonalCenterIndexRoute
   '/project/': typeof ProjectIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
@@ -102,13 +129,17 @@ export interface FileRoutesByFullPath {
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
+  '/system/tenant/': typeof SystemTenantIndexRoute
   '/system/user/': typeof SystemUserIndexRoute
+  '/system/third-party/qywork/': typeof SystemThirdPartyQyworkIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agile-board': typeof AgileBoardRoute
   '/login': typeof LoginRoute
   '/my-todo': typeof MyTodoRoute
   '/ai/chat': typeof AiChatRoute
+  '/personal-center': typeof PersonalCenterIndexRoute
   '/project': typeof ProjectIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
@@ -116,15 +147,19 @@ export interface FileRoutesByTo {
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
   '/system/menu': typeof SystemMenuIndexRoute
   '/system/role': typeof SystemRoleIndexRoute
+  '/system/tenant': typeof SystemTenantIndexRoute
   '/system/user': typeof SystemUserIndexRoute
+  '/system/third-party/qywork': typeof SystemThirdPartyQyworkIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agile-board': typeof AgileBoardRoute
   '/login': typeof LoginRoute
   '/my-todo': typeof MyTodoRoute
   '/ai/chat': typeof AiChatRoute
   '/project/$projectId': typeof ProjectProjectIdRouteWithChildren
+  '/personal-center/': typeof PersonalCenterIndexRoute
   '/project/': typeof ProjectIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
@@ -132,16 +167,20 @@ export interface FileRoutesById {
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
+  '/system/tenant/': typeof SystemTenantIndexRoute
   '/system/user/': typeof SystemUserIndexRoute
+  '/system/third-party/qywork/': typeof SystemThirdPartyQyworkIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agile-board'
     | '/login'
     | '/my-todo'
     | '/ai/chat'
     | '/project/$projectId'
+    | '/personal-center/'
     | '/project/'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
@@ -149,13 +188,17 @@ export interface FileRouteTypes {
     | '/project/$projectId/'
     | '/system/menu/'
     | '/system/role/'
+    | '/system/tenant/'
     | '/system/user/'
+    | '/system/third-party/qywork/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/agile-board'
     | '/login'
     | '/my-todo'
     | '/ai/chat'
+    | '/personal-center'
     | '/project'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
@@ -163,14 +206,18 @@ export interface FileRouteTypes {
     | '/project/$projectId'
     | '/system/menu'
     | '/system/role'
+    | '/system/tenant'
     | '/system/user'
+    | '/system/third-party/qywork'
   id:
     | '__root__'
     | '/'
+    | '/agile-board'
     | '/login'
     | '/my-todo'
     | '/ai/chat'
     | '/project/$projectId'
+    | '/personal-center/'
     | '/project/'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
@@ -178,19 +225,25 @@ export interface FileRouteTypes {
     | '/project/$projectId/'
     | '/system/menu/'
     | '/system/role/'
+    | '/system/tenant/'
     | '/system/user/'
+    | '/system/third-party/qywork/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgileBoardRoute: typeof AgileBoardRoute
   LoginRoute: typeof LoginRoute
   MyTodoRoute: typeof MyTodoRoute
   AiChatRoute: typeof AiChatRoute
   ProjectProjectIdRoute: typeof ProjectProjectIdRouteWithChildren
+  PersonalCenterIndexRoute: typeof PersonalCenterIndexRoute
   ProjectIndexRoute: typeof ProjectIndexRoute
   SystemMenuIndexRoute: typeof SystemMenuIndexRoute
   SystemRoleIndexRoute: typeof SystemRoleIndexRoute
+  SystemTenantIndexRoute: typeof SystemTenantIndexRoute
   SystemUserIndexRoute: typeof SystemUserIndexRoute
+  SystemThirdPartyQyworkIndexRoute: typeof SystemThirdPartyQyworkIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -209,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agile-board': {
+      id: '/agile-board'
+      path: '/agile-board'
+      fullPath: '/agile-board'
+      preLoaderRoute: typeof AgileBoardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -221,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/project'
       fullPath: '/project/'
       preLoaderRoute: typeof ProjectIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/personal-center/': {
+      id: '/personal-center/'
+      path: '/personal-center'
+      fullPath: '/personal-center/'
+      preLoaderRoute: typeof PersonalCenterIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/project/$projectId': {
@@ -242,6 +309,13 @@ declare module '@tanstack/react-router' {
       path: '/system/user'
       fullPath: '/system/user/'
       preLoaderRoute: typeof SystemUserIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system/tenant/': {
+      id: '/system/tenant/'
+      path: '/system/tenant'
+      fullPath: '/system/tenant/'
+      preLoaderRoute: typeof SystemTenantIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/system/role/': {
@@ -286,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectIdMembersRouteImport
       parentRoute: typeof ProjectProjectIdRoute
     }
+    '/system/third-party/qywork/': {
+      id: '/system/third-party/qywork/'
+      path: '/system/third-party/qywork'
+      fullPath: '/system/third-party/qywork/'
+      preLoaderRoute: typeof SystemThirdPartyQyworkIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -308,14 +389,18 @@ const ProjectProjectIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgileBoardRoute: AgileBoardRoute,
   LoginRoute: LoginRoute,
   MyTodoRoute: MyTodoRoute,
   AiChatRoute: AiChatRoute,
   ProjectProjectIdRoute: ProjectProjectIdRouteWithChildren,
+  PersonalCenterIndexRoute: PersonalCenterIndexRoute,
   ProjectIndexRoute: ProjectIndexRoute,
   SystemMenuIndexRoute: SystemMenuIndexRoute,
   SystemRoleIndexRoute: SystemRoleIndexRoute,
+  SystemTenantIndexRoute: SystemTenantIndexRoute,
   SystemUserIndexRoute: SystemUserIndexRoute,
+  SystemThirdPartyQyworkIndexRoute: SystemThirdPartyQyworkIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

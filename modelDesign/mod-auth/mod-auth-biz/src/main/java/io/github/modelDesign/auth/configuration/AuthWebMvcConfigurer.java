@@ -20,6 +20,8 @@ public class AuthWebMvcConfigurer implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/passport/password_login",
                         "/error",
+                        "/system/file/image/content/**",
+                        "/system/file/image/thumbnail/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html"

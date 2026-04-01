@@ -5,9 +5,10 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 import * as path from 'path';
 import Icons from 'unplugin-icons/rspack';
+import { pluginStyledComponents } from '@rsbuild/plugin-styled-components';
 
 export default defineConfig({
-  plugins: [pluginReact(), pluginLess()],
+  plugins: [pluginReact(), pluginLess(), pluginStyledComponents()],
 
   resolve: {
     alias: {

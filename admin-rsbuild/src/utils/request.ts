@@ -10,6 +10,7 @@ interface RequestOptions {
   method?: 'get' | 'post';
   params?: any;
   data?: any;
+  skipErrorHandler?: boolean;
 }
 
 const errorMessageMap: Record<number, string> = {

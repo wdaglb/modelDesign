@@ -26,6 +26,11 @@ public class CurrentAdmin implements Serializable {
     private Long userId;
 
     /**
+     * 当前租户 ID。
+     */
+    private Long tenantId;
+
+    /**
      * 登录用户名。
      */
     private String username;

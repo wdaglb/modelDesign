@@ -41,9 +41,9 @@ public class ProjectTaskListRequest {
     private String title;
 
     /**
-     * 任务状态。
+     * 任务状态编码。
      */
-    @Schema(description = "任务状态", allowableValues = {"todo", "inProgress", "done", "canceled"})
+    @Schema(description = "任务状态编码", allowableValues = {"todo", "inProgress", "pendingTest", "pendingRelease", "done", "canceled"})
     @Size(max = 32, message = "任务状态长度不能超过 32 个字符")
     private String status;
 

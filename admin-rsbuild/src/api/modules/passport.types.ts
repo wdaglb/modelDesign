@@ -20,6 +20,10 @@ export interface CurrentInfoVo {
    */
   tokenCreateTime: string;
   /**
+   * 当前租户id
+   */
+  tenantId: number;
+  /**
    * 用户id
    */
   userId: number;
@@ -28,6 +32,46 @@ export interface CurrentInfoVo {
    */
   username: string;
   [property: string]: any;
+}
+
+/**
+ * 更新当前登录用户基础资料参数。
+ */
+export interface UpdateCurrentProfileParams {
+  /**
+   * 用户昵称。
+   */
+  nickname: string;
+
+  /**
+   * 头像文件 ID。
+   */
+  avatarId?: string;
+}
+
+/**
+ * 登录历史记录。
+ */
+export interface LoginHistoryVo {
+  /**
+   * 登录流水号。
+   */
+  loginId: string;
+
+  /**
+   * 登录 IP。
+   */
+  loginIp: string;
+
+  /**
+   * 登录方式。
+   */
+  loginType: string;
+
+  /**
+   * 登录时间。
+   */
+  loginTime: string;
 }
 
 export interface PassportCurrentPermission {

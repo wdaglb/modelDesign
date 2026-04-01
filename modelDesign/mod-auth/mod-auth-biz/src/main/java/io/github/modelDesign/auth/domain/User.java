@@ -20,6 +20,11 @@ public class User extends BaseEntity {
     private String username;
 
     /**
+     * 默认租户 ID。
+     */
+    private Long tenantId;
+
+    /**
      * 基于前端 md5 密码串再次 BCrypt 后的密码摘要。
      */
     private String passwordHash;

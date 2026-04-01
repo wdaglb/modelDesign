@@ -41,6 +41,8 @@ export interface UserSelectProps {
   allowClear?: boolean;
   /** 是否禁用。 */
   disabled?: boolean;
+  /** 组件尺寸。 */
+  size?: 'large' | 'middle' | 'small';
 }
 
 /**
@@ -108,6 +110,7 @@ const UserSelect = (props: UserSelectProps) => {
       placeholder={props.placeholder ?? '请输入昵称搜索用户'}
       allowClear={props.allowClear ?? true}
       disabled={props.disabled}
+      size={props.size}
       notFoundContent={
         isFetching ? '搜索中...' : isSearching ? '未找到用户' : '暂无最近选择'
       }

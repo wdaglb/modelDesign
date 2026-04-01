@@ -30,13 +30,17 @@ export const TaskPriorityOptions = [
 export enum TaskStatus {
   Todo = 'todo',
   InProgress = 'inProgress',
+  PendingTest = 'pendingTest',
+  PendingRelease = 'pendingRelease',
   Done = 'done',
   Canceled = 'canceled',
 }
 
 export const TaskStatusLabel: Record<TaskStatus, string> = {
-  [TaskStatus.Todo]: '待处理',
-  [TaskStatus.InProgress]: '进行中',
+  [TaskStatus.Todo]: '待执行',
+  [TaskStatus.InProgress]: '执行中',
+  [TaskStatus.PendingTest]: '待测试',
+  [TaskStatus.PendingRelease]: '待发布',
   [TaskStatus.Done]: '已完成',
   [TaskStatus.Canceled]: '已取消',
 };
@@ -44,12 +48,30 @@ export const TaskStatusLabel: Record<TaskStatus, string> = {
 export const TaskStatusOptions = [
   TaskStatus.Todo,
   TaskStatus.InProgress,
+  TaskStatus.PendingTest,
+  TaskStatus.PendingRelease,
+  TaskStatus.Done,
+].map((item) => ({
+  label: TaskStatusLabel[item],
+  value: item,
+}));
+
+export const TaskStatusFilterOptions = [
+  TaskStatus.Todo,
+  TaskStatus.InProgress,
+  TaskStatus.PendingTest,
+  TaskStatus.PendingRelease,
   TaskStatus.Done,
   TaskStatus.Canceled,
 ].map((item) => ({
   label: TaskStatusLabel[item],
   value: item,
 }));
+
+/**
+ * 任务状态编码。
+ */
+export type TaskStatusCode = string;
 
 /**
  * 任务列表排序字段。
@@ -78,9 +100,11 @@ export interface CreateProjectTaskParams {
   /** 任务描述。 */
   description?: string;
   /** 任务状态。 */
-  status: TaskStatus;
+  status: TaskStatusCode;
   /** 任务优先级。 */
   priority: TaskPriority;
+  /** 预计工时（人天）。 */
+  workDays?: number;
   /** 负责人 ID。 */
   assigneeId?: number;
   /** 开始时间（ISO 格式）。 */
@@ -98,9 +122,11 @@ export interface EditProjectTaskParams {
   /** 任务描述。 */
   description?: string;
   /** 任务状态。 */
-  status: TaskStatus;
+  status: TaskStatusCode;
   /** 任务优先级。 */
   priority: TaskPriority;
+  /** 预计工时（人天）。 */
+  workDays?: number;
   /** 负责人 ID。 */
   assigneeId?: number;
   /** 开始时间（ISO 格式）。 */
@@ -122,7 +148,7 @@ export interface ProjectTaskListParams {
   /** 标题关键字。 */
   title?: string;
   /** 任务状态。 */
-  status?: TaskStatus;
+  status?: TaskStatusCode;
   /** 任务优先级。 */
   priority?: TaskPriority;
   /** 负责人 ID。 */
@@ -134,15 +160,31 @@ export interface ProjectTaskListParams {
 }
 
 /**
+ * 敏捷面板任务列表查询参数。
+ */
+export interface ProjectTaskBoardParams {
+  /** 项目 ID。 */
+  projectId?: number;
+  /** 标题关键字。 */
+  title?: string;
+  /** 任务优先级。 */
+  priority?: TaskPriority;
+  /** 负责人 ID。 */
+  assigneeId?: number;
+}
+
+/**
  * 项目任务详情。
  */
 export interface ProjectTaskDetail {
   id: number;
   projectId: number;
+  projectName?: string;
   title: string;
   description?: string;
-  status: TaskStatus;
+  status: TaskStatusCode;
   priority: TaskPriority;
+  workDays?: number;
   assigneeId?: number;
   assignee?: string;
   creatorId?: number;
@@ -157,3 +199,8 @@ export interface ProjectTaskDetail {
  * 项目任务分页响应。
  */
 export type ProjectTaskPageResponse = PageResponse<ProjectTaskDetail>;
+
+/**
+ * 敏捷面板任务响应。
+ */
+export type ProjectTaskBoardResponse = ProjectTaskDetail[];

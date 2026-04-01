@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 我的待办列表项。
  */
@@ -36,9 +38,15 @@ public class MyTodoItemVo {
     private String priority;
 
     /**
-     * 任务状态。
+     * 预计工时（人天）。
      */
-    @Schema(description = "任务状态", allowableValues = {"todo", "inProgress", "done", "canceled"})
+    @Schema(description = "预计工时（人天）")
+    private BigDecimal workDays;
+
+    /**
+     * 任务状态编码。
+     */
+    @Schema(description = "任务状态编码", allowableValues = {"todo", "inProgress", "pendingTest", "pendingRelease", "done", "canceled"})
     private String status;
 
     /**
