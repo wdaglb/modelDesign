@@ -59,6 +59,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      * @return 分页项目列表
      */
     public ProjectListResponse getList(ProjectListRequest request) {
+        Long tenantId = requireCurrentTenantId();
         long current = request.getCurrent();
         long pageSize = request.getPageSize();
         String keyword = resolveKeyword(request);
@@ -66,6 +67,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
         String status = normalizeOptionalStatus(request.getStatus());
 
         List<Project> baseProjects = lambdaQuery()
+                .eq(Project::getTenantId, tenantId)
                 .eq(Project::getDeleted, 0)
                 .and(StringUtils.hasText(keyword), wrapper -> wrapper.like(Project::getName, keyword)
                         .or()
@@ -74,7 +76,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
                 .orderByDesc(Project::getUpdateTime)
                 .list();
         ProjectStatusSummaryVo statusSummary = buildStatusSummary(baseProjects);
-        List<String> groupOptions = listGroupOptions();
+        List<String> groupOptions = listGroupOptions(tenantId);
         List<Project> filteredProjects = baseProjects.stream()
                 .filter(project -> !StringUtils.hasText(status) || status.equals(project.getStatus()))
                 .toList();
@@ -116,7 +118,9 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      * @return 项目详情
      */
     public ProjectDetailVo create(ProjectCreateRequest request) {
+        Long tenantId = requireCurrentTenantId();
         boolean exists = lambdaQuery()
+                .eq(Project::getTenantId, tenantId)
                 .eq(Project::getCode, request.getCode().trim())
                 .eq(Project::getDeleted, 0)
                 .count() > 0;
@@ -136,6 +140,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
         project.setProgressSummary(normalizeLongText(request.getProgressSummary()));
         project.setCompletedModuleCount(resolveCompletedModuleCount(request.getCompletedModuleCount(), 0));
         project.setCreatorId(currentUserId);
+        project.setTenantId(tenantId);
         project.setDeleted(0);
         save(project);
         String resolvedNickname = "";
@@ -172,7 +177,9 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      * @return 删除数量
      */
     public int deleted(List<Long> ids) {
+        Long tenantId = requireCurrentTenantId();
         List<Project> projects = lambdaQuery()
+                .eq(Project::getTenantId, tenantId)
                 .in(Project::getId, ids)
                 .eq(Project::getDeleted, 0)
                 .list();
@@ -194,8 +201,10 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      * @return 项目实体
      */
     public Project requireProject(Long id) {
+        Long tenantId = requireCurrentTenantId();
         Project project = lambdaQuery()
                 .eq(Project::getId, id)
+                .eq(Project::getTenantId, tenantId)
                 .eq(Project::getDeleted, 0)
                 .last("limit 1")
                 .one();
@@ -234,6 +243,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
     private ProjectDetailVo toProjectVo(Project project, Map<Long, String> creatorMap) {
         return ProjectDetailVo.builder()
                 .id(project.getId())
+                .tenantId(project.getTenantId())
                 .code(project.getCode())
                 .name(project.getName())
                 .description(project.getDescription())
@@ -328,8 +338,9 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
         return 0;
     }
 
-    private List<String> listGroupOptions() {
+    private List<String> listGroupOptions(Long tenantId) {
         List<Project> projects = lambdaQuery()
+                .eq(Project::getTenantId, tenantId)
                 .eq(Project::getDeleted, 0)
                 .list();
         if (projects.isEmpty()) {
@@ -373,5 +384,19 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
             return "";
         }
         return DATE_TIME_FORMATTER.format(value);
+    }
+
+    /**
+     * 获取当前登录租户 ID。
+     *
+     * @return 当前租户 ID
+     */
+    private Long requireCurrentTenantId() {
+        AuthCurrentUserDto currentUser = authCurrentUserApi.getCurrentUser();
+        Long tenantId = currentUser.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "当前登录用户未绑定租户");
+        }
+        return tenantId;
     }
 }

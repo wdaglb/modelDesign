@@ -146,6 +146,77 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
     }
 
     /**
+     * 记录任务关系变更日志。
+     *
+     * @param taskId               任务 ID
+     * @param beforeParentTaskId   变更前父任务 ID
+     * @param afterParentTaskId    变更后父任务 ID
+     * @param beforePredecessorIds 变更前前置任务 ID 列表
+     * @param afterPredecessorIds  变更后前置任务 ID 列表
+     */
+    public void logRelationUpdate(
+            Long taskId,
+            Long beforeParentTaskId,
+            Long afterParentTaskId,
+            Collection<Long> beforePredecessorIds,
+            Collection<Long> afterPredecessorIds) {
+        List<ProjectTaskChangeContentItem> changes = new ArrayList<>();
+        appendChangeIfChanged(changes, "parentTaskId", "父任务", formatId(beforeParentTaskId), formatId(afterParentTaskId));
+        appendChangeIfChanged(changes, "predecessorTaskIds", "前置任务", formatIdList(beforePredecessorIds), formatIdList(afterPredecessorIds));
+        if (changes.isEmpty()) {
+            return;
+        }
+        saveLog(taskId, ProjectTaskChangeOperationTypeEnum.RELATION_UPDATE, changes);
+    }
+
+    /**
+     * 记录任务标签绑定变更日志。
+     *
+     * @param taskId       任务 ID
+     * @param beforeTagIds 变更前标签 ID 列表
+     * @param afterTagIds  变更后标签 ID 列表
+     */
+    public void logTagBindingUpdate(Long taskId, Collection<Long> beforeTagIds, Collection<Long> afterTagIds) {
+        String beforeText = formatIdList(beforeTagIds);
+        String afterText = formatIdList(afterTagIds);
+        if (Objects.equals(beforeText, afterText)) {
+            return;
+        }
+        List<ProjectTaskChangeContentItem> changes = List.of(
+                buildChangeItem("tagIds", "任务标签", beforeText, afterText)
+        );
+        saveLog(taskId, ProjectTaskChangeOperationTypeEnum.TAG_BINDING_UPDATE, changes);
+    }
+
+    /**
+     * 记录任务自动完成日志。
+     *
+     * @param beforeTask 变更前任务
+     * @param afterTask  变更后任务
+     */
+    public void logAutoComplete(ProjectTask beforeTask, ProjectTask afterTask) {
+        List<ProjectTaskChangeContentItem> changes = new ArrayList<>();
+        appendChangeIfChanged(changes, "status", "任务状态", formatStatus(beforeTask.getStatus()), formatStatus(afterTask.getStatus()));
+        if (changes.isEmpty()) {
+            return;
+        }
+        saveLog(afterTask.getId(), ProjectTaskChangeOperationTypeEnum.AUTO_COMPLETE, changes);
+    }
+
+    /**
+     * 记录依赖就绪通知日志。
+     *
+     * @param taskId            任务 ID
+     * @param predecessorTaskIds 触发就绪的前置任务 ID 列表
+     */
+    public void logDependencyReady(Long taskId, Collection<Long> predecessorTaskIds) {
+        List<ProjectTaskChangeContentItem> changes = List.of(
+                buildChangeItem("predecessorTaskIds", "前置任务", "-", formatIdList(predecessorTaskIds))
+        );
+        saveLog(taskId, ProjectTaskChangeOperationTypeEnum.DEPENDENCY_READY, changes);
+    }
+
+    /**
      * 获取任务变更日志列表。
      *
      * @param request 列表请求
@@ -337,5 +408,33 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
             return "-";
         }
         return DATE_TIME_FORMATTER.format(value);
+    }
+
+    private String formatId(Long id) {
+        if (id == null || id <= 0) {
+            return "-";
+        }
+        return "#" + id;
+    }
+
+    private String formatIdList(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return "-";
+        }
+        Set<Long> normalizedIds = new LinkedHashSet<>();
+        for (Long id : ids) {
+            if (id == null || id <= 0) {
+                continue;
+            }
+            normalizedIds.add(id);
+        }
+        if (normalizedIds.isEmpty()) {
+            return "-";
+        }
+        List<String> idTexts = new ArrayList<>();
+        for (Long id : normalizedIds) {
+            idTexts.add("#" + id);
+        }
+        return String.join("、", idTexts);
     }
 }

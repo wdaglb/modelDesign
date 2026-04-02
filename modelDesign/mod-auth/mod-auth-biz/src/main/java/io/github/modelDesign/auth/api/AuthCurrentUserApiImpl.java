@@ -25,6 +25,7 @@ public class AuthCurrentUserApiImpl implements AuthCurrentUserApi {
         }
         return AuthCurrentUserDto.builder()
                 .userId(currentAdmin.getUserId())
+                .tenantId(currentAdmin.getTenantId())
                 .nickname(currentAdmin.getNickname())
                 .build();
     }

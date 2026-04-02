@@ -21,6 +21,11 @@ public class ProjectTask extends BaseEntity {
     private Long projectId;
 
     /**
+     * 父任务 ID。
+     */
+    private Long parentTaskId;
+
+    /**
      * 任务标题。
      */
     private String title;

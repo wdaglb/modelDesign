@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 项目任务详情。
@@ -24,6 +25,30 @@ public class ProjectTaskDetailVo {
      */
     @Schema(description = "项目 ID")
     private Long projectId;
+
+    /**
+     * 父任务 ID。
+     */
+    @Schema(description = "父任务 ID")
+    private Long parentTaskId;
+
+    /**
+     * 父任务标题。
+     */
+    @Schema(description = "父任务标题")
+    private String parentTaskTitle;
+
+    /**
+     * 子任务数量。
+     */
+    @Schema(description = "子任务数量")
+    private Integer childTaskCount;
+
+    /**
+     * 已完成子任务数量。
+     */
+    @Schema(description = "已完成子任务数量")
+    private Integer completedChildTaskCount;
 
     /**
      * 任务标题。
@@ -54,6 +79,42 @@ public class ProjectTaskDetailVo {
      */
     @Schema(description = "任务优先级", allowableValues = {"low", "medium", "high"})
     private String priority;
+
+    /**
+     * 前置任务 ID 列表。
+     */
+    @Schema(description = "前置任务 ID 列表")
+    private List<Long> predecessorTaskIds;
+
+    /**
+     * 前置任务详情列表。
+     */
+    @Schema(description = "前置任务详情列表")
+    private List<ProjectTaskPredecessorVo> predecessorTasks;
+
+    /**
+     * 标签 ID 列表。
+     */
+    @Schema(description = "标签 ID 列表")
+    private List<Long> tagIds;
+
+    /**
+     * 标签详情列表。
+     */
+    @Schema(description = "标签详情列表")
+    private List<ProjectTaskTagVo> tags;
+
+    /**
+     * 是否可开始。
+     */
+    @Schema(description = "是否可开始")
+    private Boolean canStart;
+
+    /**
+     * 阻塞原因。
+     */
+    @Schema(description = "阻塞原因")
+    private String blockedReason;
 
     /**
      * 预计工时（人天）。

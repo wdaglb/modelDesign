@@ -20,5 +20,9 @@
             <groupId>io.github.modelDesign</groupId>
             <artifactId>mod-auth-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.modelDesign</groupId>
+            <artifactId>mod-system-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

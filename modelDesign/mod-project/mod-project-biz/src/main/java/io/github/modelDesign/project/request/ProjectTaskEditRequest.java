@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 编辑项目任务请求。
@@ -16,6 +17,24 @@ import java.time.LocalDateTime;
 @Data
 @Schema(description = "编辑项目任务请求")
 public class ProjectTaskEditRequest {
+    /**
+     * 父任务 ID。
+     */
+    @Schema(description = "父任务 ID")
+    private Long parentTaskId;
+
+    /**
+     * 前置任务 ID 列表。
+     */
+    @Schema(description = "前置任务 ID 列表")
+    private List<Long> predecessorTaskIds;
+
+    /**
+     * 标签 ID 列表。
+     */
+    @Schema(description = "标签 ID 列表")
+    private List<Long> tagIds;
+
     /**
      * 任务标题。
      */

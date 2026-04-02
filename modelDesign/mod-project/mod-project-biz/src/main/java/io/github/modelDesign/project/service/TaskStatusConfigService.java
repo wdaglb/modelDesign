@@ -105,6 +105,42 @@ public class TaskStatusConfigService extends ServiceImpl<TaskStatusConfigMapper,
     }
 
     /**
+     * 获取完成状态编码。
+     *
+     * @return 完成状态编码
+     */
+    public String getCompletedStatusCode() {
+        TaskStatusConfig completedStatus = lambdaQuery()
+                .eq(TaskStatusConfig::getIsCompleted, true)
+                .orderByAsc(TaskStatusConfig::getSort)
+                .orderByAsc(TaskStatusConfig::getId)
+                .last("limit 1")
+                .one();
+        if (completedStatus == null || !StringUtils.hasText(completedStatus.getCode())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "未配置完成状态");
+        }
+        return completedStatus.getCode();
+    }
+
+    /**
+     * 获取首个非完成状态编码。
+     *
+     * @return 首个非完成状态编码
+     */
+    public String getFirstNonCompletedStatusCode() {
+        TaskStatusConfig pendingStatus = lambdaQuery()
+                .eq(TaskStatusConfig::getIsCompleted, false)
+                .orderByAsc(TaskStatusConfig::getSort)
+                .orderByAsc(TaskStatusConfig::getId)
+                .last("limit 1")
+                .one();
+        if (pendingStatus == null || !StringUtils.hasText(pendingStatus.getCode())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "未配置可流转状态");
+        }
+        return pendingStatus.getCode();
+    }
+
+    /**
      * 构建当前状态配置映射。
      *
      * @param existingConfigs 当前状态配置列表

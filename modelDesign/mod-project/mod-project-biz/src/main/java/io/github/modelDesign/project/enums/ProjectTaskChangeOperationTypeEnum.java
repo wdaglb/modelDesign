@@ -27,7 +27,27 @@ public enum ProjectTaskChangeOperationTypeEnum {
     /**
      * 移除任务成员。
      */
-    MEMBER_REMOVE("memberRemove", "移除任务成员");
+    MEMBER_REMOVE("memberRemove", "移除任务成员"),
+
+    /**
+     * 更新任务关系。
+     */
+    RELATION_UPDATE("relationUpdate", "更新任务关系"),
+
+    /**
+     * 更新任务标签绑定。
+     */
+    TAG_BINDING_UPDATE("tagBindingUpdate", "更新任务标签"),
+
+    /**
+     * 自动完成任务。
+     */
+    AUTO_COMPLETE("autoComplete", "自动完成任务"),
+
+    /**
+     * 前置依赖已就绪。
+     */
+    DEPENDENCY_READY("dependencyReady", "依赖就绪通知");
 
     /**
      * 操作类型编码。

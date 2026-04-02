@@ -18,6 +18,12 @@ public class ProjectDetailVo {
     private Long id;
 
     /**
+     * 租户 ID。
+     */
+    @Schema(description = "租户 ID")
+    private Long tenantId;
+
+    /**
      * 项目编号。
      */
     @Schema(description = "项目编号")

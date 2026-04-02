@@ -1,8 +1,9 @@
 package io.github.modelDesign.project.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import io.github.modelDesign.auth.api.AuthUserApi;
-import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
+import io.github.modelDesign.auth.api.AuthCurrentUserApi;
+import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
+import io.github.modelDesign.common.exception.BusinessException;
 import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.mapper.ProjectMapper;
@@ -10,18 +11,14 @@ import io.github.modelDesign.project.mapper.ProjectTaskMapper;
 import io.github.modelDesign.project.request.ProjectTaskBoardRequest;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 项目任务敏捷面板查询服务。
@@ -29,11 +26,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ProjectTaskBoardQueryService {
-    /**
-     * 时间格式化器。
-     */
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
     /**
      * 敏捷面板状态编码集合。
      */
@@ -55,14 +47,19 @@ public class ProjectTaskBoardQueryService {
     private final ProjectService projectService;
 
     /**
-     * 用户查询接口。
+     * 当前登录用户接口。
      */
-    private final AuthUserApi authUserApi;
+    private final AuthCurrentUserApi authCurrentUserApi;
 
     /**
      * 项目 Mapper。
      */
     private final ProjectMapper projectMapper;
+
+    /**
+     * 任务详情组装服务。
+     */
+    private final ProjectTaskViewAssembler projectTaskViewAssembler;
 
     /**
      * 获取兼容旧行为的敏捷面板任务列表。
@@ -72,7 +69,7 @@ public class ProjectTaskBoardQueryService {
      */
     public List<ProjectTaskDetailVo> getBoard(ProjectTaskBoardRequest request) {
         List<ProjectTask> tasks = queryBoardTasks(request);
-        return toTaskVoList(tasks);
+        return projectTaskViewAssembler.toTaskVoList(tasks);
     }
 
     /**
@@ -86,7 +83,7 @@ public class ProjectTaskBoardQueryService {
         List<ProjectTask> sortedTasks = tasks.stream()
                 .sorted(buildAgileBoardComparator())
                 .toList();
-        return toTaskVoList(sortedTasks);
+        return projectTaskViewAssembler.toTaskVoList(sortedTasks);
     }
 
     /**
@@ -96,19 +93,45 @@ public class ProjectTaskBoardQueryService {
      * @return 任务实体列表
      */
     private List<ProjectTask> queryBoardTasks(ProjectTaskBoardRequest request) {
-        if (request.getProjectId() != null) {
-            projectService.requireProject(request.getProjectId());
+        Long tenantId = requireCurrentTenantId();
+        List<Long> projectIds = resolveProjectIds(request.getProjectId(), tenantId);
+        if (projectIds.isEmpty()) {
+            return Collections.emptyList();
         }
+
         String title = normalizeKeyword(request.getTitle());
         String priority = normalizeValue(request.getPriority());
         return projectTaskMapper.selectList(new LambdaQueryWrapper<ProjectTask>()
-                .eq(request.getProjectId() != null, ProjectTask::getProjectId, request.getProjectId())
+                .in(ProjectTask::getProjectId, projectIds)
                 .eq(ProjectTask::getDeleted, 0)
                 .like(StringUtils.hasText(title), ProjectTask::getTitle, title)
                 .eq(StringUtils.hasText(priority), ProjectTask::getPriority, priority)
                 .eq(request.getAssigneeId() != null, ProjectTask::getAssigneeId, request.getAssigneeId())
                 .in(ProjectTask::getStatus, BOARD_STATUS_CODE_SET)
                 .orderByDesc(ProjectTask::getUpdateTime));
+    }
+
+    /**
+     * 解析查询项目范围。
+     *
+     * @param projectId 指定项目 ID
+     * @param tenantId  当前租户 ID
+     * @return 项目 ID 列表
+     */
+    private List<Long> resolveProjectIds(Long projectId, Long tenantId) {
+        if (projectId != null) {
+            projectService.requireProject(projectId);
+            return List.of(projectId);
+        }
+
+        List<Project> projects = projectMapper.selectList(new LambdaQueryWrapper<Project>()
+                .select(Project::getId)
+                .eq(Project::getTenantId, tenantId)
+                .eq(Project::getDeleted, 0));
+        if (projects.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return projects.stream().map(Project::getId).toList();
     }
 
     /**
@@ -143,99 +166,17 @@ public class ProjectTaskBoardQueryService {
     }
 
     /**
-     * 批量转换任务详情视图对象列表。
+     * 获取当前登录租户 ID。
      *
-     * @param tasks 任务实体列表
-     * @return 任务详情视图对象列表
+     * @return 当前租户 ID
      */
-    private List<ProjectTaskDetailVo> toTaskVoList(List<ProjectTask> tasks) {
-        Set<Long> userIds = new HashSet<>();
-        Set<Long> projectIds = new HashSet<>();
-        for (ProjectTask task : tasks) {
-            if (task.getCreatorId() != null) {
-                userIds.add(task.getCreatorId());
-            }
-            if (task.getAssigneeId() != null) {
-                userIds.add(task.getAssigneeId());
-            }
-            if (task.getProjectId() != null) {
-                projectIds.add(task.getProjectId());
-            }
+    private Long requireCurrentTenantId() {
+        AuthCurrentUserDto currentUser = authCurrentUserApi.getCurrentUser();
+        Long tenantId = currentUser.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "当前登录用户未绑定租户");
         }
-        Map<Long, AuthUserSimpleDto> userMap = getUserMap(userIds);
-        Map<Long, String> projectNameMap = getProjectNameMap(projectIds);
-        return tasks.stream()
-                .map(task -> toTaskVo(task, userMap, projectNameMap))
-                .toList();
-    }
-
-    /**
-     * 批量获取用户信息映射。
-     *
-     * @param userIds 用户 ID 集合
-     * @return 用户 ID 到用户信息的映射
-     */
-    private Map<Long, AuthUserSimpleDto> getUserMap(Set<Long> userIds) {
-        if (userIds.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return authUserApi.getUserMapByIds(userIds);
-    }
-
-    /**
-     * 批量获取项目名称映射。
-     *
-     * @param projectIds 项目 ID 集合
-     * @return 项目 ID 到项目名称的映射
-     */
-    private Map<Long, String> getProjectNameMap(Set<Long> projectIds) {
-        if (projectIds.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return projectMapper.selectBatchIds(projectIds).stream()
-                .collect(Collectors.toMap(Project::getId, Project::getName, (left, right) -> left));
-    }
-
-    /**
-     * 转换单个任务详情视图对象。
-     *
-     * @param task 任务实体
-     * @param userMap 用户信息映射
-     * @param projectNameMap 项目名称映射
-     * @return 任务详情视图对象
-     */
-    private ProjectTaskDetailVo toTaskVo(
-            ProjectTask task,
-            Map<Long, AuthUserSimpleDto> userMap,
-            Map<Long, String> projectNameMap) {
-        String creator = "";
-        AuthUserSimpleDto creatorUser = userMap.get(task.getCreatorId());
-        if (creatorUser != null && creatorUser.getNickname() != null) {
-            creator = creatorUser.getNickname();
-        }
-        String assignee = "";
-        AuthUserSimpleDto assigneeUser = userMap.get(task.getAssigneeId());
-        if (assigneeUser != null && assigneeUser.getNickname() != null) {
-            assignee = assigneeUser.getNickname();
-        }
-        return ProjectTaskDetailVo.builder()
-                .id(task.getId())
-                .projectId(task.getProjectId())
-                .projectName(projectNameMap.getOrDefault(task.getProjectId(), ""))
-                .title(task.getTitle())
-                .description(task.getDescription())
-                .status(task.getStatus())
-                .priority(task.getPriority())
-                .workDays(task.getWorkDays())
-                .assigneeId(task.getAssigneeId())
-                .assignee(assignee)
-                .creatorId(task.getCreatorId())
-                .creator(creator)
-                .startTime(formatDateTime(task.getStartTime()))
-                .dueTime(formatDateTime(task.getDueTime()))
-                .createdAt(formatDateTime(task.getCreateTime()))
-                .updatedAt(formatDateTime(task.getUpdateTime()))
-                .build();
+        return tenantId;
     }
 
     /**
@@ -266,18 +207,5 @@ public class ProjectTaskBoardQueryService {
             return null;
         }
         return value.trim();
-    }
-
-    /**
-     * 格式化时间为字符串。
-     *
-     * @param value 时间值
-     * @return 格式化后的时间字符串
-     */
-    private String formatDateTime(LocalDateTime value) {
-        if (value == null) {
-            return "";
-        }
-        return DATE_TIME_FORMATTER.format(value);
     }
 }

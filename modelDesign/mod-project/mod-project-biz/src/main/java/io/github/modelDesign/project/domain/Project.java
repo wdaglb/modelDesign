@@ -13,6 +13,11 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class Project extends BaseEntity {
     /**
+     * 所属租户 ID。
+     */
+    private Long tenantId;
+
+    /**
      * 项目编号。
      */
     private String code;

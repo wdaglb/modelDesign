@@ -1,0 +1,303 @@
+package io.github.modelDesign.project.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import io.github.modelDesign.auth.api.AuthUserApi;
+import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
+import io.github.modelDesign.project.domain.Project;
+import io.github.modelDesign.project.domain.ProjectTask;
+import io.github.modelDesign.project.mapper.ProjectMapper;
+import io.github.modelDesign.project.mapper.ProjectTaskMapper;
+import io.github.modelDesign.project.response.ProjectTaskDetailVo;
+import io.github.modelDesign.project.response.ProjectTaskPredecessorVo;
+import io.github.modelDesign.project.response.ProjectTaskTagVo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * 任务详情组装服务。
+ */
+@Service
+@RequiredArgsConstructor
+public class ProjectTaskViewAssembler {
+    /**
+     * 时间格式化器。
+     */
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    /**
+     * 用户查询接口。
+     */
+    private final AuthUserApi authUserApi;
+
+    /**
+     * 项目 Mapper。
+     */
+    private final ProjectMapper projectMapper;
+
+    /**
+     * 任务 Mapper。
+     */
+    private final ProjectTaskMapper projectTaskMapper;
+
+    /**
+     * 任务依赖关系服务。
+     */
+    private final ProjectTaskDependencyService projectTaskDependencyService;
+
+    /**
+     * 任务标签绑定服务。
+     */
+    private final ProjectTaskTagBindingService projectTaskTagBindingService;
+
+    /**
+     * 任务状态配置服务。
+     */
+    private final TaskStatusConfigService taskStatusConfigService;
+
+    /**
+     * 批量组装任务详情。
+     *
+     * @param tasks 任务实体列表
+     * @return 任务详情列表
+     */
+    public List<ProjectTaskDetailVo> toTaskVoList(List<ProjectTask> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Long> taskIds = new LinkedHashSet<>();
+        Set<Long> parentTaskIds = new LinkedHashSet<>();
+        Set<Long> projectIds = new LinkedHashSet<>();
+        Set<Long> userIds = new LinkedHashSet<>();
+        for (ProjectTask task : tasks) {
+            taskIds.add(task.getId());
+            if (task.getParentTaskId() != null) {
+                parentTaskIds.add(task.getParentTaskId());
+            }
+            if (task.getProjectId() != null) {
+                projectIds.add(task.getProjectId());
+            }
+            if (task.getCreatorId() != null) {
+                userIds.add(task.getCreatorId());
+            }
+            if (task.getAssigneeId() != null) {
+                userIds.add(task.getAssigneeId());
+            }
+        }
+
+        Map<Long, AuthUserSimpleDto> userMap = getUserMap(userIds);
+        Map<Long, String> projectNameMap = getProjectNameMap(projectIds);
+        Map<Long, String> parentTaskTitleMap = getParentTaskTitleMap(parentTaskIds);
+        Map<Long, Integer> childTaskCountMap = getChildTaskCountMap(taskIds);
+        Map<Long, Integer> completedChildTaskCountMap = getCompletedChildTaskCountMap(taskIds);
+        Map<Long, List<Long>> predecessorIdMap = projectTaskDependencyService.findPredecessorIdMapByTaskIds(taskIds);
+        Map<Long, List<ProjectTaskPredecessorVo>> predecessorMap = projectTaskDependencyService.findPredecessorMapByTaskIds(taskIds);
+        Map<Long, List<ProjectTaskPredecessorVo>> unfinishedPredecessorMap = projectTaskDependencyService.findUnfinishedPredecessorMapByTaskIds(taskIds);
+        Map<Long, List<Long>> tagIdMap = projectTaskTagBindingService.findTagIdMapByTaskIds(taskIds);
+        Map<Long, List<ProjectTaskTagVo>> tagMap = projectTaskTagBindingService.findTagMapByTaskIds(taskIds);
+
+        List<ProjectTaskDetailVo> result = new ArrayList<>();
+        for (ProjectTask task : tasks) {
+            List<ProjectTaskPredecessorVo> unfinishedPredecessors = unfinishedPredecessorMap.get(task.getId());
+            boolean canStart = true;
+            if (unfinishedPredecessors != null && !unfinishedPredecessors.isEmpty()) {
+                canStart = false;
+            }
+            String blockedReason = buildBlockedReason(unfinishedPredecessors);
+            List<Long> predecessorTaskIds = predecessorIdMap.get(task.getId());
+            if (predecessorTaskIds == null) {
+                predecessorTaskIds = Collections.emptyList();
+            }
+            List<ProjectTaskPredecessorVo> predecessorTasks = predecessorMap.get(task.getId());
+            if (predecessorTasks == null) {
+                predecessorTasks = Collections.emptyList();
+            }
+            List<Long> tagIds = tagIdMap.get(task.getId());
+            if (tagIds == null) {
+                tagIds = Collections.emptyList();
+            }
+            List<ProjectTaskTagVo> tags = tagMap.get(task.getId());
+            if (tags == null) {
+                tags = Collections.emptyList();
+            }
+
+            result.add(ProjectTaskDetailVo.builder()
+                    .id(task.getId())
+                    .projectId(task.getProjectId())
+                    .parentTaskId(task.getParentTaskId())
+                    .parentTaskTitle(parentTaskTitleMap.getOrDefault(task.getParentTaskId(), ""))
+                    .childTaskCount(childTaskCountMap.getOrDefault(task.getId(), 0))
+                    .completedChildTaskCount(completedChildTaskCountMap.getOrDefault(task.getId(), 0))
+                    .title(task.getTitle())
+                    .description(task.getDescription())
+                    .status(task.getStatus())
+                    .projectName(projectNameMap.getOrDefault(task.getProjectId(), ""))
+                    .priority(task.getPriority())
+                    .predecessorTaskIds(predecessorTaskIds)
+                    .predecessorTasks(predecessorTasks)
+                    .tagIds(tagIds)
+                    .tags(tags)
+                    .canStart(canStart)
+                    .blockedReason(blockedReason)
+                    .workDays(task.getWorkDays())
+                    .assigneeId(task.getAssigneeId())
+                    .assignee(resolveUserNickname(userMap.get(task.getAssigneeId())))
+                    .creatorId(task.getCreatorId())
+                    .creator(resolveUserNickname(userMap.get(task.getCreatorId())))
+                    .startTime(formatDateTime(task.getStartTime()))
+                    .dueTime(formatDateTime(task.getDueTime()))
+                    .createdAt(formatDateTime(task.getCreateTime()))
+                    .updatedAt(formatDateTime(task.getUpdateTime()))
+                    .build());
+        }
+        return result;
+    }
+
+    /**
+     * 组装单个任务详情。
+     *
+     * @param task 任务实体
+     * @return 任务详情
+     */
+    public ProjectTaskDetailVo toTaskVo(ProjectTask task) {
+        List<ProjectTaskDetailVo> taskVos = toTaskVoList(List.of(task));
+        if (taskVos.isEmpty()) {
+            return null;
+        }
+        return taskVos.get(0);
+    }
+
+    private Map<Long, AuthUserSimpleDto> getUserMap(Set<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return authUserApi.getUserMapByIds(userIds);
+    }
+
+    private Map<Long, String> getProjectNameMap(Set<Long> projectIds) {
+        if (projectIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Project> projects = projectMapper.selectBatchIds(projectIds);
+        if (projects.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, String> projectNameMap = new LinkedHashMap<>();
+        for (Project project : projects) {
+            projectNameMap.put(project.getId(), project.getName());
+        }
+        return projectNameMap;
+    }
+
+    private Map<Long, String> getParentTaskTitleMap(Set<Long> parentTaskIds) {
+        if (parentTaskIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<ProjectTask> parentTasks = projectTaskMapper.selectList(new LambdaQueryWrapper<ProjectTask>()
+                .in(ProjectTask::getId, parentTaskIds)
+                .eq(ProjectTask::getDeleted, 0));
+        if (parentTasks.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, String> titleMap = new LinkedHashMap<>();
+        for (ProjectTask parentTask : parentTasks) {
+            titleMap.put(parentTask.getId(), parentTask.getTitle());
+        }
+        return titleMap;
+    }
+
+    private Map<Long, Integer> getChildTaskCountMap(Collection<Long> taskIds) {
+        if (taskIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<ProjectTask> childTasks = projectTaskMapper.selectList(new LambdaQueryWrapper<ProjectTask>()
+                .in(ProjectTask::getParentTaskId, taskIds)
+                .eq(ProjectTask::getDeleted, 0));
+        if (childTasks.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, Integer> childCountMap = new LinkedHashMap<>();
+        for (ProjectTask childTask : childTasks) {
+            Integer count = childCountMap.get(childTask.getParentTaskId());
+            if (count == null) {
+                count = 0;
+            }
+            childCountMap.put(childTask.getParentTaskId(), count + 1);
+        }
+        return childCountMap;
+    }
+
+    private Map<Long, Integer> getCompletedChildTaskCountMap(Collection<Long> taskIds) {
+        if (taskIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        String completedStatusCode = taskStatusConfigService.getCompletedStatusCode();
+        List<ProjectTask> childTasks = projectTaskMapper.selectList(new LambdaQueryWrapper<ProjectTask>()
+                .in(ProjectTask::getParentTaskId, taskIds)
+                .eq(ProjectTask::getDeleted, 0));
+        if (childTasks.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, Integer> completedChildCountMap = new LinkedHashMap<>();
+        for (ProjectTask childTask : childTasks) {
+            if (!completedStatusCode.equals(childTask.getStatus())) {
+                continue;
+            }
+            Integer count = completedChildCountMap.get(childTask.getParentTaskId());
+            if (count == null) {
+                count = 0;
+            }
+            completedChildCountMap.put(childTask.getParentTaskId(), count + 1);
+        }
+        return completedChildCountMap;
+    }
+
+    private String resolveUserNickname(AuthUserSimpleDto user) {
+        if (user == null) {
+            return "";
+        }
+        if (user.getNickname() == null) {
+            return "";
+        }
+        return user.getNickname();
+    }
+
+    private String buildBlockedReason(List<ProjectTaskPredecessorVo> unfinishedPredecessors) {
+        if (unfinishedPredecessors == null || unfinishedPredecessors.isEmpty()) {
+            return "";
+        }
+        List<String> titles = new ArrayList<>();
+        for (ProjectTaskPredecessorVo predecessor : unfinishedPredecessors) {
+            if (predecessor == null) {
+                continue;
+            }
+            if (predecessor.getTitle() == null || predecessor.getTitle().isBlank()) {
+                titles.add("任务#" + predecessor.getTaskId());
+            } else {
+                titles.add(predecessor.getTitle());
+            }
+        }
+        if (titles.isEmpty()) {
+            return "前置任务未完成";
+        }
+        return "前置任务未完成：" + String.join("、", titles);
+    }
+
+    private String formatDateTime(LocalDateTime value) {
+        if (value == null) {
+            return "";
+        }
+        return DATE_TIME_FORMATTER.format(value);
+    }
+}

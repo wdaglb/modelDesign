@@ -10,6 +10,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 创建项目任务请求。
@@ -23,6 +24,24 @@ public class ProjectTaskCreateRequest {
     @Schema(description = "项目 ID", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "项目 ID 不能为空")
     private Long projectId;
+
+    /**
+     * 父任务 ID。
+     */
+    @Schema(description = "父任务 ID")
+    private Long parentTaskId;
+
+    /**
+     * 前置任务 ID 列表。
+     */
+    @Schema(description = "前置任务 ID 列表")
+    private List<Long> predecessorTaskIds;
+
+    /**
+     * 标签 ID 列表。
+     */
+    @Schema(description = "标签 ID 列表")
+    private List<Long> tagIds;
 
     /**
      * 任务标题。

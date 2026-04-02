@@ -19,6 +19,11 @@ public class AuthCurrentUserDto {
     private Long userId;
 
     /**
+     * 租户 ID。
+     */
+    private Long tenantId;
+
+    /**
      * 用户昵称。
      */
     private String nickname;
