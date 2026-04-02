@@ -1,5 +1,6 @@
 import * as ApiFile from './modules/file';
 import * as ApiPassport from './modules/passport';
+import * as ApiPosition from './modules/position';
 import * as ApiProjectMember from './modules/project-member';
 import * as ApiProjectTaskChangeLog from './modules/project-task-change-log';
 import * as ApiProjectTask from './modules/project-task';
@@ -18,6 +19,7 @@ export {
   ApiFile,
   ApiMenu,
   ApiPassport,
+  ApiPosition,
   ApiProject,
   ApiProjectMember,
   ApiProjectTaskChangeLog,

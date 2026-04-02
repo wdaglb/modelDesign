@@ -1,5 +1,5 @@
 import React, { Key, useMemo, useState } from 'react';
-import { Avatar, Empty, Flex, Input, InputNumber, Space, Tag, Typography } from 'antd';
+import { Avatar, Empty, Flex, Input, InputNumber, Space, Tag, Typography, message } from 'antd';
 import type { TableColumnsType } from 'antd';
 
 import { ApiUser } from '@/api';
@@ -12,6 +12,7 @@ import Icons from '@/icons';
 
 import BatchUpdateForm from './#BatchUpdateForm';
 import CreateUserForm from './#CreateUserForm';
+import PositionDrawer from './#PositionDrawer';
 import RoleDrawer from './#RoleDrawer';
 import { getUserTenantText } from './#tenantHelper';
 import UpdateUserForm from './#UpdateUserForm';
@@ -111,7 +112,7 @@ const UserTable = () => {
     {
       title: '操作',
       key: 'action',
-      width: 300,
+      width: 420,
       render: (_, record) => {
         let bindRoleTitle = record.username;
         if (record.nickname) {
@@ -156,6 +157,30 @@ const UserTable = () => {
               }}
             >
               绑定角色
+            </KTable.Button>
+
+            <KTable.Button
+              variant={'filled'}
+              color={'geekblue'}
+              size={'small'}
+              icon={<Icons.BadgeAccountHorizontal />}
+              onClick={async () => {
+                if (
+                  record.tenantId === undefined ||
+                  record.tenantId === null
+                ) {
+                  message.warning('用户未绑定租户，不能绑定职位');
+                  return;
+                }
+
+                await modal.open({
+                  title: `绑定职位 - ${bindRoleTitle}`,
+                  width: 680,
+                  children: <PositionDrawer user={record} />,
+                });
+              }}
+            >
+              绑定职位
             </KTable.Button>
 
             <KTable.ConfirmButton
