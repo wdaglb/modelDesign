@@ -20,6 +20,7 @@ import { Route as AiChatRouteImport } from './routes/ai.chat'
 import { Route as SystemUserIndexRouteImport } from './routes/system/user/index'
 import { Route as SystemTenantIndexRouteImport } from './routes/system/tenant/index'
 import { Route as SystemRoleIndexRouteImport } from './routes/system/role/index'
+import { Route as SystemPositionIndexRouteImport } from './routes/system/position/index'
 import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
 import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$projectId.tasks'
@@ -82,6 +83,11 @@ const SystemRoleIndexRoute = SystemRoleIndexRouteImport.update({
   path: '/system/role/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SystemPositionIndexRoute = SystemPositionIndexRouteImport.update({
+  id: '/system/position/',
+  path: '/system/position/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SystemMenuIndexRoute = SystemMenuIndexRouteImport.update({
   id: '/system/menu/',
   path: '/system/menu/',
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
+  '/system/position/': typeof SystemPositionIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
   '/system/tenant/': typeof SystemTenantIndexRoute
   '/system/user/': typeof SystemUserIndexRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
   '/system/menu': typeof SystemMenuIndexRoute
+  '/system/position': typeof SystemPositionIndexRoute
   '/system/role': typeof SystemRoleIndexRoute
   '/system/tenant': typeof SystemTenantIndexRoute
   '/system/user': typeof SystemUserIndexRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
+  '/system/position/': typeof SystemPositionIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
   '/system/tenant/': typeof SystemTenantIndexRoute
   '/system/user/': typeof SystemUserIndexRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tasks'
     | '/project/$projectId/'
     | '/system/menu/'
+    | '/system/position/'
     | '/system/role/'
     | '/system/tenant/'
     | '/system/user/'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tasks'
     | '/project/$projectId'
     | '/system/menu'
+    | '/system/position'
     | '/system/role'
     | '/system/tenant'
     | '/system/user'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tasks'
     | '/project/$projectId/'
     | '/system/menu/'
+    | '/system/position/'
     | '/system/role/'
     | '/system/tenant/'
     | '/system/user/'
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   PersonalCenterIndexRoute: typeof PersonalCenterIndexRoute
   ProjectIndexRoute: typeof ProjectIndexRoute
   SystemMenuIndexRoute: typeof SystemMenuIndexRoute
+  SystemPositionIndexRoute: typeof SystemPositionIndexRoute
   SystemRoleIndexRoute: typeof SystemRoleIndexRoute
   SystemTenantIndexRoute: typeof SystemTenantIndexRoute
   SystemUserIndexRoute: typeof SystemUserIndexRoute
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemRoleIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/system/position/': {
+      id: '/system/position/'
+      path: '/system/position'
+      fullPath: '/system/position/'
+      preLoaderRoute: typeof SystemPositionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/system/menu/': {
       id: '/system/menu/'
       path: '/system/menu'
@@ -397,6 +417,7 @@ const rootRouteChildren: RootRouteChildren = {
   PersonalCenterIndexRoute: PersonalCenterIndexRoute,
   ProjectIndexRoute: ProjectIndexRoute,
   SystemMenuIndexRoute: SystemMenuIndexRoute,
+  SystemPositionIndexRoute: SystemPositionIndexRoute,
   SystemRoleIndexRoute: SystemRoleIndexRoute,
   SystemTenantIndexRoute: SystemTenantIndexRoute,
   SystemUserIndexRoute: SystemUserIndexRoute,

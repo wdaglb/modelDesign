@@ -6,7 +6,6 @@ import {
 } from '@/api/modules/project.types';
 import {
   formatProjectUpdatedAt,
-  getCompletedModuleText,
   getProjectOverviewText,
   getProjectProgressText,
 } from './#projectListHelper';
@@ -15,7 +14,6 @@ import {
   ProjectCardContent,
   ProjectCardHeader,
   ProjectCardInfoBar,
-  ProjectCardInfoText,
   ProjectCardMeta,
   ProjectCardSurface,
   ProjectCardText,
@@ -44,10 +42,6 @@ interface ProjectListCardProps {
  * @returns 项目卡片
  */
 const ProjectListCard = (props: ProjectListCardProps) => {
-  const completedModuleText = getCompletedModuleText(
-    props.project.completedModuleCount,
-  );
-
   return (
     <ProjectCardSurface
       onClick={() => {
@@ -86,7 +80,6 @@ const ProjectListCard = (props: ProjectListCardProps) => {
       </ProjectCardContent>
 
       <ProjectCardInfoBar>
-        <ProjectCardInfoText>{completedModuleText || '已完成模块 0'}</ProjectCardInfoText>
         <ProjectCardMeta>{props.project.creator}</ProjectCardMeta>
       </ProjectCardInfoBar>
 

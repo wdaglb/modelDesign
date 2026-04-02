@@ -125,19 +125,6 @@ export function getProjectProgressText(value?: string) {
 }
 
 /**
- * 生成已完成模块文案。
- *
- * @param value 已完成模块数
- * @returns 展示文案；没有值时返回空字符串
- */
-export function getCompletedModuleText(value?: number) {
-  if (value === undefined || value === null) {
-    return '';
-  }
-  return `已完成模块 ${value}`;
-}
-
-/**
  * 获取空状态文案。
  *
  * @param hasFilters 是否存在筛选条件

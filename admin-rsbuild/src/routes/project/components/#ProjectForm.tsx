@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Col, Form, Input, InputNumber, Row, Select } from 'antd';
+import { Col, Form, Input, Row, Select } from 'antd';
 import KModal from '@/components/KModal';
 import { ApiProject } from '@/api';
 import {
@@ -20,7 +20,7 @@ interface ProjectFormProps {
 /**
  * 构造表单初始值。
  *
- * 新建时主动补齐默认状态和默认模块数，避免前后端出现状态空值。
+ * 新建时主动补齐默认状态，保持项目创建入口的最小必填表单。
  *
  * @param record 编辑态项目记录
  * @returns 表单初始值
@@ -30,13 +30,11 @@ function buildInitialValues(record?: Project) {
     return {
       ...record,
       status: record.status,
-      completedModuleCount: record.completedModuleCount ?? 0,
     };
   }
 
   return {
     status: ProjectStatus.Planning,
-    completedModuleCount: 0,
   };
 }
 
@@ -144,19 +142,9 @@ const ProjectForm = (props: ProjectFormProps) => {
       </Row>
 
       <Row gutter={12}>
-        <Col span={12}>
+        <Col span={24}>
           <Form.Item name={'projectGroup'} label={'项目分组'}>
             <Input placeholder={'例如：支付业务组'} />
-          </Form.Item>
-        </Col>
-
-        <Col span={12}>
-          <Form.Item name={'completedModuleCount'} label={'已完成模块数'}>
-            <InputNumber
-              min={0}
-              style={{ width: '100%' }}
-              placeholder={'请输入已完成模块数'}
-            />
           </Form.Item>
         </Col>
       </Row>

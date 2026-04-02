@@ -22,6 +22,7 @@ import { AgileBoardCardPreview } from './agile-board/#BoardCard';
 import AgileBoardColumn from './agile-board/#BoardColumn';
 import { openTaskPreviewDrawer } from './agile-board/#previewDrawerService';
 import AgileBoardToolbar from './agile-board/#BoardToolbar';
+import useBoardAutoRefresh from './agile-board/#useBoardAutoRefresh';
 import {
   buildAgileBoardColumns,
   buildBoardEditPayload,
@@ -65,7 +66,7 @@ function RouteComponent() {
     queryFn: () => ApiProject.getList({ current: 1, pageSize: 999 }),
   });
 
-  const { data: boardTasks = [] } = useQuery({
+  const { data: boardTasks = [], refetch: refetchBoardTasks } = useQuery({
     queryKey: [...queryKey.project.taskBoard(), params],
     queryFn: () => ApiProjectTask.getAgileBoard(params),
   });
@@ -110,6 +111,13 @@ function RouteComponent() {
     }
     return taskMap.get(activeTaskDragId);
   }, [activeTaskDragId, taskMap]);
+  const { setIsTaskFormOpen } = useBoardAutoRefresh({
+    activeTaskDragId,
+    previewTaskId,
+    refetchBoardTasks: async () => {
+      await refetchBoardTasks();
+    },
+  });
 
   const invalidateBoardQueries = async () => {
     await Promise.all([
@@ -126,14 +134,22 @@ function RouteComponent() {
   };
 
   const openTaskForm = async (task?: ProjectTaskDetail) => {
-    const submitted = await openTaskModal(modal, {
-      statusConfigs,
-      task,
-    });
-    if (!submitted) {
-      return;
+    setIsTaskFormOpen(true);
+
+    try {
+      const submitted = await openTaskModal(modal, {
+        statusConfigs,
+        task,
+      });
+
+      if (!submitted) {
+        return;
+      }
+
+      await invalidateBoardQueries();
+    } finally {
+      setIsTaskFormOpen(false);
     }
-    await invalidateBoardQueries();
   };
 
   const openTaskPreview = async (task: AgileBoardTask) => {

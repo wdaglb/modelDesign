@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Empty, Flex, Input, Select, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 
@@ -14,6 +15,7 @@ import {
 } from '@/api/modules/todo.types';
 import { KTable } from '@/components';
 import queryKey from '@/constants/queryKey';
+import useAutoRefresh from '@/hooks/useAutoRefresh';
 
 /**
  * 优先级颜色映射。
@@ -51,6 +53,7 @@ const getWorkDaysText = (value?: number) => {
  * 我的待办表格。
  */
 const TodoTable = () => {
+  const queryClient = useQueryClient();
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<TodoPriority | undefined>();
@@ -70,6 +73,29 @@ const TodoTable = () => {
     }),
     [pagination, priority, status, title],
   );
+  /**
+   * 为当前页面参数生成稳定查询键，确保自动刷新命中当前视图。
+   */
+  const todoQueryKey = useMemo(() => {
+    return [...queryKey.todo.list(), params];
+  }, [params]);
+  const emptyDescription = useMemo(() => {
+    if (title) {
+      return '未找到匹配的待办';
+    }
+
+    return '暂无待办数据';
+  }, [title]);
+
+  useAutoRefresh({
+    intervalMs: 10000,
+    refresh: async () => {
+      await queryClient.refetchQueries({
+        queryKey: todoQueryKey,
+        exact: true,
+      });
+    },
+  });
 
   const columns: TableColumnsType<TodoItem> = [
     {
@@ -144,7 +170,7 @@ const TodoTable = () => {
 
   return (
     <KTable<TodoItem>
-      queryKey={[...queryKey.todo.list(), params]}
+      queryKey={todoQueryKey}
       request={(requestParams) => ApiTodo.getList(requestParams) as Promise<any>}
       params={params}
       columns={columns}
@@ -158,7 +184,7 @@ const TodoTable = () => {
         },
       }}
       locale={{
-        emptyText: <Empty description={title ? '未找到匹配的待办' : '暂无待办数据'} />,
+        emptyText: <Empty description={emptyDescription} />,
       }}
       toolbar={
         <Flex justify={'space-between'} gap={12} wrap style={{ width: '100%' }}>

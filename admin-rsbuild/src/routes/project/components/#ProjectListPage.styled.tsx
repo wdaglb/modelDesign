@@ -8,6 +8,7 @@ export const PageRoot = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 16px;
 `;
 
 /**
@@ -272,14 +273,6 @@ export const ProjectCardInfoBar = styled.div`
   padding: 10px 12px;
   border-radius: 10px;
   background: #fafafa;
-`;
-
-/**
- * 卡片底部信息文本。
- */
-export const ProjectCardInfoText = styled.span`
-  color: #1f1f1f;
-  font-size: 13px;
 `;
 
 /**
