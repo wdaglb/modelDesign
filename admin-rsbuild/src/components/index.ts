@@ -15,3 +15,12 @@ export {
 } from './business/MessageCenter/index';
 export { UserPicker, UserPickerModal } from './business/UserPicker/barrel';
 export { default as UserSelect } from './business/UserSelect/index';
+export {
+  TaskCard,
+  TaskCardPriorityTag,
+  type TaskCardPriorityChangeHandler,
+  type TaskCardPreviewHandler,
+  type TaskCardPriorityTagProps,
+  type TaskCardProps,
+  type TaskCardTask,
+} from './business/task-card';

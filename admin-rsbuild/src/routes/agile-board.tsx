@@ -11,14 +11,13 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { Card, message } from 'antd';
-
 import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
 import { TaskPriority, type ProjectTaskDetail } from '@/api/modules/project-task.types';
 import { useKDrawer } from '@/components/KDrawer';
 import { useKModal } from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
 import { openTaskModal } from '@/service/taskModalService.tsx';
-import { AgileBoardCardPreview } from './agile-board/#BoardCard';
+import { AgileBoardTaskCardPreview } from './agile-board/#BoardCard';
 import AgileBoardColumn from './agile-board/#BoardColumn';
 import { openTaskPreviewDrawer } from './agile-board/#previewDrawerService';
 import AgileBoardToolbar from './agile-board/#BoardToolbar';
@@ -32,11 +31,9 @@ import {
   resolveDropStatus,
 } from './agile-board/#helper';
 import type { AgileBoardFilterState, AgileBoardTask } from './agile-board/#types';
-
 export const Route = createFileRoute('/agile-board')({
   component: RouteComponent,
 });
-
 /**
  * 敏捷面板页面。
  */
@@ -50,7 +47,6 @@ function RouteComponent() {
   });
   const [previewTaskId, setPreviewTaskId] = useState<number>();
   const [updatingTaskId, setUpdatingTaskId] = useState<number>();
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -58,14 +54,11 @@ function RouteComponent() {
       },
     }),
   );
-
   const params = useMemo(() => buildBoardQueryParams(filters), [filters]);
-
   const { data: projectListData } = useQuery({
     queryKey: [...queryKey.project.list(), 'agile-board'],
     queryFn: () => ApiProject.getList({ current: 1, pageSize: 999 }),
   });
-
   const { data: boardTasks = [], refetch: refetchBoardTasks } = useQuery({
     queryKey: [...queryKey.project.taskBoard(), params],
     queryFn: () => ApiProjectTask.getAgileBoard(params),
@@ -74,7 +67,6 @@ function RouteComponent() {
     queryKey: queryKey.project.taskStatusList(),
     queryFn: () => ApiProjectTaskStatus.getList(),
   });
-
   const projectOptions = useMemo(() => {
     return (projectListData?.items ?? []).map((item) => ({
       label: item.name,
@@ -118,7 +110,6 @@ function RouteComponent() {
       await refetchBoardTasks();
     },
   });
-
   const invalidateBoardQueries = async () => {
     await Promise.all([
       queryClient.invalidateQueries({
@@ -132,7 +123,6 @@ function RouteComponent() {
       }),
     ]);
   };
-
   const openTaskForm = async (task?: ProjectTaskDetail) => {
     setIsTaskFormOpen(true);
 
@@ -151,7 +141,6 @@ function RouteComponent() {
       setIsTaskFormOpen(false);
     }
   };
-
   const openTaskPreview = async (task: AgileBoardTask) => {
     if (previewTaskId !== undefined) {
       return;
@@ -176,7 +165,6 @@ function RouteComponent() {
       setPreviewTaskId(undefined);
     }
   };
-
   const handleDragStart = (event: DragStartEvent) => {
     if (updatingTaskId !== undefined) {
       return;
@@ -184,11 +172,9 @@ function RouteComponent() {
 
     setActiveTaskDragId(String(event.active.id));
   };
-
   const handleDragCancel = () => {
     setActiveTaskDragId(undefined);
   };
-
   const handleDragEnd = async (event: DragEndEvent) => {
     try {
       if (updatingTaskId !== undefined) {
@@ -233,7 +219,6 @@ function RouteComponent() {
       setActiveTaskDragId(undefined);
     }
   };
-
   const handlePriorityChange = async (
     task: AgileBoardTask,
     nextPriority: TaskPriority,
@@ -261,7 +246,6 @@ function RouteComponent() {
       setUpdatingTaskId(undefined);
     }
   };
-
   return (
     <div
       style={{
@@ -270,13 +254,20 @@ function RouteComponent() {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
-        padding: 12,
-        background: '#f5f7fa',
+        gap: 10,
+        padding: 10,
+        background: '#f3f5f8',
         boxSizing: 'border-box',
       }}
     >
-      <Card size="small">
+      <Card
+        size="small"
+        style={{
+          borderRadius: 18,
+          border: '1px solid rgba(15, 23, 42, 0.06)',
+          boxShadow: '0 6px 20px rgba(15, 23, 42, 0.04)',
+        }}
+      >
         <AgileBoardToolbar
           hasFilters={hasFilters}
           projectId={filters.projectId}
@@ -325,16 +316,21 @@ function RouteComponent() {
           }}
         />
       </Card>
-
       <Card
         size="small"
-        style={{ flex: 1, minHeight: 0 }}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          borderRadius: 22,
+          border: '1px solid rgba(15, 23, 42, 0.06)',
+          boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
+        }}
         styles={{
           body: {
             height: '100%',
             minHeight: 0,
             padding: 10,
-            background: '#eef2f6',
+            background: '#edf1f5',
           },
         }}
       >
@@ -385,9 +381,8 @@ function RouteComponent() {
               })}
             </div>
           </div>
-
           <DragOverlay dropAnimation={null}>
-            {activeTask && <AgileBoardCardPreview task={activeTask} />}
+            {activeTask && <AgileBoardTaskCardPreview task={activeTask} />}
           </DragOverlay>
         </DndContext>
       </Card>
