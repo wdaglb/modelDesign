@@ -28,7 +28,7 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
   let subtitleNode = null;
 
   let columnBorder = '1px solid rgba(15, 23, 42, 0.08)';
-  let columnBoxShadow = '0 12px 28px rgba(15, 23, 42, 0.08)';
+  let columnBoxShadow = '0 10px 24px rgba(15, 23, 42, 0.06)';
 
   if (isOver && !props.disabled) {
     columnBorder = `1px solid ${props.column.accentColor}`;
@@ -51,6 +51,7 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
         width: 280,
         height: '100%',
         minHeight: 0,
+        padding: 2,
         transition: 'all 0.2s ease',
       }}
     >
@@ -59,7 +60,7 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
         style={{
           height: '100%',
           minHeight: 0,
-          borderRadius: 24,
+          borderRadius: 20,
           background: props.column.background,
           border: columnBorder,
           boxShadow: columnBoxShadow,
@@ -68,13 +69,13 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
         styles={{
           header: {
             minHeight: 0,
-            padding: '18px 18px 12px',
+            padding: '16px 16px 10px',
             borderBottom: 'none',
           },
           body: {
             height: 'calc(100% - 72px)',
             minHeight: 0,
-            padding: '0 16px 6px 16px',
+            padding: '0 12px 8px 12px',
             display: 'flex',
             flexDirection: 'column',
           },
@@ -114,9 +115,9 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
             <div
               style={{
                 minHeight: 220,
-                borderRadius: 16,
+                borderRadius: 14,
                 border: `1px dashed ${props.column.accentColor}33`,
-                background: 'rgba(255, 255, 255, 0.82)',
+                background: 'rgba(255, 255, 255, 0.78)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -135,7 +136,7 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
                 width: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 8,
+                gap: 10,
               }}
             >
               {props.tasks.map((task) => {
