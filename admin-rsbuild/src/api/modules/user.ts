@@ -256,3 +256,25 @@ export const updateUserRoles = (userId: number, roleCodes: string[]) => {
     data: { roleCodes },
   });
 };
+
+/**
+ * 获取用户已绑定的职位 ID 列表。
+ */
+export const getUserPositions = (userId: number) => {
+  return request<number[]>('/user/positions', {
+    params: { userId },
+  });
+};
+
+/**
+ * 更新用户绑定职位。
+ *
+ * 传空数组则清空所有绑定。
+ */
+export const updateUserPositions = (userId: number, positionIds: number[]) => {
+  return request('/user/positions/update', {
+    method: 'post',
+    params: { userId },
+    data: { positionIds },
+  });
+};
