@@ -17,11 +17,13 @@ import io.github.modelDesign.project.mapper.ProjectMemberMapper;
 import io.github.modelDesign.project.mapper.ProjectTaskMapper;
 import io.github.modelDesign.project.mapper.ProjectTaskMemberMapper;
 import io.github.modelDesign.project.request.MyTodoListRequest;
+import io.github.modelDesign.project.request.ProjectTaskChangeLogListRequest;
 import io.github.modelDesign.project.request.ProjectTaskCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskEditRequest;
 import io.github.modelDesign.project.request.ProjectTaskListRequest;
 import io.github.modelDesign.project.response.MyTodoItemVo;
 import io.github.modelDesign.project.response.PageResponse;
+import io.github.modelDesign.project.response.ProjectTaskChangeLogItemVo;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -100,6 +102,11 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
      * 项目 Mapper。
      */
     private final ProjectMapper projectMapper;
+
+    /**
+     * 任务变更日志服务。
+     */
+    private final ProjectTaskChangeLogService projectTaskChangeLogService;
 
     /**
      * 获取我的待办列表（当前登录用户作为负责人的任务）。
@@ -230,6 +237,16 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     }
 
     /**
+     * 获取任务变更日志列表。
+     *
+     * @param request 列表请求
+     * @return 分页结果
+     */
+    public PageResponse<ProjectTaskChangeLogItemVo> getChangeLogList(ProjectTaskChangeLogListRequest request) {
+        return projectTaskChangeLogService.getList(request);
+    }
+
+    /**
      * 创建任务。
      *
      * @param request 创建请求
@@ -259,6 +276,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setDeleted(0);
         save(task);
         ensureAssigneeMember(task);
+        projectTaskChangeLogService.logCreate(task);
         return toTaskVo(task, getUserMap(task), getProjectNameMap(task));
     }
 
@@ -272,6 +290,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     @Transactional(rollbackFor = Exception.class)
     public ProjectTaskDetailVo edit(Long id, ProjectTaskEditRequest request) {
         ProjectTask task = requireTask(id);
+        ProjectTask beforeTask = copyTask(task);
         String status = validateStatus(request.getStatus());
         validatePriority(request.getPriority());
         validateWorkDays(request.getWorkDays());
@@ -288,6 +307,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setDueTime(request.getDueTime());
         updateById(task);
         ensureAssigneeMember(task);
+        projectTaskChangeLogService.logUpdate(beforeTask, task);
         return toTaskVo(task, getUserMap(task), getProjectNameMap(task));
     }
 
@@ -297,6 +317,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
      * @param ids 任务 ID 列表
      * @return 删除数量
      */
+    @Transactional(rollbackFor = Exception.class)
     public int deleted(List<Long> ids) {
         List<ProjectTask> tasks = lambdaQuery()
                 .in(ProjectTask::getId, ids)
@@ -304,6 +325,9 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
                 .list();
         if (tasks.isEmpty()) {
             return 0;
+        }
+        for (ProjectTask task : tasks) {
+            projectTaskChangeLogService.logDelete(task);
         }
         List<Long> taskIds = tasks.stream().map(ProjectTask::getId).toList();
         lambdaUpdate()
@@ -677,6 +701,31 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         taskMember.setTaskId(task.getId());
         taskMember.setUserId(task.getAssigneeId());
         projectTaskMemberMapper.insert(taskMember);
+    }
+
+    /**
+     * 复制任务快照。
+     *
+     * @param source 原任务
+     * @return 快照副本
+     */
+    private ProjectTask copyTask(ProjectTask source) {
+        ProjectTask target = new ProjectTask();
+        target.setId(source.getId());
+        target.setProjectId(source.getProjectId());
+        target.setTitle(source.getTitle());
+        target.setDescription(source.getDescription());
+        target.setStatus(source.getStatus());
+        target.setPriority(source.getPriority());
+        target.setCreatorId(source.getCreatorId());
+        target.setAssigneeId(source.getAssigneeId());
+        target.setWorkDays(source.getWorkDays());
+        target.setStartTime(source.getStartTime());
+        target.setDueTime(source.getDueTime());
+        target.setDeleted(source.getDeleted());
+        target.setCreateTime(source.getCreateTime());
+        target.setUpdateTime(source.getUpdateTime());
+        return target;
     }
 
     /**

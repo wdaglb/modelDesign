@@ -65,15 +65,6 @@ function AgileBoardCardContainer(props: AgileBoardCardContainerProps) {
     props.isOverlay,
     props.disabled,
   );
-  let iconCursor = 'grab';
-
-  if (props.disabled) {
-    iconCursor = 'default';
-  }
-
-  if (props.isOverlay) {
-    iconCursor = 'grabbing';
-  }
 
   const priorityMenuItems = useMemo(() => {
     return TaskPriorityOptions.map((item) => {
@@ -221,7 +212,7 @@ function AgileBoardCardContainer(props: AgileBoardCardContainerProps) {
         }}
       >
         <Space
-          direction="vertical"
+          orientation="vertical"
           size={10}
           style={{ width: '100%' }}
           styles={{ item: { width: '100%' } }}
@@ -247,23 +238,15 @@ function AgileBoardCardContainer(props: AgileBoardCardContainerProps) {
               </Typography.Text>
             </Tooltip>
 
-            <span
+            <div
               style={{
-                color: 'var(--ant-colorTextSecondary)',
-                cursor: iconCursor,
+                flexShrink: 0,
                 display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: 24,
-                height: 24,
-                flexShrink: 0,
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
               }}
             >
-              <Icons.DragHorizontal />
-            </span>
+              {priorityNode}
+            </div>
           </Space>
 
           <Typography.Text
@@ -283,9 +266,7 @@ function AgileBoardCardContainer(props: AgileBoardCardContainerProps) {
             {props.task.title}
           </Typography.Text>
 
-          <div>{priorityNode}</div>
-
-          <Space direction="vertical" size={4}>
+          <Space orientation="vertical" size={4}>
             <Typography.Text
               type="secondary"
               style={{

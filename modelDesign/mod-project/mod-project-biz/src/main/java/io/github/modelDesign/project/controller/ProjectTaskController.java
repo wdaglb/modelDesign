@@ -2,12 +2,14 @@ package io.github.modelDesign.project.controller;
 
 import io.github.modelDesign.project.request.MyTodoListRequest;
 import io.github.modelDesign.project.request.ProjectTaskBoardRequest;
+import io.github.modelDesign.project.request.ProjectTaskChangeLogListRequest;
 import io.github.modelDesign.project.request.ProjectTaskCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskDeleteRequest;
 import io.github.modelDesign.project.request.ProjectTaskEditRequest;
 import io.github.modelDesign.project.request.ProjectTaskListRequest;
 import io.github.modelDesign.project.response.MyTodoItemVo;
 import io.github.modelDesign.project.response.PageResponse;
+import io.github.modelDesign.project.response.ProjectTaskChangeLogItemVo;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import io.github.modelDesign.project.service.ProjectTaskBoardQueryService;
 import io.github.modelDesign.project.service.ProjectTaskService;
@@ -104,6 +106,18 @@ public class ProjectTaskController {
     @GetMapping("/detail")
     public ProjectTaskDetailVo detail(@Parameter(description = "任务 ID", required = true) @RequestParam @NotNull(message = "任务 ID 不能为空") Long id) {
         return projectTaskService.getDetail(id);
+    }
+
+    /**
+     * 获取任务变更日志列表。
+     *
+     * @param request 列表请求
+     * @return 分页结果
+     */
+    @Operation(summary = "获取任务变更日志列表")
+    @GetMapping("/change-log/list")
+    public PageResponse<ProjectTaskChangeLogItemVo> changeLogList(@Valid ProjectTaskChangeLogListRequest request) {
+        return projectTaskService.getChangeLogList(request);
     }
 
     /**

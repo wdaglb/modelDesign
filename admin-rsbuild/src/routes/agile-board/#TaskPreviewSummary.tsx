@@ -36,12 +36,12 @@ const TaskPreviewSummary = (props: TaskPreviewSummaryProps) => {
       }}
     >
       <Space
-        direction="vertical"
+        orientation="vertical"
         size={16}
         style={{ width: '100%' }}
         styles={{ item: { width: '100%' } }}
       >
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
           <Typography.Text
             type="secondary"
             style={{
@@ -72,7 +72,7 @@ const TaskPreviewSummary = (props: TaskPreviewSummaryProps) => {
           gap={16}
           style={{ width: '100%' }}
         >
-          <Space direction="vertical" size={8}>
+          <Space orientation="vertical" size={8}>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               快速操作
             </Typography.Text>

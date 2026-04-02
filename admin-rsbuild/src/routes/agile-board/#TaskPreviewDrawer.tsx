@@ -5,6 +5,7 @@ import {
   Descriptions,
   Skeleton,
   Space,
+  Tabs,
   Typography,
   message,
 } from 'antd';
@@ -17,6 +18,7 @@ import {
   type TaskStatusCode,
 } from '@/api/modules/project-task.types';
 import { drawerContext } from '@/components/KDrawer/Drawer.tsx';
+import queryKey from '@/constants/queryKey';
 
 import {
   buildBoardEditPayload,
@@ -27,6 +29,7 @@ import {
   getTaskProjectText,
   getTaskWorkDaysText,
 } from './#helper';
+import TaskChangeLogPanel from './#TaskChangeLogPanel';
 import TaskPreviewSection from './#TaskPreviewSection';
 import TaskPreviewSummary from './#TaskPreviewSummary';
 
@@ -43,6 +46,7 @@ interface TaskPreviewDrawerProps {
 const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
   const ctx = useContext(drawerContext);
   const queryClient = useQueryClient();
+  const [activeTabKey, setActiveTabKey] = useState('overview');
   const [selectedStatus, setSelectedStatus] = useState<TaskStatusCode>();
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
@@ -113,9 +117,14 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
     }
 
     await props.onEdit(detailQuery.data);
-    await queryClient.invalidateQueries({
-      queryKey: detailQueryKey,
-    });
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: detailQueryKey,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKey.project.taskChangeLog(props.taskId),
+      }),
+    ]);
   };
 
   const handleStatusUpdate = async () => {
@@ -145,6 +154,9 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
         props.onTaskUpdated(),
         queryClient.invalidateQueries({
           queryKey: detailQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKey.project.taskChangeLog(props.taskId),
         }),
       ]);
     } finally {
@@ -223,83 +235,107 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
           padding: 20,
         }}
       >
-        <Space
-          direction="vertical"
-          size={12}
-          style={{ width: '100%' }}
-          styles={{ item: { width: '100%' } }}
-        >
-          <TaskPreviewSection title="任务进度">
-            <Descriptions
-              size="small"
-              column={1}
-              items={[
-                {
-                  key: 'status',
-                  label: '当前状态',
-                  children: statusText,
-                },
-                {
-                  key: 'priority',
-                  label: '优先级',
-                  children: getTaskPriorityText(taskDetail.priority),
-                },
-                {
-                  key: 'workDays',
-                  label: '预计工时',
-                  children: getTaskWorkDaysText(taskDetail),
-                },
-              ]}
-            />
-          </TaskPreviewSection>
+        <Tabs
+          activeKey={activeTabKey}
+          items={[
+            {
+              key: 'overview',
+              label: '概览',
+              children: (
+                <Space
+                  orientation="vertical"
+                  size={12}
+                  style={{ width: '100%' }}
+                  styles={{ item: { width: '100%' } }}
+                >
+                  <TaskPreviewSection title="任务进度">
+                    <Descriptions
+                      size="small"
+                      column={1}
+                      items={[
+                        {
+                          key: 'status',
+                          label: '当前状态',
+                          children: statusText,
+                        },
+                        {
+                          key: 'priority',
+                          label: '优先级',
+                          children: getTaskPriorityText(taskDetail.priority),
+                        },
+                        {
+                          key: 'workDays',
+                          label: '预计工时',
+                          children: getTaskWorkDaysText(taskDetail),
+                        },
+                      ]}
+                    />
+                  </TaskPreviewSection>
 
-          <TaskPreviewSection title="排期与责任">
-            <Descriptions
-              size="small"
-              column={1}
-              items={[
-                {
-                  key: 'assignee',
-                  label: '负责人',
-                  children: getTaskAssigneeText(taskDetail),
-                },
-                {
-                  key: 'startTime',
-                  label: '开始时间',
-                  children: taskDetail.startTime || '-',
-                },
-                {
-                  key: 'dueTime',
-                  label: '截止时间',
-                  children: taskDetail.dueTime || '-',
-                },
-                {
-                  key: 'creator',
-                  label: '创建人',
-                  children: taskDetail.creator || '-',
-                },
-                {
-                  key: 'updatedAt',
-                  label: '更新时间',
-                  children: taskDetail.updatedAt || '-',
-                },
-              ]}
-            />
-          </TaskPreviewSection>
+                  <TaskPreviewSection title="排期与责任">
+                    <Descriptions
+                      size="small"
+                      column={1}
+                      items={[
+                        {
+                          key: 'assignee',
+                          label: '负责人',
+                          children: getTaskAssigneeText(taskDetail),
+                        },
+                        {
+                          key: 'startTime',
+                          label: '开始时间',
+                          children: taskDetail.startTime || '-',
+                        },
+                        {
+                          key: 'dueTime',
+                          label: '截止时间',
+                          children: taskDetail.dueTime || '-',
+                        },
+                        {
+                          key: 'creator',
+                          label: '创建人',
+                          children: taskDetail.creator || '-',
+                        },
+                        {
+                          key: 'updatedAt',
+                          label: '更新时间',
+                          children: taskDetail.updatedAt || '-',
+                        },
+                      ]}
+                    />
+                  </TaskPreviewSection>
 
-          <TaskPreviewSection title="任务说明">
-            <Typography.Paragraph
-              style={{
-                marginBottom: 0,
-                whiteSpace: 'pre-wrap',
-                color: 'rgba(15, 23, 42, 0.88)',
-                lineHeight: '24px',
-              }}
-            >
-              {taskDetail.description || '暂无描述'}
-            </Typography.Paragraph>
-          </TaskPreviewSection>
-        </Space>
+                  <TaskPreviewSection title="任务说明">
+                    <Typography.Paragraph
+                      style={{
+                        marginBottom: 0,
+                        whiteSpace: 'pre-wrap',
+                        color: 'rgba(15, 23, 42, 0.88)',
+                        lineHeight: '24px',
+                      }}
+                    >
+                      {taskDetail.description || '暂无描述'}
+                    </Typography.Paragraph>
+                  </TaskPreviewSection>
+                </Space>
+              ),
+            },
+            {
+              key: 'changeLog',
+              label: '变更日志',
+              children: (
+                <TaskChangeLogPanel
+                  active={activeTabKey === 'changeLog'}
+                  taskId={props.taskId}
+                />
+              ),
+            },
+          ]}
+          onChange={(nextKey) => {
+            setActiveTabKey(nextKey);
+          }}
+        />
       </div>
 
       <div

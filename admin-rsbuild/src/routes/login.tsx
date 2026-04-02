@@ -1,11 +1,11 @@
-import { createFileRoute, useLocation } from '@tanstack/react-router';
-import { Alert, Button, Form, Input } from 'antd';
-
-import styles from './login.module.less';
+import { createFileRoute } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
+import { z } from 'zod';
+
 import { ApiPassport } from '@/api';
 import useAuthStore from '@/store/auth.ts';
-import { z } from 'zod';
+
+import LoginPage, { LoginFormValues } from './#LoginPage.tsx';
 
 const searchSchema = z.object({
   redirect: z.string().optional().default('/'),
@@ -33,52 +33,19 @@ function RouteComponent() {
       navigate({ to: search.redirect, replace: true });
     },
   });
+
+  let errorMessage: string | undefined;
+  if (mutation.isError) {
+    errorMessage = mutation.error.message;
+  }
+
   return (
-    <div className={styles.bg}>
-      <div className={styles.main}>
-        <div className={styles.left}></div>
-        <div className={styles.content}>
-          <div className={styles.title}>登录后台</div>
-          <Form style={{ width: 300 }} onFinish={mutation.mutateAsync}>
-            {mutation.isError && (
-              <Alert
-                title={mutation.error.message}
-                showIcon
-                type={'warning'}
-                style={{
-                  marginBottom: 8,
-                }}
-              />
-            )}
-
-            <Form.Item
-              name={'username'}
-              rules={[{ required: true, message: '请输入账号' }]}
-            >
-              <Input placeholder={'请输入'} />
-            </Form.Item>
-
-            <Form.Item
-              name={'password'}
-              rules={[{ required: true, message: '请输入密码' }]}
-            >
-              <Input.Password placeholder={'请输入'} />
-            </Form.Item>
-
-            <Form.Item className={styles.submit}>
-              <Button
-                type="primary"
-                size={'large'}
-                loading={mutation.isPending}
-                block
-                htmlType="submit"
-              >
-                确认登录
-              </Button>
-            </Form.Item>
-          </Form>
-        </div>
-      </div>
-    </div>
+    <LoginPage
+      loading={mutation.isPending}
+      errorMessage={errorMessage}
+      onSubmit={(values: LoginFormValues) => {
+        return mutation.mutateAsync(values);
+      }}
+    />
   );
 }

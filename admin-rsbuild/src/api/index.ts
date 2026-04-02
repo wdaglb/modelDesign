@@ -1,6 +1,7 @@
 import * as ApiFile from './modules/file';
 import * as ApiPassport from './modules/passport';
 import * as ApiProjectMember from './modules/project-member';
+import * as ApiProjectTaskChangeLog from './modules/project-task-change-log';
 import * as ApiProjectTask from './modules/project-task';
 import * as ApiProjectTaskStatus from './modules/project-task-status';
 import * as ApiMenu from './modules/menu';
@@ -19,6 +20,7 @@ export {
   ApiPassport,
   ApiProject,
   ApiProjectMember,
+  ApiProjectTaskChangeLog,
   ApiProjectTask,
   ApiProjectTaskStatus,
   ApiQywork,

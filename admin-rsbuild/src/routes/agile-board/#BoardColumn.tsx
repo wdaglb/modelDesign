@@ -1,4 +1,4 @@
-import { Badge, Card, Empty, List, Space, Typography } from 'antd';
+import { Badge, Card, Empty, Space, Typography } from 'antd';
 import { useDroppable } from '@dnd-kit/core';
 import { TaskPriority } from '@/api/modules/project-task.types';
 
@@ -74,13 +74,13 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
           body: {
             height: 'calc(100% - 72px)',
             minHeight: 0,
-            padding: '0 16px 12px 16px',
+            padding: '0 16px 6px 16px',
             display: 'flex',
             flexDirection: 'column',
           },
         }}
         title={
-          <Space direction="vertical" size={2} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={2} style={{ width: '100%' }}>
             <Space
               align="center"
               style={{ width: '100%', justifyContent: 'space-between' }}
@@ -130,17 +130,20 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
           )}
 
           {props.tasks.length > 0 && (
-            <List
-              dataSource={props.tasks}
-              split={false}
-              renderItem={(task) => {
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              {props.tasks.map((task) => {
                 return (
-                  <List.Item
+                  <div
+                    key={task.id}
                     style={{
                       width: '100%',
-                      display: 'block',
-                      padding: '0 0 12px',
-                      border: 'none',
                     }}
                   >
                     <AgileBoardCard
@@ -149,10 +152,10 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
                       onPreview={props.onPreview}
                       onPriorityChange={props.onPriorityChange}
                     />
-                  </List.Item>
+                  </div>
                 );
-              }}
-            />
+              })}
+            </div>
           )}
         </div>
       </Card>

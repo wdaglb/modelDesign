@@ -26,29 +26,62 @@ interface AgileBoardToolbarProps {
  */
 const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
   return (
-    <Flex vertical gap={10} style={{ width: '100%' }}>
-      <Flex justify="space-between" gap={12} wrap align="center">
-        <Space direction="vertical" size={2}>
-          <span
-            style={{
-              fontSize: 18,
-              fontWeight: 600,
-              lineHeight: '26px',
-              color: 'var(--ant-colorText)',
-            }}
-          >
-            敏捷面板
-          </span>
-          <span
-            style={{
-              fontSize: 12,
-              lineHeight: '20px',
-              color: 'var(--ant-colorTextSecondary)',
-            }}
-          >
-            聚焦任务流转与快速处理。
-          </span>
-        </Space>
+    <Flex vertical gap={8} style={{ width: '100%' }}>
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 600,
+          lineHeight: '26px',
+          color: 'var(--ant-colorText)',
+        }}
+      >
+        敏捷面板
+      </div>
+
+      <Space wrap size={8} style={{ width: '100%' }}>
+        <Input.Search
+          allowClear
+          placeholder="搜索任务标题"
+          style={{ width: 220 }}
+          onSearch={props.onTitleSearch}
+        />
+
+        <Select
+          allowClear
+          placeholder="筛选项目"
+          style={{ width: 180 }}
+          value={props.projectId}
+          options={props.projectOptions}
+          showSearch={{
+            optionFilterProp: 'label',
+          }}
+          onChange={props.onProjectChange}
+        />
+
+        <div style={{ width: 180 }}>
+          <UserSelect
+            size="middle"
+            value={props.assigneeId}
+            placeholder="筛选负责人"
+            onChange={props.onAssigneeChange}
+          />
+        </div>
+
+        <Select
+          allowClear
+          placeholder="筛选优先级"
+          style={{ width: 130 }}
+          value={props.priority}
+          options={TaskPriorityOptions}
+          onChange={props.onPriorityChange}
+        />
+
+        <Button
+          disabled={!props.hasFilters}
+          onClick={props.onReset}
+        >
+          重置筛选
+        </Button>
 
         <Button
           type="primary"
@@ -57,55 +90,7 @@ const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
         >
           新建任务
         </Button>
-      </Flex>
-
-      <Flex justify="space-between" gap={12} wrap style={{ width: '100%' }}>
-        <Space wrap size={8}>
-          <Input.Search
-            allowClear
-            placeholder="搜索任务标题"
-            style={{ width: 220 }}
-            onSearch={props.onTitleSearch}
-          />
-
-          <Select
-            allowClear
-            placeholder="筛选项目"
-            style={{ width: 180 }}
-            value={props.projectId}
-            options={props.projectOptions}
-            showSearch={{
-              optionFilterProp: 'label',
-            }}
-            onChange={props.onProjectChange}
-          />
-
-          <div style={{ width: 180 }}>
-            <UserSelect
-              size="middle"
-              value={props.assigneeId}
-              placeholder="筛选负责人"
-              onChange={props.onAssigneeChange}
-            />
-          </div>
-
-          <Select
-            allowClear
-            placeholder="筛选优先级"
-            style={{ width: 130 }}
-            value={props.priority}
-            options={TaskPriorityOptions}
-            onChange={props.onPriorityChange}
-          />
-
-          <Button
-            disabled={!props.hasFilters}
-            onClick={props.onReset}
-          >
-            重置筛选
-          </Button>
-        </Space>
-      </Flex>
+      </Space>
     </Flex>
   );
 };

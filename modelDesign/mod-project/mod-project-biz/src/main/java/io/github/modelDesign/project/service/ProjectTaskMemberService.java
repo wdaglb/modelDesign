@@ -16,6 +16,7 @@ import io.github.modelDesign.project.response.ProjectTaskMemberVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -51,6 +52,11 @@ public class ProjectTaskMemberService extends ServiceImpl<ProjectTaskMemberMappe
      * 项目成员 Mapper。
      */
     private final ProjectMemberMapper projectMemberMapper;
+
+    /**
+     * 任务变更日志服务。
+     */
+    private final ProjectTaskChangeLogService projectTaskChangeLogService;
 
     /**
      * 获取任务成员列表。
@@ -100,6 +106,7 @@ public class ProjectTaskMemberService extends ServiceImpl<ProjectTaskMemberMappe
      * @param request 成员变更请求
      * @return 新增数量
      */
+    @Transactional(rollbackFor = Exception.class)
     public int add(ProjectTaskMemberUpdateRequest request) {
         ProjectTask task = projectTaskService.requireTask(request.getTaskId());
         List<Long> targetUserIds = request.getUserIds().stream().distinct().toList();
@@ -124,6 +131,10 @@ public class ProjectTaskMemberService extends ServiceImpl<ProjectTaskMemberMappe
             return 0;
         }
         saveBatch(members);
+        List<Long> addedUserIds = members.stream()
+                .map(ProjectTaskMember::getUserId)
+                .toList();
+        projectTaskChangeLogService.logMemberAdd(request.getTaskId(), addedUserIds);
         return members.size();
     }
 
@@ -133,6 +144,7 @@ public class ProjectTaskMemberService extends ServiceImpl<ProjectTaskMemberMappe
      * @param request 成员变更请求
      * @return 删除数量
      */
+    @Transactional(rollbackFor = Exception.class)
     public int delete(ProjectTaskMemberUpdateRequest request) {
         ProjectTask task = projectTaskService.requireTask(request.getTaskId());
         if (task.getAssigneeId() != null && request.getUserIds().contains(task.getAssigneeId())) {
@@ -146,7 +158,11 @@ public class ProjectTaskMemberService extends ServiceImpl<ProjectTaskMemberMappe
             return 0;
         }
         List<Long> ids = members.stream().map(ProjectTaskMember::getId).toList();
+        List<Long> removedUserIds = members.stream()
+                .map(ProjectTaskMember::getUserId)
+                .toList();
         removeByIds(ids);
+        projectTaskChangeLogService.logMemberRemove(request.getTaskId(), removedUserIds);
         return ids.size();
     }
 

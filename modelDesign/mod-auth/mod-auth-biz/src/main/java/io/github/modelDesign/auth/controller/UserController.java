@@ -3,12 +3,14 @@ package io.github.modelDesign.auth.controller;
 import io.github.modelDesign.auth.request.UserAddRequest;
 import io.github.modelDesign.auth.request.UserBatchUpdateStatusRequest;
 import io.github.modelDesign.auth.request.UserListRequest;
+import io.github.modelDesign.auth.request.UserPositionUpdateRequest;
 import io.github.modelDesign.auth.request.UserRoleUpdateRequest;
 import io.github.modelDesign.auth.request.UserUpdateRequest;
 import io.github.modelDesign.auth.request.UserUpdateStatusRequest;
 import io.github.modelDesign.auth.response.PageResponse;
 import io.github.modelDesign.auth.response.UserListItemVo;
 import io.github.modelDesign.auth.service.PermissionService;
+import io.github.modelDesign.auth.service.UserPositionService;
 import io.github.modelDesign.auth.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -47,6 +49,11 @@ public class UserController {
      * 权限服务。
      */
     private final PermissionService permissionService;
+
+    /**
+     * 用户职位关系服务。
+     */
+    private final UserPositionService userPositionService;
 
     /**
      * 获取用户列表。
@@ -145,5 +152,38 @@ public class UserController {
                             @Valid @RequestBody UserRoleUpdateRequest request) {
         userService.requireUser(userId);
         permissionService.updateUserRoles(String.valueOf(userId), request.getRoleCodes());
+    }
+
+    /**
+     * 获取用户已绑定的职位 ID 列表。
+     *
+     * @param userId 用户 ID
+     * @return 职位 ID 列表
+     */
+    @Operation(summary = "获取用户已绑定职位")
+    @GetMapping("/positions")
+    public List<Long> getPositions(
+            @Parameter(description = "用户 ID", required = true)
+            @RequestParam
+            @NotNull(message = "用户 ID 不能为空")
+            Long userId) {
+        return userPositionService.getUserPositionIds(userId);
+    }
+
+    /**
+     * 更新用户绑定职位。
+     *
+     * @param userId 用户 ID
+     * @param request 职位 ID 列表
+     */
+    @Operation(summary = "更新用户绑定职位")
+    @PostMapping("/positions/update")
+    public void updatePositions(
+            @Parameter(description = "用户 ID", required = true)
+            @RequestParam
+            @NotNull(message = "用户 ID 不能为空")
+            Long userId,
+            @Valid @RequestBody UserPositionUpdateRequest request) {
+        userPositionService.updateUserPositions(userId, request);
     }
 }

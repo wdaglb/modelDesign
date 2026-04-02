@@ -99,6 +99,7 @@ const UserSelect = (props: UserSelectProps) => {
 
   return (
     <Select
+      style={{ width: '100%' }}
       showSearch={{
         onSearch: setKeyword,
         filterOption: false,

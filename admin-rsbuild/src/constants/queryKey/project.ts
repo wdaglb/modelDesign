@@ -22,6 +22,11 @@ export const taskList = (projectId?: number) => {
 export const taskBoard = () => ['projectTaskBoard'];
 
 /**
+ * 任务变更日志查询键。
+ */
+export const taskChangeLog = (taskId: number) => ['projectTaskChangeLog', taskId];
+
+/**
  * 任务状态配置查询键。
  */
 export const taskStatusList = () => ['projectTaskStatusList'];
