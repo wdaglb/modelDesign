@@ -26,9 +26,30 @@ public class ProjectListRequest {
     private Integer pageSize = 10;
 
     /**
-     * 项目名称。
+     * 搜索关键词。
      */
-    @Schema(description = "项目名称")
+    @Schema(description = "搜索关键词，匹配项目名称和项目编号")
+    @Size(max = 128, message = "搜索关键词长度不能超过 128 个字符")
+    private String keyword;
+
+    /**
+     * 兼容旧版的项目名称筛选字段。
+     */
+    @Schema(description = "项目名称（兼容旧参数）", deprecated = true)
     @Size(max = 128, message = "项目名称长度不能超过 128 个字符")
     private String name;
+
+    /**
+     * 项目状态。
+     */
+    @Schema(description = "项目状态", allowableValues = {"planning", "inProgress", "atRisk", "archived"})
+    @Size(max = 32, message = "项目状态长度不能超过 32 个字符")
+    private String status;
+
+    /**
+     * 项目分组。
+     */
+    @Schema(description = "项目分组")
+    @Size(max = 64, message = "项目分组长度不能超过 64 个字符")
+    private String projectGroup;
 }

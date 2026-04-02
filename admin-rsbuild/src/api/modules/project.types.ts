@@ -16,6 +16,22 @@ export interface Project {
    */
   description?: string;
   /**
+   * 项目状态
+   */
+  status: ProjectStatus;
+  /**
+   * 项目分组
+   */
+  projectGroup?: string;
+  /**
+   * 当前进展
+   */
+  progressSummary?: string;
+  /**
+   * 已完成模块数
+   */
+  completedModuleCount?: number;
+  /**
    * 创建人
    */
   creator: string;
@@ -40,6 +56,38 @@ export interface PageResponse<T> {
 }
 
 /**
+ * 项目状态统计
+ */
+export interface ProjectStatusSummary {
+  all: number;
+  planning: number;
+  inProgress: number;
+  atRisk: number;
+  archived: number;
+}
+
+/**
+ * 项目列表响应
+ */
+export interface ProjectListResponse {
+  items: Project[];
+  total: number;
+  statusSummary: ProjectStatusSummary;
+  groupOptions: string[];
+}
+
+/**
+ * 项目列表查询参数
+ */
+export interface ProjectListParams {
+  current?: number;
+  pageSize?: number;
+  keyword?: string;
+  status?: ProjectStatus;
+  projectGroup?: string;
+}
+
+/**
  * 数据库类型
  */
 export enum DatabaseType {
@@ -61,6 +109,28 @@ export enum DatabaseType {
   MongoDB = 'mongodb',
 }
 
+/**
+ * 项目状态
+ */
+export enum ProjectStatus {
+  /**
+   * 规划中
+   */
+  Planning = 'planning',
+  /**
+   * 进行中
+   */
+  InProgress = 'inProgress',
+  /**
+   * 风险中
+   */
+  AtRisk = 'atRisk',
+  /**
+   * 已归档
+   */
+  Archived = 'archived',
+}
+
 export const DatabaseTypeLabel = {
   [DatabaseType.MySQL]: 'MySQL',
   [DatabaseType.PostgreSQL]: 'PostgreSQL',
@@ -78,6 +148,30 @@ export const DatabaseTypeOptions = [
   value: item,
 }));
 
+export const ProjectStatusLabel = {
+  [ProjectStatus.Planning]: '规划中',
+  [ProjectStatus.InProgress]: '进行中',
+  [ProjectStatus.AtRisk]: '风险中',
+  [ProjectStatus.Archived]: '已归档',
+};
+
+export const ProjectStatusColor = {
+  [ProjectStatus.Planning]: 'orange',
+  [ProjectStatus.InProgress]: 'green',
+  [ProjectStatus.AtRisk]: 'red',
+  [ProjectStatus.Archived]: 'default',
+};
+
+export const ProjectStatusOptions = [
+  ProjectStatus.Planning,
+  ProjectStatus.InProgress,
+  ProjectStatus.AtRisk,
+  ProjectStatus.Archived,
+].map((item) => ({
+  label: ProjectStatusLabel[item],
+  value: item,
+}));
+
 /**
  * 创建项目参数
  */
@@ -86,6 +180,10 @@ export interface CreateProjectParams {
   name: string;
   description?: string;
   dbType: DatabaseType;
+  status?: ProjectStatus;
+  projectGroup?: string;
+  progressSummary?: string;
+  completedModuleCount?: number;
 }
 
 /**
@@ -95,4 +193,8 @@ export interface EditProjectParams {
   name?: string;
   description?: string;
   dbType?: DatabaseType;
+  status?: ProjectStatus;
+  projectGroup?: string;
+  progressSummary?: string;
+  completedModuleCount?: number;
 }

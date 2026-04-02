@@ -1,6 +1,7 @@
 package io.github.modelDesign.project.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -33,6 +34,34 @@ public class ProjectCreateRequest {
     @Schema(description = "项目描述")
     @Size(max = 1000, message = "项目描述长度不能超过 1000 个字符")
     private String description;
+
+    /**
+     * 项目状态。
+     */
+    @Schema(description = "项目状态", allowableValues = {"planning", "inProgress", "atRisk", "archived"})
+    @Size(max = 32, message = "项目状态长度不能超过 32 个字符")
+    private String status;
+
+    /**
+     * 项目分组。
+     */
+    @Schema(description = "项目分组")
+    @Size(max = 64, message = "项目分组长度不能超过 64 个字符")
+    private String projectGroup;
+
+    /**
+     * 当前进展。
+     */
+    @Schema(description = "当前进展")
+    @Size(max = 1000, message = "当前进展长度不能超过 1000 个字符")
+    private String progressSummary;
+
+    /**
+     * 已完成模块数。
+     */
+    @Schema(description = "已完成模块数")
+    @Min(value = 0, message = "已完成模块数不能小于 0")
+    private Integer completedModuleCount;
 
     /**
      * 数据库类型。

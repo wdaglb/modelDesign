@@ -4,8 +4,8 @@ import io.github.modelDesign.project.request.ProjectCreateRequest;
 import io.github.modelDesign.project.request.ProjectDeleteRequest;
 import io.github.modelDesign.project.request.ProjectEditRequest;
 import io.github.modelDesign.project.request.ProjectListRequest;
-import io.github.modelDesign.project.response.PageResponse;
 import io.github.modelDesign.project.response.ProjectDetailVo;
+import io.github.modelDesign.project.response.ProjectListResponse;
 import io.github.modelDesign.project.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,7 +43,7 @@ public class ProjectController {
      */
     @Operation(summary = "获取项目列表")
     @GetMapping("/list")
-    public PageResponse<ProjectDetailVo> list(@Valid ProjectListRequest request) {
+    public ProjectListResponse list(@Valid ProjectListRequest request) {
         return projectService.getList(request);
     }
 

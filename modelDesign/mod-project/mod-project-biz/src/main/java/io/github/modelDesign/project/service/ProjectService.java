@@ -8,12 +8,14 @@ import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
 import io.github.modelDesign.common.exception.BusinessException;
 import io.github.modelDesign.project.domain.Project;
+import io.github.modelDesign.project.enums.ProjectStatusEnum;
 import io.github.modelDesign.project.mapper.ProjectMapper;
 import io.github.modelDesign.project.request.ProjectCreateRequest;
 import io.github.modelDesign.project.request.ProjectEditRequest;
 import io.github.modelDesign.project.request.ProjectListRequest;
-import io.github.modelDesign.project.response.PageResponse;
 import io.github.modelDesign.project.response.ProjectDetailVo;
+import io.github.modelDesign.project.response.ProjectListResponse;
+import io.github.modelDesign.project.response.ProjectStatusSummaryVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,22 +58,44 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      * @param request 列表请求
      * @return 分页项目列表
      */
-    public PageResponse<ProjectDetailVo> getList(ProjectListRequest request) {
+    public ProjectListResponse getList(ProjectListRequest request) {
         long current = request.getCurrent();
         long pageSize = request.getPageSize();
-        List<Project> allProjects = lambdaQuery()
+        String keyword = resolveKeyword(request);
+        String projectGroup = normalizeShortText(request.getProjectGroup());
+        String status = normalizeOptionalStatus(request.getStatus());
+
+        List<Project> baseProjects = lambdaQuery()
                 .eq(Project::getDeleted, 0)
-                .like(StringUtils.hasText(request.getName()), Project::getName, request.getName() == null ? null : request.getName().trim())
+                .and(StringUtils.hasText(keyword), wrapper -> wrapper.like(Project::getName, keyword)
+                        .or()
+                        .like(Project::getCode, keyword))
+                .eq(StringUtils.hasText(projectGroup), Project::getProjectGroup, projectGroup)
                 .orderByDesc(Project::getUpdateTime)
                 .list();
-        long total = allProjects.size();
+        ProjectStatusSummaryVo statusSummary = buildStatusSummary(baseProjects);
+        List<String> groupOptions = listGroupOptions();
+        List<Project> filteredProjects = baseProjects.stream()
+                .filter(project -> !StringUtils.hasText(status) || status.equals(project.getStatus()))
+                .toList();
+        long total = filteredProjects.size();
         long fromIndex = Math.max((current - 1) * pageSize, 0);
         if (fromIndex >= total) {
-            return new PageResponse<>(Collections.emptyList(), total);
+            return ProjectListResponse.builder()
+                    .items(Collections.emptyList())
+                    .total(total)
+                    .statusSummary(statusSummary)
+                    .groupOptions(groupOptions)
+                    .build();
         }
         long toIndex = Math.min(fromIndex + pageSize, total);
-        List<Project> pageProjects = allProjects.subList((int) fromIndex, (int) toIndex);
-        return new PageResponse<>(toProjectVoList(pageProjects), total);
+        List<Project> pageProjects = filteredProjects.subList((int) fromIndex, (int) toIndex);
+        return ProjectListResponse.builder()
+                .items(toProjectVoList(pageProjects))
+                .total(total)
+                .statusSummary(statusSummary)
+                .groupOptions(groupOptions)
+                .build();
     }
 
     /**
@@ -106,10 +131,18 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
         project.setName(request.getName().trim());
         project.setDescription(normalizeDescription(request.getDescription()));
         project.setDbType(request.getDbType().trim());
+        project.setStatus(resolveStatusForCreate(request.getStatus()));
+        project.setProjectGroup(normalizeShortText(request.getProjectGroup()));
+        project.setProgressSummary(normalizeLongText(request.getProgressSummary()));
+        project.setCompletedModuleCount(resolveCompletedModuleCount(request.getCompletedModuleCount(), 0));
         project.setCreatorId(currentUserId);
         project.setDeleted(0);
         save(project);
-        return toProjectVo(project, Collections.singletonMap(currentUserId, currentNickname == null ? "" : currentNickname));
+        String resolvedNickname = "";
+        if (currentNickname != null) {
+            resolvedNickname = currentNickname;
+        }
+        return toProjectVo(project, Collections.singletonMap(currentUserId, resolvedNickname));
     }
 
     /**
@@ -124,6 +157,10 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
         project.setName(request.getName().trim());
         project.setDescription(normalizeDescription(request.getDescription()));
         project.setDbType(request.getDbType().trim());
+        project.setStatus(resolveStatusForUpdate(request.getStatus(), project.getStatus()));
+        project.setProjectGroup(resolveOptionalShortText(request.getProjectGroup(), project.getProjectGroup()));
+        project.setProgressSummary(resolveOptionalLongText(request.getProgressSummary(), project.getProgressSummary()));
+        project.setCompletedModuleCount(resolveCompletedModuleCount(request.getCompletedModuleCount(), project.getCompletedModuleCount()));
         updateById(project);
         return toProjectVo(project, getCreatorMap(Set.of(project.getCreatorId())));
     }
@@ -186,7 +223,12 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
         return authUserApi.getUserMapByIds(creatorIds)
                 .values()
                 .stream()
-                .collect(Collectors.toMap(AuthUserSimpleDto::getId, user -> user.getNickname() == null ? "" : user.getNickname(), (left, right) -> left));
+                .collect(Collectors.toMap(AuthUserSimpleDto::getId, user -> {
+                    if (user.getNickname() == null) {
+                        return "";
+                    }
+                    return user.getNickname();
+                }, (left, right) -> left));
     }
 
     private ProjectDetailVo toProjectVo(Project project, Map<Long, String> creatorMap) {
@@ -195,6 +237,10 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
                 .code(project.getCode())
                 .name(project.getName())
                 .description(project.getDescription())
+                .status(project.getStatus())
+                .projectGroup(project.getProjectGroup())
+                .progressSummary(project.getProgressSummary())
+                .completedModuleCount(project.getCompletedModuleCount())
                 .creator(creatorMap.getOrDefault(project.getCreatorId(), ""))
                 .createdAt(formatDateTime(project.getCreateTime()))
                 .updatedAt(formatDateTime(project.getUpdateTime()))
@@ -203,10 +249,129 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
     }
 
     private String normalizeDescription(String description) {
-        return description == null ? "" : description.trim();
+        return normalizeLongText(description);
+    }
+
+    private String resolveKeyword(ProjectListRequest request) {
+        String keyword = normalizeShortText(request.getKeyword());
+        if (StringUtils.hasText(keyword)) {
+            return keyword;
+        }
+        return normalizeShortText(request.getName());
+    }
+
+    private String normalizeOptionalStatus(String status) {
+        ProjectStatusEnum projectStatusEnum = ProjectStatusEnum.fromValue(status);
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        if (projectStatusEnum == null) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "项目状态不合法");
+        }
+        return projectStatusEnum.getValue();
+    }
+
+    private String resolveStatusForCreate(String status) {
+        String normalizedStatus = normalizeOptionalStatus(status);
+        if (StringUtils.hasText(normalizedStatus)) {
+            return normalizedStatus;
+        }
+        return ProjectStatusEnum.PLANNING.getValue();
+    }
+
+    private String resolveStatusForUpdate(String status, String existingStatus) {
+        String normalizedStatus = normalizeOptionalStatus(status);
+        if (StringUtils.hasText(normalizedStatus)) {
+            return normalizedStatus;
+        }
+        if (StringUtils.hasText(existingStatus)) {
+            return existingStatus;
+        }
+        return ProjectStatusEnum.PLANNING.getValue();
+    }
+
+    private String normalizeShortText(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        return value.trim();
+    }
+
+    private String normalizeLongText(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        return value.trim();
+    }
+
+    private String resolveOptionalShortText(String nextValue, String existingValue) {
+        if (nextValue == null) {
+            return normalizeShortText(existingValue);
+        }
+        return normalizeShortText(nextValue);
+    }
+
+    private String resolveOptionalLongText(String nextValue, String existingValue) {
+        if (nextValue == null) {
+            return normalizeLongText(existingValue);
+        }
+        return normalizeLongText(nextValue);
+    }
+
+    private Integer resolveCompletedModuleCount(Integer nextValue, Integer fallbackValue) {
+        if (nextValue != null) {
+            return nextValue;
+        }
+        if (fallbackValue != null) {
+            return fallbackValue;
+        }
+        return 0;
+    }
+
+    private List<String> listGroupOptions() {
+        List<Project> projects = lambdaQuery()
+                .eq(Project::getDeleted, 0)
+                .list();
+        if (projects.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return projects.stream()
+                .map(Project::getProjectGroup)
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    }
+
+    private ProjectStatusSummaryVo buildStatusSummary(List<Project> projects) {
+        if (projects.isEmpty()) {
+            return ProjectStatusSummaryVo.builder()
+                    .all(0L)
+                    .planning(0L)
+                    .inProgress(0L)
+                    .atRisk(0L)
+                    .archived(0L)
+                    .build();
+        }
+
+        Map<String, Long> countMap = projects.stream()
+                .map(project -> resolveStatusForUpdate(project.getStatus(), null))
+                .collect(Collectors.groupingBy(item -> item, Collectors.counting()));
+        return ProjectStatusSummaryVo.builder()
+                .all((long) projects.size())
+                .planning(countMap.getOrDefault(ProjectStatusEnum.PLANNING.getValue(), 0L))
+                .inProgress(countMap.getOrDefault(ProjectStatusEnum.IN_PROGRESS.getValue(), 0L))
+                .atRisk(countMap.getOrDefault(ProjectStatusEnum.AT_RISK.getValue(), 0L))
+                .archived(countMap.getOrDefault(ProjectStatusEnum.ARCHIVED.getValue(), 0L))
+                .build();
     }
 
     private String formatDateTime(LocalDateTime value) {
-        return value == null ? "" : DATE_TIME_FORMATTER.format(value);
+        if (value == null) {
+            return "";
+        }
+        return DATE_TIME_FORMATTER.format(value);
     }
 }

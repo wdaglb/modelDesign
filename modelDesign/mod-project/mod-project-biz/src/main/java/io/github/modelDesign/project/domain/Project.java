@@ -33,6 +33,26 @@ public class Project extends BaseEntity {
     private String dbType;
 
     /**
+     * 项目状态。
+     */
+    private String status;
+
+    /**
+     * 项目分组。
+     */
+    private String projectGroup;
+
+    /**
+     * 当前进展。
+     */
+    private String progressSummary;
+
+    /**
+     * 已完成模块数。
+     */
+    private Integer completedModuleCount;
+
+    /**
      * 创建人 ID。
      */
     private Long creatorId;

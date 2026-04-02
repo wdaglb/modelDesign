@@ -3,16 +3,18 @@ import {
   Project,
   CreateProjectParams,
   EditProjectParams,
-  PageResponse,
+  ProjectListParams,
+  ProjectListResponse,
 } from './project.types';
 
 /**
- * 获取项目列表
- * @param params
- * @returns
+ * 获取项目列表。
+ *
+ * @param params 列表查询参数
+ * @returns 项目列表响应
  */
-export const getList = (params?: any) => {
-  return request<PageResponse<Project>>('/project/list', { params });
+export const getList = (params?: ProjectListParams) => {
+  return request<ProjectListResponse>('/project/list', { params });
 };
 
 /**

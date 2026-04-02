@@ -1,210 +1,362 @@
-import React, { useState } from 'react';
-import { createFileRoute, useRouter } from '@tanstack/react-router';
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Tag,
-  Space,
-  Popconfirm,
-  message,
-  Pagination,
-  Button,
-  Skeleton,
-  Input,
-  Empty,
-} from 'antd';
+import React, { useEffect, useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button, Input, Pagination, Select, message } from 'antd';
+import { Helmet } from 'react-helmet-async';
+
 import { ApiProject } from '@/api';
 import { useKModal } from '@/components/KModal';
-import ProjectForm from './components/#ProjectForm';
-import { Project, DatabaseTypeLabel } from '@/api/modules/project.types';
+import {
+  Project,
+  ProjectStatus,
+  ProjectStatusOptions,
+} from '@/api/modules/project.types';
 import queryKey from '@/constants/queryKey';
 import Icons from '@/icons';
+import ProjectForm from './components/#ProjectForm';
+import ProjectListGrid from './components/#ProjectListGrid';
+import {
+  buildFooterText,
+  buildGroupOptions,
+  buildProjectQuickStatusTabs,
+  getSummaryButtonType,
+  isQuickStatusTabActive,
+} from './components/#projectListHelper';
+import {
+  FilterRow,
+  FooterBar,
+  FooterText,
+  HeaderSection,
+  HeaderTextBlock,
+  NoticeBar,
+  PageDescription,
+  PageRoot,
+  PageTitle,
+  SelectionBar,
+  SelectionText,
+  SummaryRow,
+  SummaryTabs,
+  ToolbarCard,
+} from './components/#ProjectListPage.styled';
 
 export const Route = createFileRoute('/project/')({
   component: RouteComponent,
 });
 
+/**
+ * 项目管理列表页。
+ *
+ * 页面负责组织筛选、状态统计、项目卡片和分页，不承载项目详情逻辑。
+ *
+ * @returns 页面组件
+ */
 function RouteComponent() {
   const navigate = Route.useNavigate();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const modal = useKModal();
 
   const [pagination, setPagination] = useState({ current: 1, pageSize: 12 });
-  const [searchName, setSearchName] = useState('');
-
-  const databaseTypeColors: Record<string, string> = {
-    mysql: 'blue',
-    postgresql: 'green',
-    mongodb: 'orange',
-    sqlite: 'purple',
-  };
+  const [keyword, setKeyword] = useState('');
+  const [keywordInput, setKeywordInput] = useState('');
+  const [status, setStatus] = useState<ProjectStatus | undefined>();
+  const [projectGroup, setProjectGroup] = useState<string | undefined>();
+  const [selectedProjectIds, setSelectedProjectIds] = useState<number[]>([]);
 
   const { data, isLoading } = useQuery({
-    queryKey: [...queryKey.project.list(), pagination, searchName],
-    queryFn: () => ApiProject.getList({ ...pagination, name: searchName }),
+    queryKey: [
+      ...queryKey.project.list(),
+      pagination,
+      keyword,
+      status,
+      projectGroup,
+    ],
+    queryFn: () =>
+      ApiProject.getList({
+        current: pagination.current,
+        pageSize: pagination.pageSize,
+        keyword,
+        status,
+        projectGroup,
+      }),
   });
 
-  const handleDelete = async (ids: number[]) => {
-    await ApiProject.deleted(ids);
+  useEffect(() => {
+    setSelectedProjectIds([]);
+  }, [keyword, pagination.current, pagination.pageSize, projectGroup, status]);
+
+  const projectItems = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const groupOptions = buildGroupOptions(data?.groupOptions);
+  const quickStatusTabs = buildProjectQuickStatusTabs(data?.statusSummary);
+  const hasFilters =
+    keyword !== '' || status !== undefined || projectGroup !== undefined;
+
+  /**
+   * 统一刷新列表数据，保证新增、编辑、删除后列表和状态统计一起更新。
+   */
+  function reloadProjectList() {
     queryClient.invalidateQueries({ queryKey: queryKey.project.list() });
+  }
+
+  /**
+   * 把当前输入框的值应用为真实查询条件。
+   *
+   * @param nextKeyword 输入框内容
+   */
+  function applyKeyword(nextKeyword: string) {
+    const normalizedKeyword = nextKeyword.trim();
+    setKeyword(normalizedKeyword);
+    setPagination({
+      current: 1,
+      pageSize: pagination.pageSize,
+    });
+  }
+
+  /**
+   * 打开新建项目弹窗。
+   */
+  async function handleCreateProject() {
+    await modal.open({
+      title: '新建项目',
+      children: <ProjectForm />,
+    });
+    reloadProjectList();
+  }
+
+  /**
+   * 打开编辑项目弹窗。
+   *
+   * @param project 项目记录
+   */
+  async function handleEditProject(project: Project) {
+    await modal.open({
+      title: '编辑项目',
+      children: <ProjectForm record={project} />,
+    });
+    reloadProjectList();
+  }
+
+  /**
+   * 删除单个项目。
+   *
+   * @param projectId 项目 ID
+   */
+  async function handleDeleteProject(projectId: number) {
+    await ApiProject.deleted([projectId]);
+    setSelectedProjectIds((currentIds) => {
+      return currentIds.filter((item) => item !== projectId);
+    });
+    reloadProjectList();
     message.success('删除成功');
-  };
+  }
+
+  /**
+   * 切换快捷状态标签。
+   *
+   * @param nextStatus 快捷标签值
+   */
+  function handleQuickStatusChange(nextStatus: 'all' | ProjectStatus) {
+    if (nextStatus === 'all') {
+      setStatus(undefined);
+    } else {
+      setStatus(nextStatus);
+    }
+
+    setPagination({
+      current: 1,
+      pageSize: pagination.pageSize,
+    });
+  }
+
+  /**
+   * 切换项目选择态。
+   *
+   * @param projectId 项目 ID
+   * @param checked 是否选中
+   */
+  function handleToggleSelect(projectId: number, checked: boolean) {
+    if (checked) {
+      if (selectedProjectIds.includes(projectId)) {
+        return;
+      }
+
+      setSelectedProjectIds([...selectedProjectIds, projectId]);
+      return;
+    }
+
+    setSelectedProjectIds(
+      selectedProjectIds.filter((item) => item !== projectId),
+    );
+  }
+
+  /**
+   * 切换分页。
+   *
+   * @param current 当前页
+   * @param pageSize 每页条数
+   */
+  function handlePaginationChange(current: number, pageSize: number) {
+    if (pageSize !== pagination.pageSize) {
+      setPagination({
+        current: 1,
+        pageSize,
+      });
+      return;
+    }
+
+    setPagination({
+      current,
+      pageSize,
+    });
+  }
 
   return (
-    <Card>
-      <div style={{ marginBottom: 16 }}>
-        <Space>
-          <Input.Search
-            placeholder="请输入项目名称"
-            style={{ width: 240 }}
-            allowClear
-            onSearch={setSearchName}
-          />
+    <>
+      <Helmet>
+        <title>{`项目管理 - ${process.env.TITLE}`}</title>
+      </Helmet>
+
+      <PageRoot>
+        <HeaderSection>
+          <HeaderTextBlock>
+            <PageTitle>项目管理</PageTitle>
+            <PageDescription>
+              集中管理项目状态、成员协作与业务进展，保持卡片化管理视图。
+            </PageDescription>
+          </HeaderTextBlock>
+
           <Button
             type="primary"
             icon={<Icons.Plus />}
-            onClick={async () => {
-              await modal.open({
-                title: '添加项目',
-                children: <ProjectForm />,
-              });
-              queryClient.invalidateQueries({
-                queryKey: queryKey.project.list(),
-              });
-            }}
+            onClick={handleCreateProject}
           >
-            添加项目
+            新建项目
           </Button>
-        </Space>
-      </div>
+        </HeaderSection>
 
-      <Row gutter={[16, 16]}>
-        {isLoading ? (
-          Array.from({ length: 8 }).map((_, i) => (
-            <Col xs={24} sm={12} md={8} lg={6} key={i}>
-              <Card>
-                <Skeleton active paragraph={{ rows: 3 }} />
-              </Card>
-            </Col>
-          ))
-        ) : data?.items?.length ? (
-          data.items.map((project: Project) => (
-            <Col xs={24} sm={12} md={8} lg={6} key={project.id}>
-              <Card
-                hoverable
-                onClick={() => {
-                  navigate({
-                    to: '/project/$projectId',
-                    params: { projectId: String(project.id) },
+        <ToolbarCard>
+          <FilterRow>
+            <Input
+              allowClear
+              value={keywordInput}
+              prefix={<Icons.Magnify />}
+              placeholder="搜索项目 / 编码"
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setKeywordInput(nextValue);
+
+                if (nextValue.trim() === '') {
+                  setKeyword('');
+                  setPagination({
+                    current: 1,
+                    pageSize: pagination.pageSize,
                   });
-                }}
-                styles={{ body: { cursor: 'pointer' } }}
-                extra={
-                  <Tag color={databaseTypeColors[project.dbType]}>
-                    {DatabaseTypeLabel[project.dbType]}
-                  </Tag>
                 }
+              }}
+              onPressEnter={() => {
+                applyKeyword(keywordInput);
+              }}
+            />
+
+            <Select
+              allowClear
+              value={status}
+              options={ProjectStatusOptions}
+              placeholder="项目状态：全部"
+              onChange={(value) => {
+                setStatus(value);
+                setPagination({
+                  current: 1,
+                  pageSize: pagination.pageSize,
+                });
+              }}
+            />
+
+            <Select
+              allowClear
+              value={projectGroup}
+              options={groupOptions}
+              placeholder="项目分组：全部"
+              onChange={(value) => {
+                setProjectGroup(value);
+                setPagination({
+                  current: 1,
+                  pageSize: pagination.pageSize,
+                });
+              }}
+            />
+          </FilterRow>
+
+          <NoticeBar>
+            管理提示：新建项目默认进入“规划中”，支持通过项目名称或编号快速筛选当前项目。
+          </NoticeBar>
+        </ToolbarCard>
+
+        <SummaryRow>
+          <SummaryTabs>
+            {quickStatusTabs.map((tab) => {
+              const isActive = isQuickStatusTabActive(status, tab.key);
+              return (
+                <Button
+                  key={tab.key}
+                  type={getSummaryButtonType(isActive)}
+                  shape="round"
+                  onClick={() => {
+                    handleQuickStatusChange(tab.key);
+                  }}
+                >
+                  {`${tab.label} ${tab.count}`}
+                </Button>
+              );
+            })}
+          </SummaryTabs>
+
+          {selectedProjectIds.length > 0 && (
+            <SelectionBar>
+              <SelectionText>
+                {`已选择 ${selectedProjectIds.length} 个项目`}
+              </SelectionText>
+              <Button
+                type="text"
+                onClick={() => {
+                  setSelectedProjectIds([]);
+                }}
               >
-                <Space orientation="vertical" style={{ width: '100%' }}>
-                  <Typography.Title
-                    level={5}
-                    ellipsis={{ tooltip: project.name }}
-                    style={{ marginBottom: 8, marginTop: 0 }}
-                  >
-                    {project.name}
-                  </Typography.Title>
+                取消选择
+              </Button>
+            </SelectionBar>
+          )}
+        </SummaryRow>
 
-                  <Typography.Text type="secondary">
-                    {project.code}
-                  </Typography.Text>
+        <ProjectListGrid
+          loading={isLoading}
+          items={projectItems}
+          hasFilters={hasFilters}
+          selectedProjectIds={selectedProjectIds}
+          onToggleSelect={handleToggleSelect}
+          onEdit={handleEditProject}
+          onDelete={handleDeleteProject}
+          onEnter={(projectId) => {
+            navigate({
+              to: '/project/$projectId',
+              params: { projectId: String(projectId) },
+            });
+          }}
+        />
 
-                  {project.description && (
-                    <Typography.Text
-                      type="secondary"
-                      ellipsis={{ tooltip: project.description }}
-                    >
-                      {project.description}
-                    </Typography.Text>
-                  )}
-
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {project.createdAt}
-                  </Typography.Text>
-
-                  <Space>
-                    <Button
-                      size="small"
-                      onClick={async (event) => {
-                        event.stopPropagation();
-                        await modal.open({
-                          title: '编辑项目',
-                          children: <ProjectForm record={project} />,
-                        });
-                        queryClient.invalidateQueries({
-                          queryKey: queryKey.project.list(),
-                        });
-                      }}
-                    >
-                      编辑
-                    </Button>
-
-                    <Popconfirm
-                      title="确认删除"
-                      description="删除后无法恢复，确认删除此项目吗？"
-                      onPopupClick={(event) => {
-                        event.stopPropagation();
-                      }}
-                      onConfirm={async () => {
-                        await handleDelete([project.id]);
-                      }}
-                      okText="确认"
-                      cancelText="取消"
-                    >
-                      <Button
-                        size="small"
-                        danger
-                        onClick={(event) => {
-                          event.stopPropagation();
-                        }}
-                      >
-                        删除
-                      </Button>
-                    </Popconfirm>
-                  </Space>
-                </Space>
-              </Card>
-            </Col>
-          ))
-        ) : (
-          <Col span={24}>
-            <Card>
-              <Empty
-                description={searchName ? '未找到匹配的项目' : '暂无项目数据'}
-              />
-            </Card>
-          </Col>
+        {total > 0 && (
+          <FooterBar>
+            <FooterText>{buildFooterText(total, pagination)}</FooterText>
+            <Pagination
+              current={pagination.current}
+              pageSize={pagination.pageSize}
+              total={total}
+              showSizeChanger={false}
+              onChange={handlePaginationChange}
+            />
+          </FooterBar>
         )}
-      </Row>
-
-      {Boolean(data?.total) && (
-        <div style={{ textAlign: 'right', marginTop: 16 }}>
-          <Pagination
-            current={pagination.current}
-            pageSize={pagination.pageSize}
-            total={data?.total}
-            showSizeChanger
-            showQuickJumper
-            showTotal={(total) => `共 ${total} 条`}
-            onChange={(current, pageSize) =>
-              setPagination({ current, pageSize })
-            }
-          />
-        </div>
-      )}
-    </Card>
+      </PageRoot>
+    </>
   );
 }

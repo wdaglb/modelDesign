@@ -36,6 +36,30 @@ public class ProjectDetailVo {
     private String description;
 
     /**
+     * 项目状态。
+     */
+    @Schema(description = "项目状态", allowableValues = {"planning", "inProgress", "atRisk", "archived"})
+    private String status;
+
+    /**
+     * 项目分组。
+     */
+    @Schema(description = "项目分组")
+    private String projectGroup;
+
+    /**
+     * 当前进展。
+     */
+    @Schema(description = "当前进展")
+    private String progressSummary;
+
+    /**
+     * 已完成模块数。
+     */
+    @Schema(description = "已完成模块数")
+    private Integer completedModuleCount;
+
+    /**
      * 创建人名称。
      */
     @Schema(description = "创建人名称")

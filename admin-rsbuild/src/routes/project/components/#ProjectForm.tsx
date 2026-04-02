@@ -1,18 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { Col, Form, Input, Row, Select } from 'antd';
+import { Col, Form, Input, InputNumber, Row, Select } from 'antd';
 import KModal from '@/components/KModal';
 import { ApiProject } from '@/api';
-import { Project, DatabaseTypeOptions } from '@/api/modules/project.types';
+import {
+  DatabaseTypeOptions,
+  Project,
+  ProjectStatus,
+  ProjectStatusOptions,
+} from '@/api/modules/project.types';
 import { getPinyinInitials } from '@/utils/pinyin';
 
+/**
+ * 项目表单属性。
+ */
 interface ProjectFormProps {
   record?: Project;
 }
 
+/**
+ * 构造表单初始值。
+ *
+ * 新建时主动补齐默认状态和默认模块数，避免前后端出现状态空值。
+ *
+ * @param record 编辑态项目记录
+ * @returns 表单初始值
+ */
+function buildInitialValues(record?: Project) {
+  if (record) {
+    return {
+      ...record,
+      status: record.status,
+      completedModuleCount: record.completedModuleCount ?? 0,
+    };
+  }
+
+  return {
+    status: ProjectStatus.Planning,
+    completedModuleCount: 0,
+  };
+}
+
+/**
+ * 项目创建与编辑表单。
+ *
+ * @param props 组件属性
+ * @returns 表单组件
+ */
 const ProjectForm = (props: ProjectFormProps) => {
   const [form] = Form.useForm();
   const [isAutoCode, setIsAutoCode] = useState(!props.record);
-  const isEdit = !!props.record;
+  const isEdit = Boolean(props.record);
 
   useEffect(() => {
     if (!isEdit && isAutoCode) {
@@ -21,23 +58,44 @@ const ProjectForm = (props: ProjectFormProps) => {
         form.setFieldValue('code', getPinyinInitials(name));
       }
     }
-  }, [form, isEdit, isAutoCode]);
+  }, [form, isAutoCode, isEdit]);
 
   return (
     <KModal.Form
       form={form}
       layout={'vertical'}
-      initialValues={props.record}
+      initialValues={buildInitialValues(props.record)}
       onFinish={async (values) => {
         if (props.record) {
           await ApiProject.edit(props.record.id, values);
-        } else {
-          await ApiProject.create(values);
+          return;
         }
+
+        await ApiProject.create(values);
       }}
     >
       <Row gutter={12}>
-        <Col span={8}>
+        <Col span={12}>
+          <Form.Item
+            name={'name'}
+            label={'项目名称'}
+            rules={[{ required: true, message: '请输入项目名称' }]}
+          >
+            <Input
+              placeholder={'请输入项目名称'}
+              onChange={(event) => {
+                if (!isEdit && isAutoCode) {
+                  form.setFieldValue(
+                    'code',
+                    getPinyinInitials(event.target.value),
+                  );
+                }
+              }}
+            />
+          </Form.Item>
+        </Col>
+
+        <Col span={12}>
           <Form.Item
             name={'dbType'}
             label={'数据库类型'}
@@ -50,43 +108,75 @@ const ProjectForm = (props: ProjectFormProps) => {
             />
           </Form.Item>
         </Col>
+      </Row>
 
-        <Col span={16}>
+      <Row gutter={12}>
+        <Col span={12}>
           <Form.Item
-            name={'name'}
-            label={'名称'}
-            rules={[{ required: true, message: '请输入名称' }]}
+            name={'code'}
+            label={'项目编号'}
+            rules={[{ required: true, message: '请输入项目编号' }]}
           >
             <Input
-              placeholder={'请输入名称'}
-              onChange={(e) => {
-                if (!isEdit && isAutoCode) {
-                  form.setFieldValue('code', getPinyinInitials(e.target.value));
+              placeholder={'自动生成，可手动修改'}
+              disabled={isEdit}
+              onChange={() => {
+                if (!isEdit) {
+                  setIsAutoCode(false);
                 }
               }}
             />
           </Form.Item>
         </Col>
+
+        <Col span={12}>
+          <Form.Item
+            name={'status'}
+            label={'项目状态'}
+            rules={[{ required: true, message: '请选择项目状态' }]}
+          >
+            <Select
+              placeholder={'请选择项目状态'}
+              options={ProjectStatusOptions}
+            />
+          </Form.Item>
+        </Col>
       </Row>
 
-      <Form.Item
-        name={'code'}
-        label={'项目编号'}
-        rules={[{ required: true, message: '请输入项目编号' }]}
-      >
-        <Input
-          placeholder={'自动生成，可手动修改'}
-          disabled={isEdit}
-          onChange={() => {
-            if (!isEdit) {
-              setIsAutoCode(false);
-            }
-          }}
+      <Row gutter={12}>
+        <Col span={12}>
+          <Form.Item name={'projectGroup'} label={'项目分组'}>
+            <Input placeholder={'例如：支付业务组'} />
+          </Form.Item>
+        </Col>
+
+        <Col span={12}>
+          <Form.Item name={'completedModuleCount'} label={'已完成模块数'}>
+            <InputNumber
+              min={0}
+              style={{ width: '100%' }}
+              placeholder={'请输入已完成模块数'}
+            />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Form.Item name={'description'} label={'项目概况'}>
+        <Input.TextArea
+          placeholder={'请输入项目概况'}
+          rows={4}
+          showCount
+          maxLength={1000}
         />
       </Form.Item>
 
-      <Form.Item name={'description'} label={'描述'}>
-        <Input.TextArea placeholder={'请输入描述'} rows={4} />
+      <Form.Item name={'progressSummary'} label={'当前进展'}>
+        <Input.TextArea
+          placeholder={'请输入当前进展'}
+          rows={4}
+          showCount
+          maxLength={1000}
+        />
       </Form.Item>
     </KModal.Form>
   );
