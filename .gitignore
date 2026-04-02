@@ -2,4 +2,5 @@
 .worktrees
 .claude/worktrees
 .codex/worktrees
+*.pen
 storage
