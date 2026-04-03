@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from 'antd';
@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { ApiPassport } from '@/api';
 import useAuthStore from '@/store/auth.ts';
 
-import LoginPage, { type LoginFormValues } from '../#LoginPage';
+import LoginPage, { type LoginFormValues } from './#LoginPage';
 
 const searchSchema = z.object({
   redirect: z.string().optional().default('/'),
@@ -38,11 +38,8 @@ function RouteComponent() {
   /** 面板切换过渡状态 */
   const [transitionState, setTransitionState] = useState<TransitionState>('idle');
 
-  /** 注册弹窗是否打开 */
-  const [registerOpen, setRegisterOpen] = useState(false);
-
-  /** 忘记密码弹窗是否打开 */
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  /** 面板切换目标 */
+  const pendingPanelRef = useRef<PanelType | null>(null);
 
   const mutation = useMutation({
     mutationFn: ApiPassport.passwordLogin,
@@ -71,18 +68,17 @@ function RouteComponent() {
     if (transitionState !== 'idle') {
       return;
     }
+    pendingPanelRef.current = target;
     setTransitionState('exiting');
   };
 
   /** 过渡动画结束回调 */
   const handleTransitionEnd = () => {
     if (transitionState === 'exiting') {
-      setActivePanel((prev) => {
-        /** 切换到另一面板：skeleton → password，password ↔ qrScan */
-        if (prev === 'skeleton') return 'password';
-        if (prev === 'password') return 'qrScan';
-        return 'password';
-      });
+      if (pendingPanelRef.current) {
+        setActivePanel(pendingPanelRef.current);
+        pendingPanelRef.current = null;
+      }
       setTransitionState('entering');
     } else if (transitionState === 'entering') {
       setTransitionState('idle');
@@ -98,11 +94,16 @@ function RouteComponent() {
 
   return (
     <LoginPage
+      activePanel={activePanel}
+      transitionState={transitionState}
       loading={mutation.isPending}
       errorMessage={errorMessage}
       onSubmit={(values: LoginFormValues) => {
         return mutation.mutateAsync(values);
       }}
+      onSwitchPanel={switchPanel}
+      onTransitionEnd={handleTransitionEnd}
+      onSkeletonReady={handleSkeletonReady}
     />
   );
 }
