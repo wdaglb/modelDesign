@@ -45,6 +45,22 @@ describe('handleBoardTitleSearch', () => {
     expect(onFallbackSearch).not.toHaveBeenCalled();
   });
 
+  it('多段编号时优先触发编号搜索', async () => {
+    const getDetailByCode = vi.fn().mockResolvedValue(taskDetail);
+    const onOpenPreview = vi.fn();
+    const onFallbackSearch = vi.fn();
+
+    await handleBoardTitleSearch('TASK-CODE-10', {
+      getDetailByCode,
+      onOpenPreview,
+      onFallbackSearch,
+    });
+
+    expect(getDetailByCode).toHaveBeenCalledWith('TASK-CODE-10');
+    expect(onOpenPreview).toHaveBeenCalledWith(taskDetail);
+    expect(onFallbackSearch).not.toHaveBeenCalled();
+  });
+
   it('编号搜索失败后回退为标题搜索', async () => {
     const getDetailByCode = vi.fn().mockRejectedValue(new Error('not-found'));
     const onOpenPreview = vi.fn();
