@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { taskChildrenBatch } from '@/constants/queryKey/project';
+
 import type { AgileBoardTask } from '../#types';
 import { mapAgileBoardTaskToTaskCardTask } from '../#taskCardAdapter';
 
@@ -44,5 +46,14 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
     };
 
     expect(mapAgileBoardTaskToTaskCardTask(task).taskNumber).toBe('TASK-10');
+  });
+});
+
+describe('taskChildrenBatch', () => {
+  it('会对父任务 id 去重并排序', () => {
+    expect(taskChildrenBatch([3, 1, 3, 2])).toEqual([
+      'projectTaskChildrenBatch',
+      [1, 2, 3],
+    ]);
   });
 });

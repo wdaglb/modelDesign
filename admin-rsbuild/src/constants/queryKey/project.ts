@@ -46,7 +46,8 @@ export const taskChildrenBatch = (parentTaskIds: number[]) => [
  * 规范化父任务 ID 列表，避免顺序差异导致缓存键不一致。
  */
 const normalizeTaskChildrenBatchIds = (parentTaskIds: number[]) => {
-  return [...parentTaskIds].sort((left, right) => left - right);
+  const uniqueIds = Array.from(new Set(parentTaskIds));
+  return uniqueIds.sort((left, right) => left - right);
 };
 
 /**
