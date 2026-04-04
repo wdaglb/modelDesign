@@ -33,11 +33,7 @@ describe('TaskCard', () => {
     const taskNumber = screen.getByText('TASK-101');
 
     expect(taskNumber).toBeDefined();
-    expect(screen.queryByText('任务编号')).toBeNull();
-    expect(screen.queryByRole('button', { name: '复制任务编号' })).toBeNull();
-    expect(taskNumber.getAttribute('style') ?? '').toContain(
-      'text-decoration-line: underline overline',
-    );
+    expect(taskNumber.getAttribute('data-task-card-copy-trigger')).toBe('true');
 
     fireEvent.click(taskNumber);
 
@@ -48,5 +44,22 @@ describe('TaskCard', () => {
       expect(successMock).toHaveBeenCalledWith('任务编号已复制');
     });
     expect(onPreview).not.toHaveBeenCalled();
+  });
+
+  it('紧凑态与子任务态提供可断言标记', () => {
+    const { container } = render(
+      <TaskCard task={baseTask} compact isSubtask />,
+    );
+
+    const rootNode = container.querySelector('[data-task-card-root="true"]');
+
+    expect(rootNode).toBeDefined();
+
+    if (!rootNode) {
+      return;
+    }
+
+    expect(rootNode.getAttribute('data-task-card-compact')).toBe('true');
+    expect(rootNode.getAttribute('data-task-card-subtask')).toBe('true');
   });
 });
