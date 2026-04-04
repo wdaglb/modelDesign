@@ -18,4 +18,17 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
       taskNumber: '2048',
     });
   });
+
+  it('优先使用 taskNo 作为任务编号', () => {
+    const task = mapAgileBoardTaskToTaskCardTask({
+      id: 9,
+      projectId: 1,
+      title: '统一编号查询逻辑',
+      status: 'todo',
+      priority: 'medium',
+      taskNo: 'TASK-9',
+    } as any);
+
+    expect(task.taskNumber).toBe('TASK-9');
+  });
 });

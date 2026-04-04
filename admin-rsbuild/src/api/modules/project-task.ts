@@ -4,9 +4,11 @@ import type {
   ProjectTaskBoardParams,
   ProjectTaskBoardResponse,
   ProjectTaskChildrenResponse,
+  ProjectTaskChildrenBatchResponse,
   CreateProjectTaskParams,
   EditProjectTaskParams,
   ProjectTaskDetail,
+  ProjectTaskDetailByCodeResponse,
   ProjectTaskListParams,
   ProjectTaskPageResponse,
 } from './project-task.types';
@@ -58,6 +60,18 @@ export const getDetail = (id: number): Promise<ProjectTaskDetail> => {
 };
 
 /**
+ * 按编号获取项目任务详情。
+ */
+export const getDetailByCode = (
+  code: string,
+): Promise<ProjectTaskDetailByCodeResponse> => {
+  return request('/project/task/detail/by-code', {
+    method: 'get',
+    params: { code },
+  });
+};
+
+/**
  * 获取子任务列表。
  */
 export const getChildren = (
@@ -66,6 +80,18 @@ export const getChildren = (
   return request('/project/task/children', {
     method: 'get',
     params: { parentTaskId },
+  });
+};
+
+/**
+ * 批量获取子任务列表。
+ */
+export const getChildrenBatch = (
+  parentTaskIds: number[],
+): Promise<ProjectTaskChildrenBatchResponse> => {
+  return request('/project/task/children/batch', {
+    method: 'get',
+    params: { parentTaskIds },
   });
 };
 

@@ -35,6 +35,22 @@ export const taskChildren = (parentTaskId: number) => [
 ];
 
 /**
+ * 子任务批量列表查询键。
+ */
+export const taskChildrenBatch = (parentTaskIds: number[]) => [
+  'projectTaskChildrenBatch',
+  parentTaskIds,
+];
+
+/**
+ * 按编号任务详情查询键。
+ */
+export const taskDetailByCode = (code: string) => [
+  'projectTaskDetailByCode',
+  code,
+];
+
+/**
  * 任务状态配置查询键。
  */
 export const taskStatusList = () => ['projectTaskStatusList'];
