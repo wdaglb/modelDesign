@@ -72,6 +72,31 @@ export interface LoginHistoryVo {
    * 登录时间。
    */
   loginTime: string;
+
+  /**
+   * 浏览器名称。
+   */
+  browserName: string;
+
+  /**
+   * 浏览器版本。
+   */
+  browserVersion: string;
+
+  /**
+   * 操作系统名称。
+   */
+  osName: string;
+
+  /**
+   * 操作系统版本。
+   */
+  osVersion: string;
+
+  /**
+   * 设备类型。
+   */
+  deviceType: string;
 }
 
 export interface PassportCurrentPermission {

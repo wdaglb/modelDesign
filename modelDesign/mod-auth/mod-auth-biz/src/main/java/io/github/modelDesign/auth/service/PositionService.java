@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +91,39 @@ public class PositionService extends ServiceImpl<PositionMapper, Position> imple
             items.add(toPositionListItem(position, tenantNameMap));
         }
         return new PageResponse<>(items, total);
+    }
+
+    /**
+     * 批量获取职位名称映射。
+     *
+     * @param positionIds 职位 ID 集合
+     * @return 职位 ID 到名称的映射
+     */
+    public Map<Long, String> getNameMapByIds(Collection<Long> positionIds) {
+        if (positionIds == null || positionIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<Long> distinctIds = new LinkedHashSet<>();
+        for (Long positionId : positionIds) {
+            if (positionId != null) {
+                distinctIds.add(positionId);
+            }
+        }
+        if (distinctIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Position> positions = getBaseMapper().selectBatchIds(distinctIds);
+        Map<Long, String> positionNameMap = new LinkedHashMap<>();
+        for (Position position : positions) {
+            positionNameMap.put(position.getId(), position.getName());
+        }
+        for (Long positionId : distinctIds) {
+            if (!positionNameMap.containsKey(positionId)) {
+                positionNameMap.put(positionId, "职位已删除");
+            }
+        }
+        return positionNameMap;
     }
 
     /**

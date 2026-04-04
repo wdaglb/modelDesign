@@ -13,6 +13,12 @@ import queryKey from '@/constants/queryKey';
 import ChangePasswordFormFields, {
   ChangePasswordFormValues,
 } from '@/layout/components/ChangePasswordFormFields.tsx';
+import {
+  formatBrowserDisplay,
+  formatDeviceTypeDisplay,
+  formatLoginTypeDisplay,
+  formatOsDisplay,
+} from '@/routes/personal-center/components/loginHistoryDisplay.helper';
 import { logout } from '@/service/loginService.ts';
 
 interface SecurityTabProps {
@@ -138,7 +144,29 @@ const loginHistoryColumns: ColumnsType<LoginHistoryVo> = [
     title: '登录方式',
     dataIndex: 'loginType',
     key: 'loginType',
-    render: (value: string) => formatLoginType(value),
+    render: (value: string) => formatLoginTypeDisplay(value),
+  },
+  {
+    title: '浏览器',
+    dataIndex: 'browserName',
+    key: 'browserName',
+    render: (_, record) => {
+      return formatBrowserDisplay(record.browserName, record.browserVersion);
+    },
+  },
+  {
+    title: '操作系统',
+    dataIndex: 'osName',
+    key: 'osName',
+    render: (_, record) => {
+      return formatOsDisplay(record.osName, record.osVersion);
+    },
+  },
+  {
+    title: '设备类型',
+    dataIndex: 'deviceType',
+    key: 'deviceType',
+    render: (value: string) => formatDeviceTypeDisplay(value),
   },
   {
     title: '登录 IP',
@@ -153,16 +181,6 @@ const loginHistoryColumns: ColumnsType<LoginHistoryVo> = [
     render: (value: string) => getDisplayText(value),
   },
 ];
-
-const formatLoginType = (value?: string) => {
-  if (!value) {
-    return '-';
-  }
-  if (value === 'PASSWORD') {
-    return '账号密码';
-  }
-  return value;
-};
 
 const formatDateTime = (value?: string) => {
   if (!value) {

@@ -16,9 +16,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 角色管理服务。
@@ -168,6 +173,45 @@ public class RoleService extends ServiceImpl<RoleMapper, Role> implements IServi
             throw new BusinessException(HttpStatus.NOT_FOUND.value(), "角色不存在");
         }
         return role;
+    }
+
+    /**
+     * 批量获取角色编码对应的名称。
+     *
+     * @param roleCodes 角色编码集合
+     * @return 角色编码到名称的映射
+     */
+    public Map<String, String> getNameMapByCodes(Collection<String> roleCodes) {
+        if (roleCodes == null || roleCodes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<String> distinctCodes = new LinkedHashSet<>();
+        for (String roleCode : roleCodes) {
+            if (roleCode == null) {
+                continue;
+            }
+            String trimmedCode = roleCode.trim();
+            if (StringUtils.hasText(trimmedCode)) {
+                distinctCodes.add(trimmedCode);
+            }
+        }
+        if (distinctCodes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Role> roles = lambdaQuery()
+                .in(Role::getCode, distinctCodes)
+                .list();
+        Map<String, String> roleNameMap = new LinkedHashMap<>();
+        for (Role role : roles) {
+            roleNameMap.put(role.getCode(), role.getName());
+        }
+        for (String roleCode : distinctCodes) {
+            if (!roleNameMap.containsKey(roleCode)) {
+                roleNameMap.put(roleCode, "角色已删除");
+            }
+        }
+        return roleNameMap;
     }
 
     /**

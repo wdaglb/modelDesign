@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 用户列表项。
  */
@@ -46,6 +48,42 @@ public class UserListItemVo {
      */
     @Schema(description = "头像文件 ID")
     private String avatarId;
+
+    /**
+     * 角色名称列表。
+     */
+    @Schema(description = "角色名称列表")
+    private List<String> roleNames;
+
+    /**
+     * 职位名称列表。
+     */
+    @Schema(description = "职位名称列表")
+    private List<String> positionNames;
+
+    /**
+     * 是否已绑定角色。
+     */
+    @Schema(description = "是否已绑定角色")
+    private Boolean hasRole;
+
+    /**
+     * 是否已绑定职位。
+     */
+    @Schema(description = "是否已绑定职位")
+    private Boolean hasPosition;
+
+    /**
+     * 最近登录时间。
+     */
+    @Schema(description = "最近登录时间")
+    private String lastLoginTime;
+
+    /**
+     * 更新时间。
+     */
+    @Schema(description = "更新时间")
+    private String updatedAt;
 
     /**
      * 是否禁用。

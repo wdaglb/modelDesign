@@ -8,7 +8,14 @@ import org.casbin.jcasbin.main.Enforcer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -149,6 +156,46 @@ public class PermissionService {
      */
     public List<String> getUserRoles(String userId) {
         return enforcer.getRolesForUser(userId);
+    }
+
+    /**
+     * 批量获取用户绑定的角色编码列表。
+     *
+     * @param userIds 用户 ID 集合
+     * @return 用户 ID 到角色编码列表的映射
+     */
+    public Map<Long, List<String>> getUserRoleCodesMap(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Set<Long> distinctUserIds = new LinkedHashSet<>();
+        for (Long userId : userIds) {
+            if (userId != null) {
+                distinctUserIds.add(userId);
+            }
+        }
+        if (distinctUserIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Long, List<String>> userRoleMap = new LinkedHashMap<>();
+        for (Long userId : distinctUserIds) {
+            List<String> roles = enforcer.getRolesForUser(String.valueOf(userId));
+            List<String> normalizedRoles = new ArrayList<>();
+            if (roles != null && !roles.isEmpty()) {
+                for (String role : roles) {
+                    if (role == null) {
+                        continue;
+                    }
+                    String trimmedRole = role.trim();
+                    if (!trimmedRole.isEmpty()) {
+                        normalizedRoles.add(trimmedRole);
+                    }
+                }
+            }
+            userRoleMap.put(userId, normalizedRoles);
+        }
+        return userRoleMap;
     }
 
     /**

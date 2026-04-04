@@ -15,8 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -51,6 +54,55 @@ public class UserPositionService extends ServiceImpl<UserPositionMapper, UserPos
                 .stream()
                 .map(UserPosition::getPositionId)
                 .toList();
+    }
+
+    /**
+     * 批量获取用户已绑定的职位 ID 列表。
+     *
+     * @param userIds 用户 ID 集合
+     * @return 用户 ID 到职位 ID 列表的映射
+     */
+    public Map<Long, List<Long>> getUserPositionIdsMap(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        Set<Long> distinctUserIds = new LinkedHashSet<>();
+        for (Long userId : userIds) {
+            if (userId != null) {
+                distinctUserIds.add(userId);
+            }
+        }
+        if (distinctUserIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<UserPosition> relations = lambdaQuery()
+                .in(UserPosition::getUserId, distinctUserIds)
+                .orderByAsc(UserPosition::getId)
+                .list();
+
+        Map<Long, List<Long>> result = new LinkedHashMap<>();
+        for (Long userId : distinctUserIds) {
+            result.put(userId, new ArrayList<>());
+        }
+        for (UserPosition relation : relations) {
+            if (relation == null) {
+                continue;
+            }
+            Long userId = relation.getUserId();
+            if (userId == null) {
+                continue;
+            }
+            List<Long> positionIds = result.get(userId);
+            if (positionIds == null) {
+                positionIds = new ArrayList<>();
+                result.put(userId, positionIds);
+            }
+            if (relation.getPositionId() != null) {
+                positionIds.add(relation.getPositionId());
+            }
+        }
+        return result;
     }
 
     /**
