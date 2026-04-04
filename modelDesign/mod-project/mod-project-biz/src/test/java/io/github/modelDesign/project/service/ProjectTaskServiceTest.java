@@ -17,7 +17,13 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * 项目任务服务编排测试。
+ */
 class ProjectTaskServiceTest {
+    /**
+     * 批量子任务查询应先解析父任务并委托读模型。
+     */
     @Test
     void getChildrenBatchShouldResolveParentsAndReturnChildren() {
         ProjectTaskReadService projectTaskReadService = mock(ProjectTaskReadService.class);
@@ -56,6 +62,9 @@ class ProjectTaskServiceTest {
         assertEquals(2L, capturedParents.get(1).getId());
     }
 
+    /**
+     * 编号详情查询应直接委托读模型。
+     */
     @Test
     void getDetailByCodeShouldDelegateToReadService() {
         ProjectTaskReadService projectTaskReadService = mock(ProjectTaskReadService.class);
