@@ -32,6 +32,7 @@ import {
 import TaskChangeLogPanel from './#TaskChangeLogPanel';
 import TaskPreviewSection from './#TaskPreviewSection';
 import TaskPreviewSummary from './#TaskPreviewSummary';
+import TaskSubtaskPanel from './#TaskSubtaskPanel';
 
 interface TaskPreviewDrawerProps {
   onEdit: (task: ProjectTaskDetail) => Promise<void>;
@@ -319,6 +320,25 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
                     </Typography.Paragraph>
                   </TaskPreviewSection>
                 </Space>
+              ),
+            },
+            {
+              key: 'subtask',
+              label: '子任务',
+              children: (
+                <TaskSubtaskPanel
+                  parentTask={taskDetail}
+                  statusConfigs={props.statusConfigs}
+                  onRefresh={async () => {
+                    await Promise.all([
+                      props.onTaskUpdated(),
+                      queryClient.invalidateQueries({
+                        queryKey: detailQueryKey,
+                      }),
+                    ]);
+                  }}
+                  onEditTask={props.onEdit}
+                />
               ),
             },
             {

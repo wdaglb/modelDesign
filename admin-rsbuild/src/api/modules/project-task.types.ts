@@ -95,6 +95,8 @@ export enum ProjectTaskSortOrder {
 export interface CreateProjectTaskParams {
   /** 项目 ID。 */
   projectId: number;
+  /** 父任务 ID。 */
+  parentTaskId?: number;
   /** 任务标题。 */
   title: string;
   /** 任务描述。 */
@@ -117,6 +119,8 @@ export interface CreateProjectTaskParams {
  * 编辑项目任务请求参数。
  */
 export interface EditProjectTaskParams {
+  /** 父任务 ID。 */
+  parentTaskId?: number;
   /** 任务标题。 */
   title: string;
   /** 任务描述。 */
@@ -179,6 +183,10 @@ export interface ProjectTaskBoardParams {
 export interface ProjectTaskDetail {
   id: number;
   projectId: number;
+  parentTaskId?: number;
+  parentTaskTitle?: string;
+  childTaskCount?: number;
+  completedChildTaskCount?: number;
   projectName?: string;
   title: string;
   description?: string;
@@ -204,3 +212,8 @@ export type ProjectTaskPageResponse = PageResponse<ProjectTaskDetail>;
  * 敏捷面板任务响应。
  */
 export type ProjectTaskBoardResponse = ProjectTaskDetail[];
+
+/**
+ * 子任务列表响应。
+ */
+export type ProjectTaskChildrenResponse = ProjectTaskDetail[];

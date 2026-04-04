@@ -108,6 +108,17 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     }
 
     /**
+     * 获取子任务列表。
+     *
+     * @param parentTaskId 父任务 ID
+     * @return 子任务列表
+     */
+    public List<ProjectTaskDetailVo> getChildren(Long parentTaskId) {
+        ProjectTask parentTask = requireTask(parentTaskId);
+        return projectTaskReadService.getChildren(parentTask);
+    }
+
+    /**
      * 获取任务变更日志列表。
      *
      * @param request 列表请求
