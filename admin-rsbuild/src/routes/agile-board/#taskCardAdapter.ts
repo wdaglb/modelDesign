@@ -37,8 +37,8 @@ function resolveTaskNumber(task: AgileBoardTask) {
   };
 
   const explicitTaskNumber =
-    normalizeTaskText(taskRecord.taskCode) ??
     normalizeTaskText(taskRecord.taskNo) ??
+    normalizeTaskText(taskRecord.taskCode) ??
     normalizeTaskText(taskRecord.code) ??
     (taskRecord.serialNumber !== undefined && taskRecord.serialNumber !== null
       ? String(taskRecord.serialNumber)

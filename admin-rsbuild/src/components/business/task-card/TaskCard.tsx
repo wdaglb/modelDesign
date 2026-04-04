@@ -1,10 +1,22 @@
-import { Card, Space, Tooltip, Typography, message } from 'antd';
-import type { CSSProperties, MouseEvent } from 'react';
+import { Space, Tooltip, message } from 'antd';
+import type { MouseEvent, PointerEvent, ReactNode } from 'react';
 
 import TaskCardPriorityTag, {
   TASK_CARD_PRIORITY_TRIGGER_SELECTOR,
 } from './TaskCardPriorityTag';
 import type { TaskCardProps, TaskCardTask } from './TaskCard.types';
+import {
+  TaskCardContainer,
+  TaskCardHeader,
+  TaskCardRoot,
+  TaskCardStack,
+  TaskHeaderText,
+  TaskMetaList,
+  TaskMetaText,
+  TaskNumberLink,
+  TaskPrioritySlot,
+  TaskTitleText,
+} from './TaskCard.styled';
 
 const TASK_CARD_COPY_TRIGGER_SELECTOR = '[data-task-card-copy-trigger="true"]';
 
@@ -67,38 +79,23 @@ function getTaskNumberText(task: TaskCardTask) {
 }
 
 /**
- * 构建通用任务卡片样式，保持与看板卡片一致的视觉层级。
+ * 解析卡片内容间距。
  */
-function getTaskCardStyle(
-  isOverlay: boolean | undefined,
-  disabled: boolean | undefined,
-): CSSProperties {
-  let boxShadow = '0 6px 14px rgba(15, 23, 42, 0.08)';
-  let cursor = 'pointer';
-
-  if (disabled) {
-    cursor = 'default';
+function resolveCardStackSize(isCompact: boolean) {
+  if (isCompact) {
+    return 8;
   }
 
-  if (isOverlay) {
-    boxShadow = '0 16px 30px rgba(15, 23, 42, 0.14)';
-    cursor = 'default';
-  }
-
-  return {
-    width: '100%',
-    boxShadow,
-    cursor,
-    transition: 'box-shadow 0.2s ease',
-  };
+  return 10;
 }
 
 /**
  * 通用任务卡片，提供统一的信息结构与点击交互。
  */
 const TaskCard = (props: TaskCardProps) => {
-  const cardStyle = getTaskCardStyle(props.isOverlay, props.disabled);
   const rootProps = props.rootProps;
+  const isCompact = Boolean(props.compact || props.isSubtask);
+  const shouldHideMeta = Boolean(props.compact) && !props.isSubtask;
 
   let hoverable = true;
   if (props.isOverlay) {
@@ -155,6 +152,18 @@ const TaskCard = (props: TaskCardProps) => {
   const dueTimeText = getTaskDueTimeText(props.task);
   const workDaysText = getTaskWorkDaysText(props.task);
   const taskNumberText = getTaskNumberText(props.task);
+  const stackSize = resolveCardStackSize(isCompact);
+  const dataAttributes: Record<string, string> = {
+    'data-task-card-root': 'true',
+  };
+
+  if (props.compact) {
+    dataAttributes['data-task-card-compact'] = 'true';
+  }
+
+  if (props.isSubtask) {
+    dataAttributes['data-task-card-subtask'] = 'true';
+  }
 
   /**
    * 点击编号时执行复制，并阻断事件冒泡，避免误触详情预览。
@@ -167,168 +176,116 @@ const TaskCard = (props: TaskCardProps) => {
       return;
     }
 
-    await navigator.clipboard.writeText(taskNumberText);
-    message.success('任务编号已复制');
+    try {
+      await navigator.clipboard.writeText(taskNumberText);
+      message.success('任务编号已复制');
+    } catch {
+      message.error('任务编号复制失败，请稍后重试');
+    }
   };
 
+  /**
+   * 阻断任务编号区域的鼠标事件冒泡，避免触发拖拽。
+   */
+  const stopTaskNumberMouseEvent = (event: MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+  };
+
+  /**
+   * 阻断任务编号区域的指针事件冒泡，避免触发拖拽。
+   */
+  const stopTaskNumberPointerEvent = (event: PointerEvent<HTMLElement>) => {
+    event.stopPropagation();
+  };
+
+  let headerLeftNode: ReactNode = null;
+  if (taskNumberText) {
+    headerLeftNode = (
+      <TaskNumberLink
+        data-task-card-copy-trigger="true"
+        onClick={handleCopyTaskNumber}
+        onMouseDown={stopTaskNumberMouseEvent}
+        onPointerDown={stopTaskNumberPointerEvent}
+      >
+        {taskNumberText}
+      </TaskNumberLink>
+    );
+  } else {
+    headerLeftNode = (
+      <Tooltip title={projectText}>
+        <TaskHeaderText type="secondary">{projectText}</TaskHeaderText>
+      </Tooltip>
+    );
+  }
+
+  let metaProjectNode: ReactNode = null;
+  if (taskNumberText) {
+    metaProjectNode = (
+      <Tooltip title={projectText}>
+        <TaskMetaText type="secondary">{projectText}</TaskMetaText>
+      </Tooltip>
+    );
+  }
+
+  let metaNode: ReactNode = null;
+  if (!shouldHideMeta) {
+    metaNode = (
+      <TaskMetaList>
+        {metaProjectNode}
+        <TaskMetaText type="secondary">{workDaysText}</TaskMetaText>
+        <Tooltip title={assigneeText}>
+          <TaskMetaText type="secondary">{assigneeText}</TaskMetaText>
+        </Tooltip>
+        <Tooltip title={dueTimeText}>
+          <TaskMetaText type="secondary">{dueTimeText}</TaskMetaText>
+        </Tooltip>
+      </TaskMetaList>
+    );
+  }
+
   return (
-    <div
-      style={{ width: '100%' }}
+    <TaskCardRoot
       {...rootProps}
+      {...dataAttributes}
       onClick={handleMergedRootClick}
     >
-      <Card
+      <TaskCardContainer
         size="small"
         hoverable={hoverable}
-        style={cardStyle}
-        styles={{
-          body: {
-            padding: 16,
-          },
-        }}
+        $disabled={Boolean(props.disabled)}
+        $isOverlay={Boolean(props.isOverlay)}
+        $compact={Boolean(props.compact)}
+        $isSubtask={Boolean(props.isSubtask)}
       >
-        <Space
+        <TaskCardStack
           orientation="vertical"
-          size={10}
-          style={{ width: '100%' }}
+          size={stackSize}
           styles={{ item: { width: '100%' } }}
         >
-          <Space
-            align="start"
-            style={{ width: '100%', justifyContent: 'space-between' }}
-          >
-            {taskNumberText ? (
-              <Typography.Text
-                data-task-card-copy-trigger="true"
-                onClick={handleCopyTaskNumber}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  fontSize: 12,
-                  lineHeight: '18px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  fontFamily:
-                    '"SFMono-Regular", "Cascadia Code", "JetBrains Mono", monospace',
-                  textDecorationLine: 'underline overline',
-                  cursor: 'copy',
-                }}
-              >
-                {taskNumberText}
-              </Typography.Text>
-            ) : (
-              <Tooltip title={projectText}>
-                <Typography.Text
-                  type="secondary"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: 12,
-                    lineHeight: '18px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {projectText}
-                </Typography.Text>
-              </Tooltip>
-            )}
-
-            <div
-              style={{
-                flexShrink: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-              }}
-            >
+          <TaskCardHeader>
+            {headerLeftNode}
+            <TaskPrioritySlot>
               <TaskCardPriorityTag
                 task={props.task}
                 disabled={props.disabled}
                 isOverlay={props.isOverlay}
                 onPriorityChange={props.onPriorityChange}
               />
-            </div>
-          </Space>
+            </TaskPrioritySlot>
+          </TaskCardHeader>
 
-          <Typography.Text
+          <TaskTitleText
             strong
-            style={{
-              display: '-webkit-box',
-              minHeight: 44,
-              overflow: 'hidden',
-              WebkitBoxOrient: 'vertical',
-              WebkitLineClamp: 2,
-              fontSize: 15,
-              lineHeight: '22px',
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
-            }}
+            $compact={Boolean(props.compact)}
+            $isSubtask={Boolean(props.isSubtask)}
           >
             {props.task.title}
-          </Typography.Text>
+          </TaskTitleText>
 
-          <Space orientation="vertical" size={4}>
-            {taskNumberText ? (
-              <Tooltip title={projectText}>
-                <Typography.Text
-                  type="secondary"
-                  style={{
-                    fontSize: 12,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {projectText}
-                </Typography.Text>
-              </Tooltip>
-            ) : null}
-
-            <Typography.Text
-              type="secondary"
-              style={{
-                fontSize: 12,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {workDaysText}
-            </Typography.Text>
-
-            <Tooltip title={assigneeText}>
-              <Typography.Text
-                type="secondary"
-                style={{
-                  fontSize: 12,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {assigneeText}
-              </Typography.Text>
-            </Tooltip>
-
-            <Tooltip title={dueTimeText}>
-              <Typography.Text
-                type="secondary"
-                style={{
-                  fontSize: 12,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {dueTimeText}
-              </Typography.Text>
-            </Tooltip>
-          </Space>
-        </Space>
-      </Card>
-    </div>
+          {metaNode}
+        </TaskCardStack>
+      </TaskCardContainer>
+    </TaskCardRoot>
   );
 };
 

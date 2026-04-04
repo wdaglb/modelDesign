@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -116,6 +117,36 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     public List<ProjectTaskDetailVo> getChildren(Long parentTaskId) {
         ProjectTask parentTask = requireTask(parentTaskId);
         return projectTaskReadService.getChildren(parentTask);
+    }
+
+    /**
+     * 批量获取子任务列表。
+     *
+     * @param parentTaskIds 父任务 ID 列表
+     * @return 子任务列表
+     */
+    public List<ProjectTaskDetailVo> getChildrenBatch(List<Long> parentTaskIds) {
+        if (parentTaskIds == null || parentTaskIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ProjectTask> parentTasks = new ArrayList<>();
+        for (Long parentTaskId : parentTaskIds) {
+            parentTasks.add(requireTask(parentTaskId));
+        }
+        if (parentTasks.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return projectTaskReadService.getChildrenBatch(parentTasks);
+    }
+
+    /**
+     * 按编号获取任务详情。
+     *
+     * @param code 任务编号
+     * @return 任务详情
+     */
+    public ProjectTaskDetailVo getDetailByCode(String code) {
+        return projectTaskReadService.getDetailByVisibleNumber(code);
     }
 
     /**

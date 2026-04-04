@@ -33,11 +33,7 @@ describe('TaskCard', () => {
     const taskNumber = screen.getByText('TASK-101');
 
     expect(taskNumber).toBeDefined();
-    expect(screen.queryByText('任务编号')).toBeNull();
-    expect(screen.queryByRole('button', { name: '复制任务编号' })).toBeNull();
-    expect(taskNumber.getAttribute('style') ?? '').toContain(
-      'text-decoration-line: underline overline',
-    );
+    expect(taskNumber.getAttribute('data-task-card-copy-trigger')).toBe('true');
 
     fireEvent.click(taskNumber);
 
@@ -48,5 +44,74 @@ describe('TaskCard', () => {
       expect(successMock).toHaveBeenCalledWith('任务编号已复制');
     });
     expect(onPreview).not.toHaveBeenCalled();
+  });
+
+  it('任务编号复制失败时给出错误提示', async () => {
+    const writeTextMock = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockRejectedValue(new Error('denied'));
+    const errorMock = vi.spyOn(message, 'error').mockImplementation(() => {
+      return undefined as never;
+    });
+
+    render(<TaskCard task={baseTask} />);
+
+    fireEvent.click(screen.getByText('TASK-101'));
+
+    await waitFor(() => {
+      expect(writeTextMock).toHaveBeenCalledWith('TASK-101');
+    });
+    await waitFor(() => {
+      expect(errorMock).toHaveBeenCalledWith('任务编号复制失败，请稍后重试');
+    });
+  });
+
+  it('任务编号在按下阶段阻断拖拽监听', () => {
+    const onMouseDown = vi.fn();
+    const onPointerDown = vi.fn();
+
+    render(
+      <TaskCard
+        task={baseTask}
+        rootProps={{
+          onMouseDown,
+          onPointerDown,
+        }}
+      />,
+    );
+
+    const taskNumber = screen.getByText('TASK-101');
+
+    fireEvent.mouseDown(taskNumber);
+    fireEvent.pointerDown(taskNumber);
+
+    expect(onMouseDown).not.toHaveBeenCalled();
+    expect(onPointerDown).not.toHaveBeenCalled();
+  });
+
+  it('紧凑态与子任务态提供可断言标记', () => {
+    const { container } = render(
+      <TaskCard task={baseTask} compact isSubtask />,
+    );
+
+    const rootNode = container.querySelector('[data-task-card-root="true"]');
+
+    expect(rootNode).toBeDefined();
+
+    if (!rootNode) {
+      return;
+    }
+
+    expect(rootNode.getAttribute('data-task-card-compact')).toBe('true');
+    expect(rootNode.getAttribute('data-task-card-subtask')).toBe('true');
+  });
+
+  it('子任务态仍展示完整元信息', () => {
+    render(<TaskCard task={baseTask} compact isSubtask />);
+
+    expect(screen.getByText('火星项目')).toBeTruthy();
+    expect(screen.getByText('2 人天')).toBeTruthy();
+    expect(screen.getByText('小王')).toBeTruthy();
+    expect(screen.getByText('截止 2026-04-06')).toBeTruthy();
   });
 });

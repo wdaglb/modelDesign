@@ -217,3 +217,13 @@ export type ProjectTaskBoardResponse = ProjectTaskDetail[];
  * 子任务列表响应。
  */
 export type ProjectTaskChildrenResponse = ProjectTaskDetail[];
+
+/**
+ * 子任务批量列表响应。
+ */
+export type ProjectTaskChildrenBatchResponse = ProjectTaskDetail[];
+
+/**
+ * 按编号获取任务详情响应。
+ */
+export type ProjectTaskDetailByCodeResponse = ProjectTaskDetail;

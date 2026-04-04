@@ -4,8 +4,10 @@ import {
   TaskPriority,
   TaskPriorityLabel,
   type EditProjectTaskParams,
+  type ProjectTaskDetail,
   type TaskStatusCode,
 } from '@/api/modules/project-task.types';
+import { RequestError } from '@/api/types';
 
 import type {
   AgileBoardColumnMeta,
@@ -49,6 +51,76 @@ export function normalizeBoardKeyword(value: string) {
   }
 
   return trimmedValue;
+}
+
+/**
+ * 判断输入是否更像任务编号。
+ */
+export function isLikelyTaskCode(value: string) {
+  const normalizedValue = value.trim();
+
+  if (!normalizedValue) {
+    return false;
+  }
+
+  if (/\s/.test(normalizedValue)) {
+    return false;
+  }
+
+  if (/^\d+$/.test(normalizedValue)) {
+    return true;
+  }
+
+  if (/^TASK-\d+$/.test(normalizedValue)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * 敏捷面板搜索依赖。
+ */
+export interface BoardTitleSearchDeps {
+  getDetailByCode: (code: string) => Promise<ProjectTaskDetail>;
+  onOpenPreview: (task: ProjectTaskDetail) => Promise<void> | void;
+  onFallbackSearch: (title: string) => void;
+}
+
+/**
+ * 处理敏捷面板标题搜索逻辑。
+ */
+export async function handleBoardTitleSearch(
+  value: string,
+  deps: BoardTitleSearchDeps,
+) {
+  const normalizedValue = normalizeBoardKeyword(value);
+
+  if (!normalizedValue) {
+    deps.onFallbackSearch('');
+    return;
+  }
+
+  const shouldSearchByCode = isLikelyTaskCode(normalizedValue);
+  if (!shouldSearchByCode) {
+    deps.onFallbackSearch(normalizedValue);
+    return;
+  }
+
+  let detail: ProjectTaskDetail;
+
+  try {
+    detail = await deps.getDetailByCode(normalizedValue);
+  } catch (error) {
+    if (error instanceof RequestError && error.code === 404) {
+      deps.onFallbackSearch(normalizedValue);
+      return;
+    }
+
+    throw error;
+  }
+
+  await deps.onOpenPreview(detail);
 }
 
 /**
@@ -116,6 +188,38 @@ export function groupBoardTasks(
   });
 
   return groupedTasks;
+}
+
+/**
+ * 筛选敏捷面板中的父任务列表。
+ */
+export function filterBoardParentTasks(tasks: AgileBoardTask[]) {
+  return tasks.filter((task) => {
+    return task.parentTaskId === undefined || task.parentTaskId === null;
+  });
+}
+
+/**
+ * 按父任务 ID 分组子任务。
+ */
+export function groupBoardSubtasks(subtasks: AgileBoardTask[]) {
+  const grouped = new Map<number, AgileBoardTask[]>();
+
+  subtasks.forEach((task) => {
+    if (task.parentTaskId === undefined || task.parentTaskId === null) {
+      return;
+    }
+
+    const taskGroup = grouped.get(task.parentTaskId);
+    if (taskGroup) {
+      taskGroup.push(task);
+      return;
+    }
+
+    grouped.set(task.parentTaskId, [task]);
+  });
+
+  return grouped;
 }
 
 /**

@@ -9,7 +9,16 @@ import type {
 /**
  * 敏捷面板任务卡片。
  */
-export type AgileBoardTask = ProjectTaskDetail;
+export type AgileBoardTask = ProjectTaskDetail & {
+  /** 任务编号（看板展示优先）。 */
+  taskNo?: string | null;
+  /** 任务编码（历史字段）。 */
+  taskCode?: string | null;
+  /** 任务编码（通用字段）。 */
+  code?: string | null;
+  /** 序列号（兼容旧字段）。 */
+  serialNumber?: string | number | null;
+};
 
 /**
  * 敏捷面板列元数据。

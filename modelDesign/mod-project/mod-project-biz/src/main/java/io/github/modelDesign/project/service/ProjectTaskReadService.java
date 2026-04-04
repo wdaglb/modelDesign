@@ -214,6 +214,51 @@ public class ProjectTaskReadService {
         return projectTaskViewAssembler.toTaskVoList(childTasks);
     }
 
+    /**
+     * 批量获取子任务列表。
+     *
+     * @param parentTasks 父任务列表
+     * @return 子任务列表
+     */
+    public List<ProjectTaskDetailVo> getChildrenBatch(List<ProjectTask> parentTasks) {
+        if (parentTasks == null || parentTasks.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<Long> parentTaskIds = new LinkedHashSet<>();
+        for (ProjectTask parentTask : parentTasks) {
+            if (parentTask.getId() != null) {
+                parentTaskIds.add(parentTask.getId());
+            }
+        }
+        if (parentTaskIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ProjectTask> childTasks = projectTaskMapper.selectList(new LambdaQueryWrapper<ProjectTask>()
+                .in(ProjectTask::getParentTaskId, parentTaskIds)
+                .eq(ProjectTask::getDeleted, 0)
+                .orderByDesc(ProjectTask::getUpdateTime));
+        return projectTaskViewAssembler.toTaskVoList(childTasks);
+    }
+
+    /**
+     * 按可见编号获取任务详情。
+     *
+     * @param code 任务编号
+     * @return 任务详情
+     */
+    public ProjectTaskDetailVo getDetailByVisibleNumber(String code) {
+        Long taskId = parseVisibleNumber(code);
+        ProjectTask task = projectTaskMapper.selectOne(new LambdaQueryWrapper<ProjectTask>()
+                .eq(ProjectTask::getId, taskId)
+                .eq(ProjectTask::getDeleted, 0)
+                .last("limit 1"));
+        if (task == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND.value(), "任务不存在");
+        }
+        projectService.requireProject(task.getProjectId());
+        return projectTaskViewAssembler.toTaskVo(task);
+    }
+
     private Map<Long, String> getCreatorNameMap(Set<Long> creatorIds) {
         if (creatorIds.isEmpty()) {
             return Collections.emptyMap();
@@ -353,6 +398,46 @@ public class ProjectTaskReadService {
             return null;
         }
         return normalizedValue;
+    }
+
+    private Long parseVisibleNumber(String code) {
+        String normalizedCode = normalizeValue(code);
+        if (!StringUtils.hasText(normalizedCode)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "任务编号不合法");
+        }
+        String numericPart = normalizedCode;
+        if (normalizedCode.startsWith("TASK-")) {
+            numericPart = normalizedCode.substring("TASK-".length());
+        } else {
+            if (!isDigits(normalizedCode)) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "任务编号不合法");
+            }
+        }
+        if (!isDigits(numericPart)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "任务编号不合法");
+        }
+        try {
+            Long taskId = Long.parseLong(numericPart);
+            if (taskId <= 0) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "任务编号不合法");
+            }
+            return taskId;
+        } catch (NumberFormatException ex) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "任务编号不合法");
+        }
+    }
+
+    private boolean isDigits(String value) {
+        if (!StringUtils.hasText(value)) {
+            return false;
+        }
+        for (int index = 0; index < value.length(); index++) {
+            char currentChar = value.charAt(index);
+            if (!Character.isDigit(currentChar)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String formatDateTime(LocalDateTime value) {

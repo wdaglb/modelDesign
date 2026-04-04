@@ -36,6 +36,10 @@ export type TaskCardPreviewHandler = (
  */
 export interface TaskCardProps {
   task: TaskCardTask;
+  /** 是否启用紧凑信息展示。 */
+  compact?: boolean;
+  /** 是否为子任务卡片。 */
+  isSubtask?: boolean;
   disabled?: boolean;
   isOverlay?: boolean;
   onPreview?: TaskCardPreviewHandler;
