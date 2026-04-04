@@ -24,8 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 后台管理员服务。
@@ -47,6 +45,16 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
     private final TenantService tenantService;
 
     /**
+     * 用户列表查询上下文工厂。
+     */
+    private final UserListQueryContextFactory userListQueryContextFactory;
+
+    /**
+     * 用户列表视图组装器。
+     */
+    private final UserListViewAssembler userListViewAssembler;
+
+    /**
      * 按用户名查询管理员。
      *
      * 主要用于登录校验等场景。
@@ -64,10 +72,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
     /**
      * 获取用户列表。
      *
-     * 当前实现支持：
-     * - 分页
-     * - 按用户 ID 集合筛选
-     * - 按昵称关键字筛选
+     * 当前实现支持统一搜索、高级筛选与摘要状态过滤。
      *
      * @param request 列表请求
      * @return 分页结果
@@ -75,33 +80,66 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
     public PageResponse<UserListItemVo> getList(UserListRequest request) {
         long current = request.getCurrent();
         long pageSize = request.getPageSize();
-        List<Long> ids = Collections.emptyList();
-        if (request.getIds() != null) {
-            ids = request.getIds().stream().filter(Objects::nonNull).distinct().toList();
+        List<Long> ids = normalizeIds(request.getIds());
+        UserListQueryContext context = userListQueryContextFactory.create(request);
+        if (context == null) {
+            context = new UserListQueryContext();
         }
-        String nickname = null;
-        if (request.getNickname() != null) {
-            nickname = request.getNickname().trim();
-        }
+        Integer status = resolveStatusFilter(context.getIsDisable());
+        final UserListQueryContext finalContext = context;
+        final Integer finalStatus = status;
         List<User> allUsers = lambdaQuery()
                 .in(!ids.isEmpty(), User::getId, ids)
-                .like(StringUtils.hasText(nickname), User::getNickname, nickname)
-                .eq(request.getTenantId() != null, User::getTenantId, request.getTenantId())
+                .eq(
+                        finalContext.getUserId() != null,
+                        User::getId,
+                        finalContext.getUserId()
+                )
+                .eq(
+                        finalContext.getKeywordUserId() != null,
+                        User::getId,
+                        finalContext.getKeywordUserId()
+                )
+                .like(
+                        StringUtils.hasText(finalContext.getUsername()),
+                        User::getUsername,
+                        finalContext.getUsername()
+                )
+                .like(
+                        StringUtils.hasText(finalContext.getNickname()),
+                        User::getNickname,
+                        finalContext.getNickname()
+                )
+                .and(
+                        finalContext.hasKeywordText(),
+                        wrapper -> wrapper.like(
+                                        User::getUsername,
+                                        finalContext.getKeywordText()
+                                )
+                                .or()
+                                .like(User::getNickname, finalContext.getKeywordText())
+                )
+                .eq(
+                        finalContext.getTenantId() != null,
+                        User::getTenantId,
+                        finalContext.getTenantId()
+                )
+                .eq(finalStatus != null, User::getStatus, finalStatus)
                 .orderByDesc(User::getUpdateTime)
                 .list();
-        long total = allUsers.size();
+        List<UserListItemVo> allItems = userListViewAssembler.assemble(allUsers)
+                .stream()
+                .filter(item -> matchesRoleFilter(item, finalContext.getHasRole()))
+                .filter(item -> matchesPositionFilter(item, finalContext.getHasPosition()))
+                .toList();
+        long total = allItems.size();
         long fromIndex = Math.max((current - 1) * pageSize, 0);
         if (fromIndex >= total) {
             return new PageResponse<>(Collections.emptyList(), total);
         }
         long toIndex = Math.min(fromIndex + pageSize, total);
-        List<User> pageUsers = allUsers.subList((int) fromIndex, (int) toIndex);
-        Set<Long> tenantIds = pageUsers.stream()
-                .map(User::getTenantId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        Map<Long, String> tenantNameMap = tenantService.getDisplayNameMapByIds(tenantIds);
-        return new PageResponse<>(pageUsers.stream().map(user -> toUserListItem(user, tenantNameMap)).toList(), total);
+        List<UserListItemVo> pageItems = allItems.subList((int) fromIndex, (int) toIndex);
+        return new PageResponse<>(pageItems, total);
     }
 
     /**
@@ -256,6 +294,63 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
                 .avatarId(user.getAvatarId())
                 .isDisable(resolveDisable(user.getStatus()))
                 .build();
+    }
+
+    /**
+     * 规范化用户 ID 列表。
+     *
+     * @param ids 原始用户 ID 列表
+     * @return 去重后的用户 ID 列表
+     */
+    private List<Long> normalizeIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return ids.stream().filter(Objects::nonNull).distinct().toList();
+    }
+
+    /**
+     * 解析列表状态筛选值。
+     *
+     * @param isDisable 是否禁用
+     * @return 数据库存储状态
+     */
+    private Integer resolveStatusFilter(Boolean isDisable) {
+        if (isDisable == null) {
+            return null;
+        }
+        if (Boolean.TRUE.equals(isDisable)) {
+            return 0;
+        }
+        return 1;
+    }
+
+    /**
+     * 判断当前列表项是否满足角色绑定筛选。
+     *
+     * @param item 列表项
+     * @param hasRole 筛选值
+     * @return 是否命中
+     */
+    private boolean matchesRoleFilter(UserListItemVo item, Boolean hasRole) {
+        if (hasRole == null) {
+            return true;
+        }
+        return Objects.equals(hasRole, item.getHasRole());
+    }
+
+    /**
+     * 判断当前列表项是否满足职位绑定筛选。
+     *
+     * @param item 列表项
+     * @param hasPosition 筛选值
+     * @return 是否命中
+     */
+    private boolean matchesPositionFilter(UserListItemVo item, Boolean hasPosition) {
+        if (hasPosition == null) {
+            return true;
+        }
+        return Objects.equals(hasPosition, item.getHasPosition());
     }
 
     /**

@@ -58,12 +58,12 @@ public class UserController {
     /**
      * 获取用户列表。
      *
-     * 支持按昵称关键字查询，并返回分页结构给前端列表页使用。
+     * 支持统一搜索、高级筛选与治理状态筛选，并返回分页结构给前端列表页使用。
      *
      * @param request 列表请求
      * @return 分页结果
      */
-    @Operation(summary = "获取用户列表")
+    @Operation(summary = "获取用户列表", description = "支持统一搜索、高级筛选与治理状态筛选")
     @GetMapping("/list")
     public PageResponse<UserListItemVo> list(@Valid UserListRequest request) {
         return userService.getList(request);

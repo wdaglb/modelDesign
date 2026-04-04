@@ -1,10 +1,12 @@
 package io.github.modelDesign.auth.service;
 
 import io.github.modelDesign.auth.request.UserListRequest;
+import org.springframework.stereotype.Component;
 
 /**
  * 用户列表查询上下文工厂。
  */
+@Component
 public class UserListQueryContextFactory {
     /**
      * 从请求构造查询上下文，自动清洗字符串并解析关键字。

@@ -408,7 +408,11 @@ class AuthServiceTest {
         private FakeLambdaUpdateChainWrapper lastUpdateChain;
 
         FakeUserService() {
-            super(new TenantService());
+            super(
+                    new TenantService(),
+                    new UserListQueryContextFactory(),
+                    null
+            );
         }
 
         @Override
