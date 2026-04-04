@@ -14,9 +14,12 @@ import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -181,10 +184,11 @@ class ProjectTaskReadServiceTest {
         ensureTableInfoInitialized();
         String sqlSegment = wrapper.getSqlSegment();
         Map<String, Object> params = wrapper.getParamNameValuePairs();
-        String debugMessage = "查询条件未包含任务 ID，params=" + params + ", sql=" + sqlSegment;
-        assertTrue(containsNumberValue(params, expectedId), debugMessage);
-        String loweredSegment = sqlSegment.toLowerCase();
-        assertTrue(loweredSegment.contains("id"), "查询条件未包含 id 字段");
+        String paramKey = extractEqualsParamKey(sqlSegment, "id");
+        String debugMessage = "查询条件未包含 id = ? 语义，params=" + params + ", sql=" + sqlSegment;
+        assertTrue(paramKey != null && params.containsKey(paramKey), debugMessage);
+        Object paramValue = params.get(paramKey);
+        assertEquals(expectedId.longValue(), toLongValue(paramValue), "任务 ID 参数值不匹配");
     }
 
     /**
@@ -200,93 +204,101 @@ class ProjectTaskReadServiceTest {
         ensureTableInfoInitialized();
         String sqlSegment = wrapper.getSqlSegment();
         Map<String, Object> params = wrapper.getParamNameValuePairs();
-        String debugMessage = "查询条件未包含完整父任务 ID 列表，params=" + params + ", sql=" + sqlSegment;
-        assertTrue(containsCollectionValues(params, expectedIds), debugMessage);
+        String debugMessage = "查询条件未包含父任务批量过滤，params=" + params + ", sql=" + sqlSegment;
+        List<String> paramKeys = extractInParamKeys(sqlSegment, "parentTaskId");
+        assertTrue(!paramKeys.isEmpty(), debugMessage);
+        Set<Long> actualIds = resolveParamValues(params, paramKeys);
+        assertEquals(new HashSet<>(expectedIds), actualIds, "父任务 ID 列表不匹配");
+
+        String deletedParamKey = extractEqualsParamKey(sqlSegment, "deleted");
+        String deletedMessage = "查询条件未包含 deleted = 0 语义，params=" + params + ", sql=" + sqlSegment;
+        assertTrue(deletedParamKey != null && params.containsKey(deletedParamKey), deletedMessage);
+        Object deletedValue = params.get(deletedParamKey);
+        assertEquals(0L, toLongValue(deletedValue), "deleted 条件值不为 0");
+
         String loweredSegment = sqlSegment.toLowerCase();
-        assertTrue(loweredSegment.contains("parenttaskid"), "查询条件未包含父任务字段");
-        assertTrue(loweredSegment.contains(" in "), "查询条件未包含批量 IN 过滤");
+        assertTrue(loweredSegment.contains("order by updatetime desc"), "查询条件未包含更新时间倒序");
     }
 
     /**
-     * 判断参数值中是否包含指定数值。
+     * 获取等值条件中的参数 Key。
      *
-     * @param params   参数映射
-     * @param expected 期望值
-     * @return 是否包含
+     * @param sqlSegment SQL 片段
+     * @param fieldName  字段名
+     * @return 参数 Key
      */
-    private boolean containsNumberValue(Map<String, Object> params, Long expected) {
-        if (params == null || params.isEmpty()) {
-            return false;
+    private String extractEqualsParamKey(String sqlSegment, String fieldName) {
+        if (sqlSegment == null || fieldName == null) {
+            return null;
         }
-        for (Object value : params.values()) {
-            if (value instanceof Number) {
-                Number number = (Number) value;
-                if (number.longValue() == expected) {
-                    return true;
-                }
-            }
+        Pattern pattern = Pattern.compile("(?i)" + Pattern.quote(fieldName)
+                + "\\s*=\\s*#\\{ew\\.paramNameValuePairs\\.(MPGENVAL\\d+)\\}");
+        Matcher matcher = pattern.matcher(sqlSegment);
+        if (!matcher.find()) {
+            return null;
         }
-        return false;
+        return matcher.group(1);
     }
 
     /**
-     * 判断参数值中是否包含指定集合元素。
+     * 获取 IN 条件中的参数 Key 列表。
      *
-     * @param params      参数映射
-     * @param expectedIds 期望 ID 列表
-     * @return 是否包含
+     * @param sqlSegment SQL 片段
+     * @param fieldName  字段名
+     * @return 参数 Key 列表
      */
-    private boolean containsCollectionValues(Map<String, Object> params, List<Long> expectedIds) {
-        if (params == null || params.isEmpty()) {
-            return false;
+    private List<String> extractInParamKeys(String sqlSegment, String fieldName) {
+        if (sqlSegment == null || fieldName == null) {
+            return List.of();
         }
-        for (Object value : params.values()) {
-            if (!(value instanceof Collection)) {
+        Pattern pattern = Pattern.compile("(?i)" + Pattern.quote(fieldName)
+                + "\\s+in\\s*\\(([^)]+)\\)");
+        Matcher matcher = pattern.matcher(sqlSegment);
+        if (!matcher.find()) {
+            return List.of();
+        }
+        String group = matcher.group(1);
+        Matcher keyMatcher = Pattern.compile("MPGENVAL\\d+").matcher(group);
+        List<String> keys = new java.util.ArrayList<>();
+        while (keyMatcher.find()) {
+            keys.add(keyMatcher.group());
+        }
+        return keys;
+    }
+
+    /**
+     * 根据参数 Key 集合获取实际数值集合。
+     *
+     * @param params 参数映射
+     * @param keys   参数 Key 列表
+     * @return 数值集合
+     */
+    private Set<Long> resolveParamValues(Map<String, Object> params, List<String> keys) {
+        Set<Long> values = new HashSet<>();
+        for (String key : keys) {
+            Object value = params.get(key);
+            if (value == null) {
                 continue;
             }
-            Collection<?> values = (Collection<?>) value;
-            if (values.size() != expectedIds.size()) {
-                continue;
-            }
-            boolean allMatch = true;
-            for (Long expectedId : expectedIds) {
-                if (!containsNumber(values, expectedId)) {
-                    allMatch = false;
-                    break;
-                }
-            }
-            if (allMatch) {
-                return true;
+            Long longValue = toLongValue(value);
+            if (longValue != null) {
+                values.add(longValue);
             }
         }
-        for (Long expectedId : expectedIds) {
-            if (!containsNumberValue(params, expectedId)) {
-                return false;
-            }
-        }
-        return true;
+        return values;
     }
 
     /**
-     * 判断集合是否包含指定数值。
+     * 转换为 Long 值。
      *
-     * @param values   集合
-     * @param expected 期望值
-     * @return 是否包含
+     * @param value 原始值
+     * @return Long 值
      */
-    private boolean containsNumber(Collection<?> values, Long expected) {
-        if (values == null || values.isEmpty()) {
-            return false;
+    private Long toLongValue(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
         }
-        for (Object value : values) {
-            if (value instanceof Number) {
-                Number number = (Number) value;
-                if (number.longValue() == expected) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return null;
     }
 
     /**
