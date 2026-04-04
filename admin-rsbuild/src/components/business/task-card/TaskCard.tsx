@@ -1,10 +1,12 @@
-import { Card, Space, Tooltip, Typography } from 'antd';
+import { Card, Space, Tooltip, Typography, message } from 'antd';
 import type { CSSProperties, MouseEvent } from 'react';
 
 import TaskCardPriorityTag, {
   TASK_CARD_PRIORITY_TRIGGER_SELECTOR,
 } from './TaskCardPriorityTag';
 import type { TaskCardProps, TaskCardTask } from './TaskCard.types';
+
+const TASK_CARD_COPY_TRIGGER_SELECTOR = '[data-task-card-copy-trigger="true"]';
 
 /**
  * 任务卡片中项目名称展示文案。
@@ -48,6 +50,20 @@ function getTaskWorkDaysText(task: TaskCardTask) {
   }
 
   return `${task.workDays} 人天`;
+}
+
+/**
+ * 任务卡片中的任务编号文案。
+ *
+ * 只有业务层显式传入编号时才展示，避免通用卡片在非敏捷面板场景
+ * 额外出现无意义的占位信息。
+ */
+function getTaskNumberText(task: TaskCardTask) {
+  if (!task.taskNumber) {
+    return undefined;
+  }
+
+  return task.taskNumber;
 }
 
 /**
@@ -108,6 +124,10 @@ const TaskCard = (props: TaskCardProps) => {
       return;
     }
 
+    if (target.closest(TASK_CARD_COPY_TRIGGER_SELECTOR)) {
+      return;
+    }
+
     if (!props.onPreview) {
       return;
     }
@@ -134,6 +154,22 @@ const TaskCard = (props: TaskCardProps) => {
   const assigneeText = getTaskAssigneeText(props.task);
   const dueTimeText = getTaskDueTimeText(props.task);
   const workDaysText = getTaskWorkDaysText(props.task);
+  const taskNumberText = getTaskNumberText(props.task);
+
+  /**
+   * 点击编号时执行复制，并阻断事件冒泡，避免误触详情预览。
+   */
+  const handleCopyTaskNumber = async (event: MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!taskNumberText) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(taskNumberText);
+    message.success('任务编号已复制');
+  };
 
   return (
     <div
@@ -152,7 +188,7 @@ const TaskCard = (props: TaskCardProps) => {
         }}
       >
         <Space
-          direction="vertical"
+          orientation="vertical"
           size={10}
           style={{ width: '100%' }}
           styles={{ item: { width: '100%' } }}
@@ -161,9 +197,10 @@ const TaskCard = (props: TaskCardProps) => {
             align="start"
             style={{ width: '100%', justifyContent: 'space-between' }}
           >
-            <Tooltip title={projectText}>
+            {taskNumberText ? (
               <Typography.Text
-                type="secondary"
+                data-task-card-copy-trigger="true"
+                onClick={handleCopyTaskNumber}
                 style={{
                   flex: 1,
                   minWidth: 0,
@@ -172,11 +209,32 @@ const TaskCard = (props: TaskCardProps) => {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  fontFamily:
+                    '"SFMono-Regular", "Cascadia Code", "JetBrains Mono", monospace',
+                  textDecorationLine: 'underline overline',
+                  cursor: 'copy',
                 }}
               >
-                {projectText}
+                {taskNumberText}
               </Typography.Text>
-            </Tooltip>
+            ) : (
+              <Tooltip title={projectText}>
+                <Typography.Text
+                  type="secondary"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    fontSize: 12,
+                    lineHeight: '18px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {projectText}
+                </Typography.Text>
+              </Tooltip>
+            )}
 
             <div
               style={{
@@ -211,7 +269,23 @@ const TaskCard = (props: TaskCardProps) => {
             {props.task.title}
           </Typography.Text>
 
-          <Space direction="vertical" size={4}>
+          <Space orientation="vertical" size={4}>
+            {taskNumberText ? (
+              <Tooltip title={projectText}>
+                <Typography.Text
+                  type="secondary"
+                  style={{
+                    fontSize: 12,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {projectText}
+                </Typography.Text>
+              </Tooltip>
+            ) : null}
+
             <Typography.Text
               type="secondary"
               style={{

@@ -109,6 +109,18 @@ public class ProjectTaskController {
     }
 
     /**
+     * 获取子任务列表。
+     *
+     * @param parentTaskId 父任务 ID
+     * @return 子任务列表
+     */
+    @Operation(summary = "获取子任务列表")
+    @GetMapping("/children")
+    public List<ProjectTaskDetailVo> children(@Parameter(description = "父任务 ID", required = true) @RequestParam @NotNull(message = "父任务 ID 不能为空") Long parentTaskId) {
+        return projectTaskService.getChildren(parentTaskId);
+    }
+
+    /**
      * 获取任务变更日志列表。
      *
      * @param request 列表请求

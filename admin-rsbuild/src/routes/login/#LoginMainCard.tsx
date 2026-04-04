@@ -1,4 +1,4 @@
-import { Form, Input } from 'antd';
+import { Button, Form, Input } from 'antd';
 
 import {
   CardDescription,
@@ -27,6 +27,14 @@ interface LoginMainCardProps {
 
 /** 登录主卡片只负责输入与入口触发，不负责 token 持久化与路由跳转 */
 function LoginMainCard(props: LoginMainCardProps) {
+  /**
+   * styled-components 包装 antd Form 后会丢失 Form 泛型，
+   * onFinish 入参被推导为 unknown，这里显式桥接回登录表单值类型。
+   */
+  const handleFinish = (values: unknown) => {
+    return props.onSubmit(values as LoginFormValues);
+  };
+
   return (
     <CardWrapper>
       <CardHeader>
@@ -41,7 +49,7 @@ function LoginMainCard(props: LoginMainCardProps) {
         layout="vertical"
         requiredMark={false}
         colon={false}
-        onFinish={props.onSubmit}
+        onFinish={handleFinish}
       >
         {props.errorMessage && (
           <WarningBanner role="alert">{props.errorMessage}</WarningBanner>
@@ -78,12 +86,12 @@ function LoginMainCard(props: LoginMainCardProps) {
             marginBottom: 12,
           }}
         >
-          <button type="button" onClick={props.onOpenForgot}>
+          <Button type="link" size="small" onClick={props.onOpenForgot}>
             忘记密码
-          </button>
-          <button type="button" onClick={props.onOpenRegister}>
+          </Button>
+          <Button type="link" size="small" onClick={props.onOpenRegister}>
             没有账号？立即注册
-          </button>
+          </Button>
         </div>
 
         <Form.Item>

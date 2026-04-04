@@ -23,6 +23,35 @@ function normalizeTaskText(value: string | null | undefined) {
 }
 
 /**
+ * 解析敏捷面板卡片使用的任务编号。
+ *
+ * 兼容未来后端可能补充的独立编号字段；如果当前只有任务 ID，
+ * 也能先满足面板展示与复制的交付要求。
+ */
+function resolveTaskNumber(task: AgileBoardTask) {
+  const taskRecord = task as AgileBoardTask & {
+    code?: string | null;
+    taskCode?: string | null;
+    taskNo?: string | null;
+    serialNumber?: string | number | null;
+  };
+
+  const explicitTaskNumber =
+    normalizeTaskText(taskRecord.taskCode) ??
+    normalizeTaskText(taskRecord.taskNo) ??
+    normalizeTaskText(taskRecord.code) ??
+    (taskRecord.serialNumber !== undefined && taskRecord.serialNumber !== null
+      ? String(taskRecord.serialNumber)
+      : undefined);
+
+  if (explicitTaskNumber) {
+    return explicitTaskNumber;
+  }
+
+  return String(task.id);
+}
+
+/**
  * 将敏捷看板任务映射为通用任务卡片数据结构。
  *
  * 默认文案说明：
@@ -39,6 +68,7 @@ export function mapAgileBoardTaskToTaskCardTask(
 ): TaskCardTask {
   return {
     id: task.id,
+    taskNumber: resolveTaskNumber(task),
     projectName: normalizeTaskText(task.projectName),
     title: task.title,
     priority: task.priority,

@@ -3,6 +3,7 @@ import request from '@/utils/request.ts';
 import type {
   ProjectTaskBoardParams,
   ProjectTaskBoardResponse,
+  ProjectTaskChildrenResponse,
   CreateProjectTaskParams,
   EditProjectTaskParams,
   ProjectTaskDetail,
@@ -53,6 +54,18 @@ export const getDetail = (id: number): Promise<ProjectTaskDetail> => {
   return request('/project/task/detail', {
     method: 'get',
     params: { id },
+  });
+};
+
+/**
+ * 获取子任务列表。
+ */
+export const getChildren = (
+  parentTaskId: number,
+): Promise<ProjectTaskChildrenResponse> => {
+  return request('/project/task/children', {
+    method: 'get',
+    params: { parentTaskId },
   });
 };
 

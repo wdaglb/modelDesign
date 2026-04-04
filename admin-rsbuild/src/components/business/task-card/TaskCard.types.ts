@@ -7,6 +7,7 @@ import type { TaskPriority } from '@/api/modules/project-task.types';
  */
 export interface TaskCardTask {
   id: number;
+  taskNumber?: string;
   projectName?: string;
   title: string;
   priority: TaskPriority;

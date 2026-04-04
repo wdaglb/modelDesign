@@ -2,5 +2,8 @@
 .worktrees
 .claude/worktrees
 .codex/worktrees
+.superpowers/
+.claude/skills/**/__pycache__/
+.codex/skills/**/__pycache__/
 *.pen
 storage

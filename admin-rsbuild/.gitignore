@@ -3,6 +3,9 @@
 *.local
 *.log*
 
+# ai
+.superpowers/
+
 # Dist
 node_modules
 dist/

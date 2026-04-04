@@ -200,6 +200,20 @@ public class ProjectTaskReadService {
         return new PageResponse<>(projectTaskViewAssembler.toTaskVoList(pageTasks), total);
     }
 
+    /**
+     * 获取子任务列表。
+     *
+     * @param parentTask 父任务
+     * @return 子任务列表
+     */
+    public List<ProjectTaskDetailVo> getChildren(ProjectTask parentTask) {
+        List<ProjectTask> childTasks = projectTaskMapper.selectList(new LambdaQueryWrapper<ProjectTask>()
+                .eq(ProjectTask::getParentTaskId, parentTask.getId())
+                .eq(ProjectTask::getDeleted, 0)
+                .orderByDesc(ProjectTask::getUpdateTime));
+        return projectTaskViewAssembler.toTaskVoList(childTasks);
+    }
+
     private Map<Long, String> getCreatorNameMap(Set<Long> creatorIds) {
         if (creatorIds.isEmpty()) {
             return Collections.emptyMap();
