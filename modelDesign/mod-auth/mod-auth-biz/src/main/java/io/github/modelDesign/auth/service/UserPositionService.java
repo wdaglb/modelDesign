@@ -6,6 +6,7 @@ import io.github.modelDesign.auth.domain.Position;
 import io.github.modelDesign.auth.domain.User;
 import io.github.modelDesign.auth.domain.UserPosition;
 import io.github.modelDesign.auth.mapper.PositionMapper;
+import io.github.modelDesign.auth.mapper.UserMapper;
 import io.github.modelDesign.auth.mapper.UserPositionMapper;
 import io.github.modelDesign.auth.request.UserPositionUpdateRequest;
 import io.github.modelDesign.common.exception.BusinessException;
@@ -30,9 +31,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UserPositionService extends ServiceImpl<UserPositionMapper, UserPosition> implements IService<UserPosition> {
     /**
-     * 用户服务。
+     * 用户 Mapper。
      */
-    private final UserService userService;
+    private final UserMapper userMapper;
 
     /**
      * 职位 Mapper。
@@ -46,7 +47,7 @@ public class UserPositionService extends ServiceImpl<UserPositionMapper, UserPos
      * @return 职位 ID 列表
      */
     public List<Long> getUserPositionIds(Long userId) {
-        userService.requireUser(userId);
+        requireUser(userId);
         return lambdaQuery()
                 .eq(UserPosition::getUserId, userId)
                 .orderByAsc(UserPosition::getId)
@@ -136,7 +137,7 @@ public class UserPositionService extends ServiceImpl<UserPositionMapper, UserPos
      */
     @Transactional
     public void updateUserPositions(Long userId, UserPositionUpdateRequest request) {
-        User user = userService.requireUser(userId);
+        User user = requireUser(userId);
         if (user.getTenantId() == null) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "用户未绑定租户，不能绑定职位");
         }
@@ -199,5 +200,19 @@ public class UserPositionService extends ServiceImpl<UserPositionMapper, UserPos
             }
         }
         return new ArrayList<>(positionIds);
+    }
+
+    /**
+     * 校验用户存在，不存在则抛出与原先一致的异常。
+     *
+     * @param userId 用户 ID
+     * @return 用户实体
+     */
+    private User requireUser(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND.value(), "用户不存在");
+        }
+        return user;
     }
 }
