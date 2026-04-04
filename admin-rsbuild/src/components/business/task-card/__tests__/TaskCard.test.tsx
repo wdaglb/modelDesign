@@ -109,9 +109,9 @@ describe('TaskCard', () => {
   it('子任务态仍展示完整元信息', () => {
     render(<TaskCard task={baseTask} compact isSubtask />);
 
-    expect(screen.getByText('火星项目')).toBeInTheDocument();
-    expect(screen.getByText('2 人天')).toBeInTheDocument();
-    expect(screen.getByText('小王')).toBeInTheDocument();
-    expect(screen.getByText('截止 2026-04-06')).toBeInTheDocument();
+    expect(screen.getByText('火星项目')).toBeTruthy();
+    expect(screen.getByText('2 人天')).toBeTruthy();
+    expect(screen.getByText('小王')).toBeTruthy();
+    expect(screen.getByText('截止 2026-04-06')).toBeTruthy();
   });
 });
