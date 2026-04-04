@@ -17,6 +17,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -118,6 +120,38 @@ public class ProjectTaskController {
     @GetMapping("/children")
     public List<ProjectTaskDetailVo> children(@Parameter(description = "父任务 ID", required = true) @RequestParam @NotNull(message = "父任务 ID 不能为空") Long parentTaskId) {
         return projectTaskService.getChildren(parentTaskId);
+    }
+
+    /**
+     * 批量获取子任务列表。
+     *
+     * @param parentTaskIds 父任务 ID 列表
+     * @return 子任务列表
+     */
+    @Operation(summary = "批量获取子任务列表")
+    @GetMapping("/children/batch")
+    public List<ProjectTaskDetailVo> childrenBatch(
+            @Parameter(description = "父任务 ID 列表", required = true)
+            @RequestParam
+            @NotEmpty(message = "父任务 ID 列表不能为空")
+            List<Long> parentTaskIds) {
+        return projectTaskService.getChildrenBatch(parentTaskIds);
+    }
+
+    /**
+     * 按编号获取任务详情。
+     *
+     * @param code 任务编号
+     * @return 任务详情
+     */
+    @Operation(summary = "按编号获取任务详情")
+    @GetMapping("/detail/by-code")
+    public ProjectTaskDetailVo detailByCode(
+            @Parameter(description = "任务编号", required = true)
+            @RequestParam
+            @NotBlank(message = "任务编号不能为空")
+            String code) {
+        return projectTaskService.getDetailByCode(code);
     }
 
     /**
