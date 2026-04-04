@@ -28,6 +28,20 @@ public class QyworkConfigSaveRequest {
     private String corpSecret;
 
     /**
+     * 企业微信应用 agentId。
+     */
+    @Schema(description = "企业微信应用 agentId", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "agentId 不能为空")
+    @Size(max = 128, message = "agentId 长度不能超过 128 个字符")
+    private String agentId;
+
+    /**
+     * 是否启用当前租户企业微信配置。
+     */
+    @Schema(description = "是否启用当前租户企业微信配置")
+    private Boolean enabled;
+
+    /**
      * 备注。
      */
     @Schema(description = "备注")

@@ -19,6 +19,8 @@ public class AuthWebMvcConfigurer implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/passport/password_login",
+                        "/third-party/qywork/binding/scan-entry",
+                        "/third-party/qywork/oauth/callback",
                         "/error",
                         "/system/file/image/content/**",
                         "/system/file/image/thumbnail/**",
