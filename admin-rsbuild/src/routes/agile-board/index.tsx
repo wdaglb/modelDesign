@@ -160,6 +160,9 @@ function RouteComponent() {
         queryKey: queryKey.project.taskList(),
       }),
       queryClient.invalidateQueries({
+        queryKey: queryKey.project.taskChildrenBatch(parentTaskIds),
+      }),
+      queryClient.invalidateQueries({
         queryKey: queryKey.todo.list(),
       }),
     ]);

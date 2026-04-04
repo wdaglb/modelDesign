@@ -7,6 +7,7 @@ import {
   type ProjectTaskDetail,
   type TaskStatusCode,
 } from '@/api/modules/project-task.types';
+import { RequestError } from '@/api/types';
 
 import type {
   AgileBoardColumnMeta,
@@ -110,9 +111,13 @@ export async function handleBoardTitleSearch(
 
   try {
     detail = await deps.getDetailByCode(normalizedValue);
-  } catch {
-    deps.onFallbackSearch(normalizedValue);
-    return;
+  } catch (error) {
+    if (error instanceof RequestError && error.code === 404) {
+      deps.onFallbackSearch(normalizedValue);
+      return;
+    }
+
+    throw error;
   }
 
   await deps.onOpenPreview(detail);
