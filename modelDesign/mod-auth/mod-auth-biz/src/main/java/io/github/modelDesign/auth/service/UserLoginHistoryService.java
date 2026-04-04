@@ -1,5 +1,6 @@
 package io.github.modelDesign.auth.service;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -45,6 +47,21 @@ public class UserLoginHistoryService extends ServiceImpl<UserLoginHistoryMapper,
     public void record(LoginAuditWriteCommand command) {
         UserLoginHistory history = loginAuditRecordFactory.create(command);
         save(history);
+    }
+
+    /**
+     * 删除截止时间之前的登录审计日志。
+     *
+     * @param cutoffTime 截止时间
+     * @param tenantId 租户 ID，为空时表示全局
+     * @return 删除数量
+     */
+    public long deleteHistoryBefore(LocalDateTime cutoffTime, Long tenantId) {
+        return getBaseMapper().delete(
+                Wrappers.<UserLoginHistory>lambdaQuery()
+                .lt(UserLoginHistory::getCreateTime, cutoffTime)
+                .eq(tenantId != null, UserLoginHistory::getTenantId, tenantId)
+        );
     }
 
     /**

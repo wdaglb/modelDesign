@@ -88,6 +88,8 @@ model-design:
     jwt-secret: ${AUTH_JWT_SECRET:change-this-jwt-secret-change-this-jwt-secret}
     token-expire-seconds: ${AUTH_TOKEN_EXPIRE_SECONDS:7200}
     session-key-prefix: ${AUTH_SESSION_KEY_PREFIX:auth:admin:token:}
+    login-audit-retention-days: ${AUTH_LOGIN_AUDIT_RETENTION_DAYS:90}
+    login-audit-cleanup-cron: ${AUTH_LOGIN_AUDIT_CLEANUP_CRON:0 30 3 * * *}
   qywork:
     base-url: ${QYWORK_BASE_URL:https://qyapi.weixin.qq.com}
     access-token-cache-key-prefix: ${QYWORK_ACCESS_TOKEN_CACHE_KEY_PREFIX:qywork:access-token:}

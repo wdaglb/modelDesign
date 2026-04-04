@@ -20,4 +20,14 @@ public class AuthProperties {
      * session 前缀。
      */
     private String sessionKeyPrefix = "auth:admin:token:";
+
+    /**
+     * 登录审计保留天数。
+     */
+    private int loginAuditRetentionDays = 90;
+
+    /**
+     * 登录审计定时清理 cron。
+     */
+    private String loginAuditCleanupCron = "0 30 3 * * *";
 }
