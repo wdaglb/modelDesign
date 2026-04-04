@@ -27,6 +27,18 @@ public class UserListRequest {
     private Long pageSize = 10L;
 
     /**
+     * 搜索关键字。
+     */
+    @Schema(description = "搜索关键字")
+    private String keyword;
+
+    /**
+     * 用户名。
+     */
+    @Schema(description = "用户名")
+    private String username;
+
+    /**
      * 用户 ID 列表。
      */
     @Schema(description = "用户 ID 列表")
@@ -43,4 +55,28 @@ public class UserListRequest {
      */
     @Schema(description = "租户 ID")
     private Long tenantId;
+
+    /**
+     * 用户 ID。
+     */
+    @Schema(description = "用户 ID")
+    private Long userId;
+
+    /**
+     * 是否停用。
+     */
+    @Schema(description = "是否停用")
+    private Boolean isDisable;
+
+    /**
+     * 是否拥有角色。
+     */
+    @Schema(description = "是否拥有角色")
+    private Boolean hasRole;
+
+    /**
+     * 是否拥有岗位。
+     */
+    @Schema(description = "是否拥有岗位")
+    private Boolean hasPosition;
 }
