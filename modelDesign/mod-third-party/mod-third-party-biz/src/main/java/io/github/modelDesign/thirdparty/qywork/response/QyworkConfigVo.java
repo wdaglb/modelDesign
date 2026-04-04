@@ -32,6 +32,18 @@ public class QyworkConfigVo {
     private String corpSecret;
 
     /**
+     * 企业微信应用 agentId。
+     */
+    @Schema(description = "企业微信应用 agentId")
+    private String agentId;
+
+    /**
+     * 是否启用当前租户企业微信配置。
+     */
+    @Schema(description = "是否启用当前租户企业微信配置")
+    private Boolean enabled;
+
+    /**
      * 备注。
      */
     @Schema(description = "备注")

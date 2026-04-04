@@ -48,17 +48,21 @@ public class QyworkCorpConfigService extends ServiceImpl<QyworkCorpConfigMapper,
         Long tenantId = qyworkTenantContextService.requireCurrentTenantId();
         validateCorpIdUnique(normalize(request.getCorpId()), tenantId);
 
-        QyworkCorpConfig entity = getByTenantId(tenantId);
+        QyworkCorpConfig entity = findByTenantId(tenantId);
         if (entity == null) {
             entity = new QyworkCorpConfig();
             entity.setTenantId(tenantId);
             entity.setCorpId(normalize(request.getCorpId()));
             entity.setCorpSecret(normalize(request.getCorpSecret()));
+            entity.setAgentId(normalize(request.getAgentId()));
+            entity.setEnabled(resolveEnabled(request.getEnabled()));
             entity.setRemark(normalizeRemark(request.getRemark()));
             save(entity);
         } else {
             entity.setCorpId(normalize(request.getCorpId()));
             entity.setCorpSecret(normalize(request.getCorpSecret()));
+            entity.setAgentId(normalize(request.getAgentId()));
+            entity.setEnabled(resolveEnabled(request.getEnabled()));
             entity.setRemark(normalizeRemark(request.getRemark()));
             updateById(entity);
         }
@@ -73,14 +77,20 @@ public class QyworkCorpConfigService extends ServiceImpl<QyworkCorpConfigMapper,
      * @return 企业微信配置
      */
     public QyworkCorpConfig requireByTenantId(Long tenantId) {
-        QyworkCorpConfig config = getByTenantId(tenantId);
+        QyworkCorpConfig config = findByTenantId(tenantId);
         if (config == null) {
             throw new BusinessException(HttpStatus.NOT_FOUND.value(), "当前租户未配置企业微信信息");
         }
         return config;
     }
 
-    private QyworkCorpConfig getByTenantId(Long tenantId) {
+    /**
+     * 按租户读取企业微信配置，不存在时返回 null。
+     *
+     * @param tenantId 租户 ID
+     * @return 企业微信配置
+     */
+    public QyworkCorpConfig findByTenantId(Long tenantId) {
         return lambdaQuery()
                 .eq(QyworkCorpConfig::getTenantId, tenantId)
                 .last("limit 1")
@@ -103,6 +113,8 @@ public class QyworkCorpConfigService extends ServiceImpl<QyworkCorpConfigMapper,
                 .tenantId(config.getTenantId())
                 .corpId(config.getCorpId())
                 .corpSecret(config.getCorpSecret())
+                .agentId(config.getAgentId())
+                .enabled(config.getEnabled())
                 .remark(config.getRemark())
                 .createTime(config.getCreateTime())
                 .updateTime(config.getUpdateTime())
@@ -121,5 +133,12 @@ public class QyworkCorpConfigService extends ServiceImpl<QyworkCorpConfigMapper,
             return remark.trim();
         }
         return "";
+    }
+
+    private Boolean resolveEnabled(Boolean enabled) {
+        if (enabled == null) {
+            return Boolean.TRUE;
+        }
+        return enabled;
     }
 }

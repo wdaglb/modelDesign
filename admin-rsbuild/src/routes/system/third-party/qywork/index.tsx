@@ -1,6 +1,18 @@
 import React, { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Card, Descriptions, Form, Input, Skeleton, Space, Typography, message } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  Form,
+  Input,
+  Skeleton,
+  Space,
+  Switch,
+  Typography,
+  message,
+} from 'antd';
 import { createFileRoute } from '@tanstack/react-router';
 
 import { ApiQywork } from '@/api';
@@ -35,6 +47,16 @@ interface QyworkConfigFormValues {
   corpSecret: string;
 
   /**
+   * 企业微信应用 agentId。
+   */
+  agentId: string;
+
+  /**
+   * 是否启用当前配置。
+   */
+  enabled: boolean;
+
+  /**
    * 备注。
    */
   remark?: string;
@@ -67,6 +89,8 @@ function RouteComponent() {
       form.setFieldsValue({
         corpId: currentConfigQuery.data.corpId,
         corpSecret: currentConfigQuery.data.corpSecret,
+        agentId: currentConfigQuery.data.agentId,
+        enabled: currentConfigQuery.data.enabled,
         remark: currentConfigQuery.data.remark,
       });
       return;
@@ -75,6 +99,8 @@ function RouteComponent() {
     form.setFieldsValue({
       corpId: '',
       corpSecret: '',
+      agentId: '',
+      enabled: true,
       remark: '',
     });
   }, [currentConfigQuery.data, form]);
@@ -108,7 +134,7 @@ function RouteComponent() {
         <Alert
           type={'info'}
           showIcon
-          message={'access_token 仅在后端内部缓存和使用，前端只维护企业微信基础配置。'}
+          message={'access_token 仅在后端内部缓存和使用；若要启用网页授权，还需补齐 agentId 并在企业微信后台配置可信域名与回调域名。'}
         />
 
         <Descriptions bordered size={'small'} column={2}>
@@ -117,6 +143,12 @@ function RouteComponent() {
           </Descriptions.Item>
           <Descriptions.Item label={'配置状态'}>
             {currentConfigQuery.data ? '已配置' : '未配置'}
+          </Descriptions.Item>
+          <Descriptions.Item label={'启用状态'}>
+            {currentConfigQuery.data?.enabled ? '已启用' : '未启用'}
+          </Descriptions.Item>
+          <Descriptions.Item label={'Agent ID'}>
+            {currentConfigQuery.data?.agentId || '-'}
           </Descriptions.Item>
           <Descriptions.Item label={'创建时间'}>
             {currentConfigQuery.data?.createTime || '-'}
@@ -139,6 +171,8 @@ function RouteComponent() {
             await saveMutation.mutateAsync({
               corpId: values.corpId.trim(),
               corpSecret: values.corpSecret.trim(),
+              agentId: values.agentId.trim(),
+              enabled: values.enabled,
               remark: values.remark?.trim() || '',
             });
           }}
@@ -168,6 +202,26 @@ function RouteComponent() {
             />
           </Form.Item>
 
+          <Form.Item
+            name={'agentId'}
+            label={'Agent ID'}
+            rules={[{ required: true, message: '请输入企业微信 Agent ID' }]}
+          >
+            <Input
+              placeholder={'请输入企业微信 Agent ID'}
+              autoComplete={'off'}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name={'enabled'}
+            label={'启用配置'}
+            valuePropName={'checked'}
+            extra={'关闭后，个人中心不会允许发起企业微信绑定。'}
+          >
+            <Switch checkedChildren={'已启用'} unCheckedChildren={'已停用'} />
+          </Form.Item>
+
           <Form.Item name={'remark'} label={'备注'}>
             <Input.TextArea
               placeholder={'请输入备注'}
@@ -191,6 +245,8 @@ function RouteComponent() {
                   form.setFieldsValue({
                     corpId: currentConfigQuery.data.corpId,
                     corpSecret: currentConfigQuery.data.corpSecret,
+                    agentId: currentConfigQuery.data.agentId,
+                    enabled: currentConfigQuery.data.enabled,
                     remark: currentConfigQuery.data.remark,
                   });
                   return;

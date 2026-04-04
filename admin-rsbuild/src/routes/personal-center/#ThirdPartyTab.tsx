@@ -1,30 +1,57 @@
-import { useQuery } from '@tanstack/react-query';
+import React from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { Avatar, Alert, Button, Card, Col, Row, Space, Tag, Typography } from 'antd';
+import { Avatar, Alert, Button, Card, Col, Row, Space, Tag, Typography, message } from 'antd';
 import { Icon } from '@iconify/react';
 
 import { ApiQywork } from '@/api';
+import type { QyworkBindingSessionCreated } from '@/api/modules/qywork';
 import queryKey from '@/constants/queryKey';
+
+import QyworkBindingPanel from './#QyworkBindingPanel';
+import {
+  detectQyworkEntryMode,
+  formatQyworkBindingStatus,
+} from './components/qyworkBinding.helper';
 
 /**
  * 第三方账号页签。
  */
 const ThirdPartyTab = () => {
   const navigate = useNavigate();
+  const [activeSession, setActiveSession] =
+    React.useState<QyworkBindingSessionCreated | null>(null);
   const qyworkQuery = useQuery({
     queryKey: queryKey.qywork.current(),
     queryFn: ApiQywork.getCurrentConfig,
   });
+  const qyworkBindingQuery = useQuery({
+    queryKey: queryKey.qywork.currentBinding(),
+    queryFn: ApiQywork.getCurrentBinding,
+  });
+  const createBindingMutation = useMutation({
+    mutationFn: ApiQywork.createBindingSession,
+    onSuccess: (session) => {
+      if (session.entryMode === 'in_app') {
+        window.location.assign(session.authUrl);
+        return;
+      }
+      setActiveSession(session);
+    },
+    onError: (error) => {
+      message.error(error.message || '创建绑定会话失败，请稍后重试');
+    },
+  });
 
-  const qyworkStatus = buildQyworkStatus(qyworkQuery);
+  const qyworkStatus = buildQyworkStatus(qyworkQuery, qyworkBindingQuery);
 
   return (
     <Space direction={'vertical'} size={16} style={{ width: '100%' }}>
       <Alert
         type={'info'}
         showIcon
-        message={'第一版先提供第三方账号接入状态查看，个人绑定与解绑能力暂未开放。'}
+        message={'第一版已开放企业微信绑定：企微内可直接授权，桌面浏览器会展示二维码，由手机企业微信扫码完成绑定。'}
       />
 
       <Row gutter={[16, 16]}>
@@ -35,17 +62,25 @@ const ThirdPartyTab = () => {
             description={qyworkStatus.description}
             capabilityStatus={qyworkStatus.capabilityStatus}
             capabilityColor={qyworkStatus.capabilityColor}
-            bindingStatus={'即将支持'}
-            bindingColor={'blue'}
-            note={'当前用户绑定功能预留在个人中心，待后续接入扫码或授权流程后开放。'}
+            bindingStatus={qyworkStatus.bindingStatus}
+            bindingColor={qyworkStatus.bindingColor}
+            note={qyworkStatus.note}
             actionLabel={qyworkStatus.actionLabel}
-            actionLoading={qyworkQuery.isFetching}
+            actionLoading={qyworkQuery.isFetching || qyworkBindingQuery.isFetching || createBindingMutation.isPending}
             onAction={() => {
               if (qyworkStatus.actionType === 'refetch') {
                 qyworkQuery.refetch();
+                qyworkBindingQuery.refetch();
                 return;
               }
-              navigate({ to: '/system/third-party/qywork' });
+              if (qyworkStatus.actionType === 'navigate') {
+                navigate({ to: '/system/third-party/qywork' });
+                return;
+              }
+              createBindingMutation.mutate({
+                entryMode: detectQyworkEntryMode(window.navigator.userAgent),
+                origin: window.location.origin,
+              });
             }}
           />
         </Col>
@@ -80,6 +115,18 @@ const ThirdPartyTab = () => {
           />
         </Col>
       </Row>
+
+      {activeSession && (
+        <QyworkBindingPanel
+          session={activeSession}
+          onClose={() => {
+            setActiveSession(null);
+          }}
+          onRefreshBinding={() => {
+            qyworkBindingQuery.refetch();
+          }}
+        />
+      )}
     </Space>
   );
 };
@@ -159,38 +206,77 @@ interface QyworkStatus {
   capabilityStatus: string;
   capabilityColor: string;
   description: string;
+  bindingStatus: string;
+  bindingColor: string;
+  note: string;
   actionLabel: string;
-  actionType: 'navigate' | 'refetch';
+  actionType: 'navigate' | 'refetch' | 'bind';
 }
 
 const buildQyworkStatus = (
   query: UseQueryResult<Awaited<ReturnType<typeof ApiQywork.getCurrentConfig>>>,
+  bindingQuery: UseQueryResult<Awaited<ReturnType<typeof ApiQywork.getCurrentBinding>>>,
 ): QyworkStatus => {
-  if (query.isLoading) {
+  if (query.isLoading || bindingQuery.isLoading) {
     return {
       capabilityStatus: '检查中',
       capabilityColor: 'processing',
       description: '正在读取当前租户的企业微信配置状态，请稍候。',
+      bindingStatus: '检查中',
+      bindingColor: 'processing',
+      note: '正在同步当前账号的企业微信绑定状态。',
       actionLabel: '刷新状态',
       actionType: 'refetch',
     };
   }
 
-  if (query.isError) {
+  if (query.isError || bindingQuery.isError) {
     return {
       capabilityStatus: '检查失败',
       capabilityColor: 'error',
       description: '暂时无法读取当前租户的企业微信配置状态，请重试或稍后再查看。',
+      bindingStatus: '检查失败',
+      bindingColor: 'error',
+      note: '绑定状态读取失败时不会触发授权流程，请先重试。',
       actionLabel: '重新加载',
       actionType: 'refetch',
+    };
+  }
+
+  if (bindingQuery.data?.isBound) {
+    return {
+      capabilityStatus: '租户已配置',
+      capabilityColor: 'success',
+      description: bindingQuery.data.message,
+      bindingStatus: formatQyworkBindingStatus(bindingQuery.data),
+      bindingColor: 'success',
+      note: '当前账号已经绑定企业微信；第一版暂未开放解绑能力。',
+      actionLabel: '查看配置',
+      actionType: 'navigate',
+    };
+  }
+
+  if (bindingQuery.data?.canStartBinding) {
+    return {
+      capabilityStatus: '租户已配置',
+      capabilityColor: 'success',
+      description: bindingQuery.data.message,
+      bindingStatus: '未绑定',
+      bindingColor: 'warning',
+      note: '若当前浏览器不在企业微信内，系统会展示二维码，由手机企业微信扫码完成绑定。',
+      actionLabel: '绑定企业微信',
+      actionType: 'bind',
     };
   }
 
   if (query.data) {
     return {
       capabilityStatus: '租户已配置',
-      capabilityColor: 'success',
-      description: '当前租户已完成企业微信基础配置，可为后续个人绑定能力保留接入条件。',
+      capabilityColor: 'warning',
+      description: bindingQuery.data?.message || '当前租户已配置企业微信，但网页授权配置尚未补齐。',
+      bindingStatus: '不可发起',
+      bindingColor: 'error',
+      note: '请先补齐 Agent ID、启用状态和企业微信后台域名配置，再发起绑定。',
       actionLabel: '查看配置',
       actionType: 'navigate',
     };
@@ -200,6 +286,9 @@ const buildQyworkStatus = (
     capabilityStatus: '租户未配置',
     capabilityColor: 'warning',
     description: '当前租户尚未配置企业微信，请先在系统管理中完成基础配置。',
+    bindingStatus: '未绑定',
+    bindingColor: 'warning',
+    note: '完成租户级配置后，个人中心才会开放企业微信绑定。',
     actionLabel: '前往配置',
     actionType: 'navigate',
   };
