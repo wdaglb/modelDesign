@@ -106,12 +106,16 @@ export async function handleBoardTitleSearch(
     return;
   }
 
+  let detail: ProjectTaskDetail;
+
   try {
-    const detail = await deps.getDetailByCode(normalizedValue);
-    await deps.onOpenPreview(detail);
+    detail = await deps.getDetailByCode(normalizedValue);
   } catch {
     deps.onFallbackSearch(normalizedValue);
+    return;
   }
+
+  await deps.onOpenPreview(detail);
 }
 
 /**

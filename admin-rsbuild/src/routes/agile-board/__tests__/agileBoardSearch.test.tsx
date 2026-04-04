@@ -13,6 +13,22 @@ const taskDetail: ProjectTaskDetail = {
 };
 
 describe('handleBoardTitleSearch', () => {
+  it('普通标题输入时直接触发标题搜索', async () => {
+    const getDetailByCode = vi.fn().mockResolvedValue(taskDetail);
+    const onOpenPreview = vi.fn();
+    const onFallbackSearch = vi.fn();
+
+    await handleBoardTitleSearch('需求评审流程', {
+      getDetailByCode,
+      onOpenPreview,
+      onFallbackSearch,
+    });
+
+    expect(getDetailByCode).not.toHaveBeenCalled();
+    expect(onOpenPreview).not.toHaveBeenCalled();
+    expect(onFallbackSearch).toHaveBeenCalledWith('需求评审流程');
+  });
+
   it('编号优先搜索命中后直接打开详情', async () => {
     const getDetailByCode = vi.fn().mockResolvedValue(taskDetail);
     const onOpenPreview = vi.fn();
