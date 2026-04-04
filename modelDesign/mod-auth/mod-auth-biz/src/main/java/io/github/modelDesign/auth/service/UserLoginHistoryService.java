@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.modelDesign.auth.domain.UserLoginHistory;
 import io.github.modelDesign.auth.mapper.UserLoginHistoryMapper;
 import io.github.modelDesign.auth.response.LoginHistoryVo;
-import io.github.modelDesign.auth.session.CurrentAdmin;
+import io.github.modelDesign.common.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.List;
  * 用户登录历史服务。
  */
 @Service
+@RequiredArgsConstructor
 public class UserLoginHistoryService extends ServiceImpl<UserLoginHistoryMapper, UserLoginHistory>
         implements IService<UserLoginHistory> {
     /**
@@ -22,17 +25,17 @@ public class UserLoginHistoryService extends ServiceImpl<UserLoginHistoryMapper,
     public static final String PASSWORD_LOGIN_TYPE = "PASSWORD";
 
     /**
-     * 记录一次成功的密码登录。
-     *
-     * @param currentAdmin 当前登录会话
+     * 登录审计记录实体工厂。
      */
-    public void recordPasswordLogin(CurrentAdmin currentAdmin) {
-        UserLoginHistory history = new UserLoginHistory();
-        history.setUserId(currentAdmin.getUserId());
-        history.setTenantId(currentAdmin.getTenantId());
-        history.setLoginId(currentAdmin.getLoginId());
-        history.setLoginIp(currentAdmin.getLoginIp());
-        history.setLoginType(PASSWORD_LOGIN_TYPE);
+    private final LoginAuditRecordFactory loginAuditRecordFactory;
+
+    /**
+     * 写入登录审计记录。
+     *
+     * @param command 登录审计写入命令
+     */
+    public void record(LoginAuditWriteCommand command) {
+        UserLoginHistory history = loginAuditRecordFactory.create(command);
         save(history);
     }
 
@@ -44,9 +47,12 @@ public class UserLoginHistoryService extends ServiceImpl<UserLoginHistoryMapper,
      * @return 最近登录历史
      */
     public List<LoginHistoryVo> getRecentLoginHistory(Long userId, Long tenantId) {
+        if (tenantId == null) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "租户不能为空");
+        }
         return lambdaQuery()
                 .eq(UserLoginHistory::getUserId, userId)
-                .eq(tenantId != null, UserLoginHistory::getTenantId, tenantId)
+                .eq(UserLoginHistory::getTenantId, tenantId)
                 .orderByDesc(UserLoginHistory::getCreateTime)
                 .last("limit 10")
                 .list()
