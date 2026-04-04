@@ -231,8 +231,8 @@ class ProjectTaskReadServiceTest {
         if (sqlSegment == null || fieldName == null) {
             return null;
         }
-        Pattern pattern = Pattern.compile("(?i)" + Pattern.quote(fieldName)
-                + "\\s*=\\s*#\\{ew\\.paramNameValuePairs\\.(MPGENVAL\\d+)\\}");
+        Pattern pattern = Pattern.compile("(?i)(?<![A-Za-z0-9_])" + Pattern.quote(fieldName)
+                + "(?![A-Za-z0-9_])\\s*=\\s*#\\{ew\\.paramNameValuePairs\\.(MPGENVAL\\d+)\\}");
         Matcher matcher = pattern.matcher(sqlSegment);
         if (!matcher.find()) {
             return null;
