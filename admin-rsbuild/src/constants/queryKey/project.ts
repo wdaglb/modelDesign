@@ -39,8 +39,15 @@ export const taskChildren = (parentTaskId: number) => [
  */
 export const taskChildrenBatch = (parentTaskIds: number[]) => [
   'projectTaskChildrenBatch',
-  parentTaskIds,
+  normalizeTaskChildrenBatchIds(parentTaskIds),
 ];
+
+/**
+ * 规范化父任务 ID 列表，避免顺序差异导致缓存键不一致。
+ */
+const normalizeTaskChildrenBatchIds = (parentTaskIds: number[]) => {
+  return [...parentTaskIds].sort((left, right) => left - right);
+};
 
 /**
  * 按编号任务详情查询键。

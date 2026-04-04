@@ -61,6 +61,8 @@ export const getDetail = (id: number): Promise<ProjectTaskDetail> => {
 
 /**
  * 按编号获取项目任务详情。
+ *
+ * 编号字段兼容 taskNo、taskCode、code 与 serialNumber。
  */
 export const getDetailByCode = (
   code: string,
