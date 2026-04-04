@@ -1,5 +1,5 @@
 import { Space, Tooltip, message } from 'antd';
-import type { MouseEvent, ReactNode } from 'react';
+import type { MouseEvent, PointerEvent, ReactNode } from 'react';
 
 import TaskCardPriorityTag, {
   TASK_CARD_PRIORITY_TRIGGER_SELECTOR,
@@ -95,6 +95,7 @@ function resolveCardStackSize(isCompact: boolean) {
 const TaskCard = (props: TaskCardProps) => {
   const rootProps = props.rootProps;
   const isCompact = Boolean(props.compact || props.isSubtask);
+  const shouldHideMeta = Boolean(props.compact) && !props.isSubtask;
 
   let hoverable = true;
   if (props.isOverlay) {
@@ -175,8 +176,26 @@ const TaskCard = (props: TaskCardProps) => {
       return;
     }
 
-    await navigator.clipboard.writeText(taskNumberText);
-    message.success('任务编号已复制');
+    try {
+      await navigator.clipboard.writeText(taskNumberText);
+      message.success('任务编号已复制');
+    } catch {
+      message.error('任务编号复制失败，请稍后重试');
+    }
+  };
+
+  /**
+   * 阻断任务编号区域的鼠标事件冒泡，避免触发拖拽。
+   */
+  const stopTaskNumberMouseEvent = (event: MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+  };
+
+  /**
+   * 阻断任务编号区域的指针事件冒泡，避免触发拖拽。
+   */
+  const stopTaskNumberPointerEvent = (event: PointerEvent<HTMLElement>) => {
+    event.stopPropagation();
   };
 
   let headerLeftNode: ReactNode = null;
@@ -185,6 +204,8 @@ const TaskCard = (props: TaskCardProps) => {
       <TaskNumberLink
         data-task-card-copy-trigger="true"
         onClick={handleCopyTaskNumber}
+        onMouseDown={stopTaskNumberMouseEvent}
+        onPointerDown={stopTaskNumberPointerEvent}
       >
         {taskNumberText}
       </TaskNumberLink>
@@ -207,7 +228,7 @@ const TaskCard = (props: TaskCardProps) => {
   }
 
   let metaNode: ReactNode = null;
-  if (!isCompact) {
+  if (!shouldHideMeta) {
     metaNode = (
       <TaskMetaList>
         {metaProjectNode}

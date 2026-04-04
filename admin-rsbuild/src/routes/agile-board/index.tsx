@@ -16,6 +16,7 @@ import {
   TaskPriority,
   type ProjectTaskDetail,
 } from '@/api/modules/project-task.types';
+import { RequestError } from '@/api/types';
 import { useKDrawer } from '@/components/KDrawer';
 import { useKModal } from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
@@ -160,7 +161,7 @@ function RouteComponent() {
         queryKey: queryKey.project.taskList(),
       }),
       queryClient.invalidateQueries({
-        queryKey: queryKey.project.taskChildrenBatch(parentTaskIds),
+        queryKey: ['projectTaskChildrenBatch'],
       }),
       queryClient.invalidateQueries({
         queryKey: queryKey.todo.list(),
@@ -303,20 +304,28 @@ function RouteComponent() {
             await openTaskForm();
           }}
           onTitleSearch={async (value) => {
-            await handleBoardTitleSearch(value, {
-              getDetailByCode: ApiProjectTask.getDetailByCode,
-              onOpenPreview: async (task) => {
-                await openTaskPreview(task);
-              },
-              onFallbackSearch: (title) => {
-                setFilters((previous) => {
-                  return {
-                    ...previous,
-                    title,
-                  };
-                });
-              },
-            });
+            try {
+              await handleBoardTitleSearch(value, {
+                getDetailByCode: ApiProjectTask.getDetailByCode,
+                onOpenPreview: async (task) => {
+                  await openTaskPreview(task);
+                },
+                onFallbackSearch: (title) => {
+                  setFilters((previous) => {
+                    return {
+                      ...previous,
+                      title,
+                    };
+                  });
+                },
+              });
+            } catch (error) {
+              if (error instanceof RequestError) {
+                return;
+              }
+
+              message.error('任务搜索失败，请稍后重试');
+            }
           }}
           onProjectChange={(value) => {
             setFilters((previous) => {

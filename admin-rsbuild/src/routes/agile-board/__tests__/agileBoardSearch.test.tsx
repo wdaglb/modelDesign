@@ -58,7 +58,7 @@ describe('handleBoardTitleSearch', () => {
     expect(onFallbackSearch).not.toHaveBeenCalled();
   });
 
-  it('多段编号时优先触发编号搜索', async () => {
+  it('多段编号格式按普通标题处理', async () => {
     const getDetailByCode = vi.fn().mockResolvedValue(taskDetail);
     const onOpenPreview = vi.fn();
     const onFallbackSearch = vi.fn();
@@ -69,9 +69,9 @@ describe('handleBoardTitleSearch', () => {
       onFallbackSearch,
     });
 
-    expect(getDetailByCode).toHaveBeenCalledWith('TASK-CODE-10');
-    expect(onOpenPreview).toHaveBeenCalledWith(taskDetail);
-    expect(onFallbackSearch).not.toHaveBeenCalled();
+    expect(getDetailByCode).not.toHaveBeenCalled();
+    expect(onOpenPreview).not.toHaveBeenCalled();
+    expect(onFallbackSearch).toHaveBeenCalledWith('TASK-CODE-10');
   });
 
   it('编号搜索失败后回退为标题搜索', async () => {
