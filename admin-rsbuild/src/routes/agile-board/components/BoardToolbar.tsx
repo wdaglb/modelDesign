@@ -44,7 +44,7 @@ const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
           <ToolbarField $width={220}>
             <ToolbarSearchInput
               allowClear
-              placeholder="搜索任务标题"
+              placeholder="搜索任务标题或编号"
               onSearch={props.onTitleSearch}
             />
           </ToolbarField>

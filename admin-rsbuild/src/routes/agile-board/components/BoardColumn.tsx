@@ -6,6 +6,7 @@ import { TaskPriority } from '@/api/modules/project-task.types';
 import { getColumnDragId, getColumnSubtitle } from '../#helper';
 import type { AgileBoardColumnMeta, AgileBoardTask } from '../#types';
 import AgileBoardTaskCard from './AgileBoardTaskCard';
+import SubtaskList from './SubtaskList';
 import {
   ColumnBadge,
   ColumnBody,
@@ -25,6 +26,7 @@ interface AgileBoardColumnProps {
   disabled?: boolean;
   onPreview: (task: AgileBoardTask) => Promise<void>;
   tasks: AgileBoardTask[];
+  subtaskMap: Map<number, AgileBoardTask[]>;
   onPriorityChange: (
     task: AgileBoardTask,
     priority: TaskPriority,
@@ -83,6 +85,16 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
           {props.tasks.length > 0 && (
             <TaskList>
               {props.tasks.map((task) => {
+                const subtasks = props.subtaskMap.get(task.id) ?? [];
+                const subtaskNode: ReactNode = (
+                  <SubtaskList
+                    disabled={props.disabled}
+                    subtasks={subtasks}
+                    onPreview={props.onPreview}
+                    onPriorityChange={props.onPriorityChange}
+                  />
+                );
+
                 return (
                   <TaskItem key={task.id}>
                     <AgileBoardTaskCard
@@ -91,6 +103,7 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
                       onPreview={props.onPreview}
                       onPriorityChange={props.onPriorityChange}
                     />
+                    {subtaskNode}
                   </TaskItem>
                 );
               })}

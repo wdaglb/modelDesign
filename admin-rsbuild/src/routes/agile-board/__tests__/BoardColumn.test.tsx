@@ -20,6 +20,7 @@ describe('BoardColumn', () => {
         <BoardColumn
           column={column}
           tasks={[]}
+          subtaskMap={new Map()}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />

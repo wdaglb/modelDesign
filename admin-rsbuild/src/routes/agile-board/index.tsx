@@ -12,7 +12,10 @@ import {
 } from '@dnd-kit/core';
 import { message } from 'antd';
 import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
-import { TaskPriority, type ProjectTaskDetail } from '@/api/modules/project-task.types';
+import {
+  TaskPriority,
+  type ProjectTaskDetail,
+} from '@/api/modules/project-task.types';
 import { useKDrawer } from '@/components/KDrawer';
 import { useKModal } from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
@@ -26,8 +29,11 @@ import {
   buildAgileBoardColumns,
   buildBoardEditPayload,
   buildBoardQueryParams,
+  filterBoardParentTasks,
   getTaskDragId,
   groupBoardTasks,
+  groupBoardSubtasks,
+  handleBoardTitleSearch,
   resolveDropStatus,
 } from './#helper';
 import type { AgileBoardFilterState, AgileBoardTask } from './#types';
@@ -72,24 +78,50 @@ function RouteComponent() {
     queryKey: [...queryKey.project.taskBoard(), params],
     queryFn: () => ApiProjectTask.getAgileBoard(params),
   });
+  const parentTasks = useMemo(() => {
+    return filterBoardParentTasks(boardTasks);
+  }, [boardTasks]);
+  const parentTaskIds = useMemo(() => {
+    return parentTasks.map((task) => task.id);
+  }, [parentTasks]);
+  const { data: childrenBatch } = useQuery({
+    queryKey: queryKey.project.taskChildrenBatch(parentTaskIds),
+    queryFn: () => ApiProjectTask.getChildrenBatch(parentTaskIds),
+    enabled: parentTaskIds.length > 0,
+  });
   const { data: statusConfigs = [] } = useQuery({
     queryKey: queryKey.project.taskStatusList(),
     queryFn: () => ApiProjectTaskStatus.getList(),
   });
   const projectOptions = useMemo(() => {
-    return (projectListData?.items ?? []).map((item) => ({
+    const items = projectListData?.items;
+
+    if (!items) {
+      return [];
+    }
+
+    return items.map((item) => ({
       label: item.name,
       value: item.id,
     }));
   }, [projectListData]);
   const agileBoardColumns = useMemo(
-    () => buildAgileBoardColumns(statusConfigs, boardTasks),
-    [statusConfigs, boardTasks],
+    () => buildAgileBoardColumns(statusConfigs, parentTasks),
+    [statusConfigs, parentTasks],
   );
   const groupedTasks = useMemo(
-    () => groupBoardTasks(boardTasks, agileBoardColumns),
-    [boardTasks, agileBoardColumns],
+    () => groupBoardTasks(parentTasks, agileBoardColumns),
+    [parentTasks, agileBoardColumns],
   );
+  const subtaskMap = useMemo(() => {
+    let subtasks: AgileBoardTask[] = [];
+
+    if (childrenBatch) {
+      subtasks = childrenBatch as AgileBoardTask[];
+    }
+
+    return groupBoardSubtasks(subtasks);
+  }, [childrenBatch]);
   const hasFilters = useMemo(() => {
     return Boolean(
       filters.title ||
@@ -101,11 +133,11 @@ function RouteComponent() {
 
   const taskMap = useMemo(() => {
     const nextTaskMap = new Map<string, AgileBoardTask>();
-    boardTasks.forEach((task) => {
+    parentTasks.forEach((task) => {
       nextTaskMap.set(getTaskDragId(task.id), task);
     });
     return nextTaskMap;
-  }, [boardTasks]);
+  }, [parentTasks]);
   const activeTask = useMemo(() => {
     if (!activeTaskDragId) {
       return undefined;
@@ -150,7 +182,7 @@ function RouteComponent() {
       setIsTaskFormOpen(false);
     }
   };
-  const openTaskPreview = async (task: AgileBoardTask) => {
+  const openTaskPreview = async (task: ProjectTaskDetail) => {
     if (previewTaskId !== undefined) {
       return;
     }
@@ -267,12 +299,20 @@ function RouteComponent() {
           onCreate={async () => {
             await openTaskForm();
           }}
-          onTitleSearch={(value) => {
-            setFilters((previous) => {
-              return {
-                ...previous,
-                title: value,
-              };
+          onTitleSearch={async (value) => {
+            await handleBoardTitleSearch(value, {
+              getDetailByCode: ApiProjectTask.getDetailByCode,
+              onOpenPreview: async (task) => {
+                await openTaskPreview(task);
+              },
+              onFallbackSearch: (title) => {
+                setFilters((previous) => {
+                  return {
+                    ...previous,
+                    title,
+                  };
+                });
+              },
             });
           }}
           onProjectChange={(value) => {
@@ -326,6 +366,7 @@ function RouteComponent() {
                     column={column}
                     disabled={updatingTaskId !== undefined}
                     tasks={groupedTasks[column.status]}
+                    subtaskMap={subtaskMap}
                     onPreview={openTaskPreview}
                     onPriorityChange={handlePriorityChange}
                   />
