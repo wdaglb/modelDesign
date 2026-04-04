@@ -3,9 +3,13 @@ import { useDraggable } from '@dnd-kit/core';
 import { TaskCard } from '@/components';
 import { TaskPriority } from '@/api/modules/project-task.types';
 
-import { getTaskDragId } from './#helper';
-import { mapAgileBoardTaskToTaskCardTask } from './#taskCardAdapter';
-import type { AgileBoardTask } from './#types';
+import { getTaskDragId } from '../#helper';
+import { mapAgileBoardTaskToTaskCardTask } from '../#taskCardAdapter';
+import type { AgileBoardTask } from '../#types';
+import {
+  OverlayTaskCardShell,
+  TaskCardShell,
+} from '../styles/task-card-shell.styled';
 
 interface AgileBoardTaskCardProps {
   disabled?: boolean;
@@ -20,8 +24,6 @@ interface AgileBoardTaskCardProps {
 interface AgileBoardTaskCardPreviewProps {
   task: AgileBoardTask;
 }
-
-const OVERLAY_CARD_WIDTH = 248;
 
 /**
  * 看板场景任务卡片包装层。
@@ -43,7 +45,7 @@ const AgileBoardTaskCard = (props: AgileBoardTaskCardProps) => {
   }
 
   return (
-    <div ref={setNodeRef} style={{ width: '100%', opacity: dragOpacity }}>
+    <TaskCardShell ref={setNodeRef} $opacity={dragOpacity}>
       <TaskCard
         task={adaptedTask}
         disabled={props.disabled}
@@ -58,7 +60,7 @@ const AgileBoardTaskCard = (props: AgileBoardTaskCardProps) => {
           ...listeners,
         }}
       />
-    </div>
+    </TaskCardShell>
   );
 };
 
@@ -71,9 +73,9 @@ export function AgileBoardTaskCardPreview(
   const adaptedTask = mapAgileBoardTaskToTaskCardTask(props.task);
 
   return (
-    <div style={{ width: OVERLAY_CARD_WIDTH }}>
+    <OverlayTaskCardShell>
       <TaskCard isOverlay task={adaptedTask} />
-    </div>
+    </OverlayTaskCardShell>
   );
 }
 

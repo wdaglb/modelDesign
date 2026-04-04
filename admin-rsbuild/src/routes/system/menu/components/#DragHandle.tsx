@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { RowContext } from '../#context';
+import { RowContext } from '@/routes/system/menu/#context';
 import { Button } from 'antd';
 import Icons from '@/icons';
 

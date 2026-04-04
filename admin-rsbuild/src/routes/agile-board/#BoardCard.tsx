@@ -1,6 +1,6 @@
 import AgileBoardTaskCard, {
   AgileBoardTaskCardPreview,
-} from './#AgileBoardTaskCard';
+} from './components/AgileBoardTaskCard';
 
 export { AgileBoardTaskCardPreview };
 

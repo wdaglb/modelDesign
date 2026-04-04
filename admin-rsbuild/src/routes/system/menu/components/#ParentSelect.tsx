@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TreeSelect } from 'antd';
 
-import { useData } from '../#useHook';
+import { useData } from '@/routes/system/menu/#useHook';
 
 const ROOT_ID = 0;
 

@@ -39,7 +39,7 @@ export default defineConfig({
           target: 'react',
           autoCodeSplitting: true,
           routeFileIgnorePrefix: '#',
-          routeFileIgnorePattern: '^(components|__[^.]+)$',
+          routeFileIgnorePattern: '^(components|styles|__[^.]+)$',
         }),
       );
 
