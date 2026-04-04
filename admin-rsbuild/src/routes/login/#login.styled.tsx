@@ -5,7 +5,6 @@ const fadeInUp = keyframes`
     opacity: 0;
     transform: translateY(18px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -21,48 +20,40 @@ const motionReduce = css`
 `;
 
 /**
- * 登录页使用局部设计变量，避免影响后台其他页面的主题样式。
+ * 登录页面全局容器
+ * 定义浅色科技风 CSS 变量与背景渐变
  */
 export const LoginViewport = styled.div`
-  --login-bg: #050816;
-  --login-bg-secondary: #0b1220;
-  --login-surface: rgba(10, 18, 35, 0.72);
-  --login-surface-strong: rgba(9, 16, 32, 0.9);
-  --login-border: rgba(120, 163, 214, 0.2);
-  --login-border-strong: rgba(99, 230, 255, 0.38);
-  --login-primary: #63e6ff;
-  --login-secondary: #4c7bff;
-  --login-text: #f3f7ff;
-  --login-text-secondary: #8ba3c7;
-  --login-warning-bg: rgba(109, 48, 28, 0.72);
-  --login-warning-border: rgba(255, 168, 77, 0.48);
-  --login-shadow: 0 24px 80px rgba(2, 8, 23, 0.45);
+  --login-bg: #f5f8ff;
+  --login-bg-secondary: #edf2ff;
+  --login-surface: rgba(255, 255, 255, 0.92);
+  --login-surface-strong: rgba(255, 255, 255, 0.96);
+  --login-border: rgba(59, 107, 255, 0.12);
+  --login-border-strong: rgba(59, 107, 255, 0.28);
+  --login-primary: #3b6bff;
+  --login-secondary: #6c8cff;
+  --login-text: #111a33;
+  --login-text-secondary: #5a6b9a;
+  --login-warning-bg: #fff4ec;
+  --login-warning-border: #ffd4b8;
+  --login-shadow: 0 24px 80px rgba(17, 26, 51, 0.08);
 
   position: relative;
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(76, 123, 255, 0.16), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(99, 230, 255, 0.12), transparent 30%),
+    radial-gradient(circle at 0 0, rgba(59, 107, 255, 0.08) 0%, transparent 34%),
+    radial-gradient(circle at 100% 100%, rgba(108, 140, 255, 0.06) 0%, transparent 30%),
     linear-gradient(135deg, var(--login-bg) 0%, var(--login-bg-secondary) 100%);
   color: var(--login-text);
-  color-scheme: dark;
   font-family:
     'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial,
     sans-serif;
 
-  @media (max-width: 1023px) {
-    background:
-      radial-gradient(circle at top, rgba(76, 123, 255, 0.16), transparent 28%),
-      linear-gradient(180deg, var(--login-bg-secondary) 0%, var(--login-bg) 100%);
-  }
-
   ${motionReduce}
 `;
 
-/**
- * 大面积环境辉光只负责营造空间感，不承载可交互信息。
- */
+/** 左上角柔和光晕装饰 */
 export const SurfaceGlow = styled.div`
   position: absolute;
   top: -180px;
@@ -72,18 +63,15 @@ export const SurfaceGlow = styled.div`
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(76, 123, 255, 0.24) 0%,
-    rgba(76, 123, 255, 0.08) 34%,
+    rgba(59, 107, 255, 0.12) 0%,
+    rgba(59, 107, 255, 0.04) 34%,
     transparent 72%
   );
   filter: blur(14px);
   pointer-events: none;
-
-  @media (max-width: 1023px) {
-    display: none;
-  }
 `;
 
+/** 右下角柔和光晕装饰 */
 export const OrbitGlow = styled.div`
   position: absolute;
   right: 8%;
@@ -93,38 +81,32 @@ export const OrbitGlow = styled.div`
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(99, 230, 255, 0.22) 0%,
-    rgba(99, 230, 255, 0.08) 36%,
+    rgba(108, 140, 255, 0.1) 0%,
+    rgba(108, 140, 255, 0.04) 36%,
     transparent 74%
   );
   filter: blur(18px);
   pointer-events: none;
-
-  @media (max-width: 1023px) {
-    display: none;
-  }
 `;
 
+/** 背景网格装饰层 */
 export const GridDecoration = styled.div`
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    linear-gradient(rgba(59, 107, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 107, 255, 0.04) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: linear-gradient(
     180deg,
-    rgba(0, 0, 0, 0.68) 0%,
-    rgba(0, 0, 0, 0.24) 50%,
-    rgba(0, 0, 0, 0.78) 100%
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(0, 0, 0, 0.15) 50%,
+    rgba(0, 0, 0, 0.55) 100%
   );
   pointer-events: none;
-
-  @media (max-width: 1023px) {
-    display: none;
-  }
 `;
 
+/** 页面主体布局壳 */
 export const PageShell = styled.div`
   position: relative;
   z-index: 1;
@@ -137,15 +119,9 @@ export const PageShell = styled.div`
   @media (max-width: 1199px) {
     padding: 40px 32px;
   }
-
-  @media (max-width: 1023px) {
-    padding: 28px 20px;
-  }
 `;
 
-/**
- * 主布局在宽屏下保持双栏，在小桌面窗口收敛为单卡模式。
- */
+/** 左右分栏网格布局 */
 export const SectionGrid = styled.div`
   width: min(1320px, 100%);
   display: grid;
@@ -157,14 +133,9 @@ export const SectionGrid = styled.div`
     grid-template-columns: minmax(0, 1fr) minmax(380px, 460px);
     gap: 32px;
   }
-
-  @media (max-width: 1023px) {
-    width: min(520px, 100%);
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
 `;
 
+/** 左侧品牌与标语区域 */
 export const HeroPanel = styled.section`
   position: relative;
   display: flex;
@@ -174,43 +145,42 @@ export const HeroPanel = styled.section`
   padding: 48px 0;
   animation: ${fadeInUp} 0.72s ease-out both;
 
-  @media (max-width: 1023px) {
-    display: none;
-  }
-
   ${motionReduce}
 `;
 
+/** 品牌标识卡片 */
 export const BrandBlock = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 16px;
   padding: 14px 18px;
   width: fit-content;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(59, 107, 255, 0.1);
   border-radius: 20px;
-  background: rgba(7, 14, 28, 0.48);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(14px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 10px 30px rgba(17, 26, 51, 0.06);
 `;
 
+/** 品牌 Logo 图片 */
 export const BrandLogo = styled.img`
   width: 48px;
   height: 48px;
   object-fit: contain;
-  filter: drop-shadow(0 8px 16px rgba(76, 123, 255, 0.2));
 `;
 
+/** 品牌副标题文字 */
 export const BrandCaption = styled.div`
   font-size: 12px;
   line-height: 18px;
   letter-spacing: 0.22em;
-  color: rgba(139, 163, 199, 0.92);
+  color: var(--login-text-secondary);
   font-family:
     'SFMono-Regular', 'SF Mono', 'Fira Code', 'Roboto Mono', Consolas,
     'Liberation Mono', monospace;
 `;
 
+/** 品牌主标题 */
 export const BrandTitle = styled.div`
   margin-top: 4px;
   font-size: 24px;
@@ -219,6 +189,7 @@ export const BrandTitle = styled.div`
   color: var(--login-text);
 `;
 
+/** Hero 区域眉标 */
 export const HeroEyebrow = styled.div`
   font-size: 12px;
   line-height: 18px;
@@ -229,6 +200,7 @@ export const HeroEyebrow = styled.div`
     'Liberation Mono', monospace;
 `;
 
+/** Hero 大标题 */
 export const HeroTitle = styled.h1`
   margin: 0;
   max-width: 620px;
@@ -243,6 +215,7 @@ export const HeroTitle = styled.h1`
   }
 `;
 
+/** Hero 描述文案 */
 export const HeroDescription = styled.p`
   margin: 0;
   max-width: 620px;
@@ -251,6 +224,7 @@ export const HeroDescription = styled.p`
   color: var(--login-text-secondary);
 `;
 
+/** 能力标签列表 */
 export const CapabilityList = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -258,20 +232,17 @@ export const CapabilityList = styled.div`
   max-width: 620px;
 `;
 
+/** 能力标签单体 */
 export const CapabilityChip = styled.span`
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   padding: 0 18px;
   border-radius: 999px;
-  border: 1px solid rgba(99, 230, 255, 0.18);
-  background: linear-gradient(
-    135deg,
-    rgba(10, 18, 35, 0.88) 0%,
-    rgba(16, 28, 52, 0.74) 100%
-  );
+  border: 1px solid rgba(59, 107, 255, 0.12);
+  background: rgba(255, 255, 255, 0.7);
   color: var(--login-text);
   font-size: 14px;
   line-height: 20px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
 `;
