@@ -104,7 +104,10 @@ public class PassportController {
      *
      * @return 最近登录历史
      */
-    @Operation(summary = "获取当前登录用户最近登录历史")
+    @Operation(
+            summary = "获取当前登录用户最近登录历史",
+            description = "仅返回最近 10 条登录成功记录"
+    )
     @GetMapping("/login_history")
     public List<LoginHistoryVo> loginHistory() {
         return authService.getLoginHistory();
