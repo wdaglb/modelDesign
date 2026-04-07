@@ -71,7 +71,7 @@ export function isLikelyTaskCode(value: string) {
     return true;
   }
 
-  if (/^TASK-\d+$/.test(normalizedValue)) {
+  if (/^.+-\d+$/.test(normalizedValue)) {
     return true;
   }
 

@@ -30,7 +30,7 @@ describe('TaskCard', () => {
 
     render(<TaskCard task={baseTask} onPreview={onPreview} />);
 
-    const taskNumber = screen.getByText('TASK-101');
+    const taskNumber = screen.getByText('# TASK-101');
 
     expect(taskNumber).toBeDefined();
     expect(taskNumber.getAttribute('data-task-card-copy-trigger')).toBe('true');
@@ -56,7 +56,7 @@ describe('TaskCard', () => {
 
     render(<TaskCard task={baseTask} />);
 
-    fireEvent.click(screen.getByText('TASK-101'));
+    fireEvent.click(screen.getByText('# TASK-101'));
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith('TASK-101');
@@ -80,7 +80,7 @@ describe('TaskCard', () => {
       />,
     );
 
-    const taskNumber = screen.getByText('TASK-101');
+    const taskNumber = screen.getByText('# TASK-101');
 
     fireEvent.mouseDown(taskNumber);
     fireEvent.pointerDown(taskNumber);
@@ -109,6 +109,7 @@ describe('TaskCard', () => {
   it('子任务态仍展示完整元信息', () => {
     render(<TaskCard task={baseTask} compact isSubtask />);
 
+    expect(screen.getByText('# TASK-101')).toBeTruthy();
     expect(screen.getByText('火星项目')).toBeTruthy();
     expect(screen.getByText('2 人天')).toBeTruthy();
     expect(screen.getByText('小王')).toBeTruthy();

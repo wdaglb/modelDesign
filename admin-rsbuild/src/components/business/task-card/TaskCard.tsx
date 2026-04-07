@@ -79,6 +79,18 @@ function getTaskNumberText(task: TaskCardTask) {
 }
 
 /**
+ * 任务卡片中的任务编号展示文案。
+ */
+function getTaskNumberDisplayText(task: TaskCardTask) {
+  const taskNumberText = getTaskNumberText(task);
+  if (!taskNumberText) {
+    return undefined;
+  }
+
+  return `# ${taskNumberText}`;
+}
+
+/**
  * 解析卡片内容间距。
  */
 function resolveCardStackSize(isCompact: boolean) {
@@ -152,6 +164,7 @@ const TaskCard = (props: TaskCardProps) => {
   const dueTimeText = getTaskDueTimeText(props.task);
   const workDaysText = getTaskWorkDaysText(props.task);
   const taskNumberText = getTaskNumberText(props.task);
+  const taskNumberDisplayText = getTaskNumberDisplayText(props.task);
   const stackSize = resolveCardStackSize(isCompact);
   const dataAttributes: Record<string, string> = {
     'data-task-card-root': 'true',
@@ -199,7 +212,7 @@ const TaskCard = (props: TaskCardProps) => {
   };
 
   let headerLeftNode: ReactNode = null;
-  if (taskNumberText) {
+  if (taskNumberText && taskNumberDisplayText) {
     headerLeftNode = (
       <TaskNumberLink
         data-task-card-copy-trigger="true"
@@ -207,7 +220,7 @@ const TaskCard = (props: TaskCardProps) => {
         onMouseDown={stopTaskNumberMouseEvent}
         onPointerDown={stopTaskNumberPointerEvent}
       >
-        {taskNumberText}
+        {taskNumberDisplayText}
       </TaskNumberLink>
     );
   } else {

@@ -406,8 +406,14 @@ public class ProjectTaskReadService {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "任务编号不合法");
         }
         String numericPart = normalizedCode;
-        if (normalizedCode.startsWith("TASK-")) {
-            numericPart = normalizedCode.substring("TASK-".length());
+        int separatorIndex = normalizedCode.lastIndexOf('-');
+        if (separatorIndex >= 0) {
+            boolean separatorInvalid = separatorIndex == 0
+                    || separatorIndex == normalizedCode.length() - 1;
+            if (separatorInvalid) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "任务编号不合法");
+            }
+            numericPart = normalizedCode.substring(separatorIndex + 1);
         } else {
             if (!isDigits(normalizedCode)) {
                 throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "任务编号不合法");

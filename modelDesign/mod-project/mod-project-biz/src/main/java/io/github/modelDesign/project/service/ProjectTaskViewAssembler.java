@@ -97,7 +97,9 @@ public class ProjectTaskViewAssembler {
         }
 
         Map<Long, AuthUserSimpleDto> userMap = getUserMap(userIds);
-        Map<Long, String> projectNameMap = getProjectNameMap(projectIds);
+        Map<Long, Project> projectMap = getProjectMap(projectIds);
+        Map<Long, String> projectNameMap = getProjectNameMap(projectMap);
+        Map<Long, String> projectCodeMap = getProjectCodeMap(projectMap);
         Map<Long, String> parentTaskTitleMap = getParentTaskTitleMap(parentTaskIds);
         Map<Long, Integer> childTaskCountMap = getChildTaskCountMap(taskIds);
         Map<Long, Integer> completedChildTaskCountMap = getCompletedChildTaskCountMap(taskIds);
@@ -135,6 +137,7 @@ public class ProjectTaskViewAssembler {
             result.add(ProjectTaskDetailVo.builder()
                     .id(task.getId())
                     .projectId(task.getProjectId())
+                    .projectCode(projectCodeMap.getOrDefault(task.getProjectId(), ""))
                     .parentTaskId(task.getParentTaskId())
                     .parentTaskTitle(parentTaskTitleMap.getOrDefault(task.getParentTaskId(), ""))
                     .childTaskCount(childTaskCountMap.getOrDefault(task.getId(), 0))
@@ -185,7 +188,7 @@ public class ProjectTaskViewAssembler {
         return authUserApi.getUserMapByIds(userIds);
     }
 
-    private Map<Long, String> getProjectNameMap(Set<Long> projectIds) {
+    private Map<Long, Project> getProjectMap(Set<Long> projectIds) {
         if (projectIds.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -193,11 +196,45 @@ public class ProjectTaskViewAssembler {
         if (projects.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<Long, String> projectNameMap = new LinkedHashMap<>();
+        Map<Long, Project> projectMap = new LinkedHashMap<>();
         for (Project project : projects) {
-            projectNameMap.put(project.getId(), project.getName());
+            projectMap.put(project.getId(), project);
+        }
+        return projectMap;
+    }
+
+    /**
+     * 提取项目名称映射，避免任务视图组装阶段重复查询项目表。
+     *
+     * @param projectMap 项目映射
+     * @return 项目名称映射
+     */
+    private Map<Long, String> getProjectNameMap(Map<Long, Project> projectMap) {
+        if (projectMap.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, String> projectNameMap = new LinkedHashMap<>();
+        for (Map.Entry<Long, Project> entry : projectMap.entrySet()) {
+            projectNameMap.put(entry.getKey(), entry.getValue().getName());
         }
         return projectNameMap;
+    }
+
+    /**
+     * 提取项目编号映射，供任务卡片拼接可见任务编号。
+     *
+     * @param projectMap 项目映射
+     * @return 项目编号映射
+     */
+    private Map<Long, String> getProjectCodeMap(Map<Long, Project> projectMap) {
+        if (projectMap.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, String> projectCodeMap = new LinkedHashMap<>();
+        for (Map.Entry<Long, Project> entry : projectMap.entrySet()) {
+            projectCodeMap.put(entry.getKey(), entry.getValue().getCode());
+        }
+        return projectCodeMap;
     }
 
     private Map<Long, String> getParentTaskTitleMap(Set<Long> parentTaskIds) {

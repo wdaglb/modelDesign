@@ -31,6 +31,7 @@ function normalizeTaskText(value: string | null | undefined) {
 function resolveTaskNumber(task: AgileBoardTask) {
   const taskRecord = task as AgileBoardTask & {
     code?: string | null;
+    projectCode?: string | null;
     taskCode?: string | null;
     taskNo?: string | null;
     serialNumber?: string | number | null;
@@ -46,6 +47,11 @@ function resolveTaskNumber(task: AgileBoardTask) {
 
   if (explicitTaskNumber) {
     return explicitTaskNumber;
+  }
+
+  const projectCode = normalizeTaskText(taskRecord.projectCode);
+  if (projectCode) {
+    return `${projectCode}-${task.id}`;
   }
 
   return String(task.id);

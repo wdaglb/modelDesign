@@ -6,7 +6,23 @@ import type { AgileBoardTask } from '../#types';
 import { mapAgileBoardTaskToTaskCardTask } from '../#taskCardAdapter';
 
 describe('mapAgileBoardTaskToTaskCardTask', () => {
-  it('默认使用任务 id 作为任务编号', () => {
+  it('存在项目编号时拼接为项目编号加任务 id', () => {
+    const task: AgileBoardTask = {
+      id: 2048,
+      projectId: 8,
+      projectCode: 'TASK',
+      title: '同步卡片上的任务编号',
+      status: 'todo',
+      priority: 'medium',
+    };
+
+    expect(mapAgileBoardTaskToTaskCardTask(task)).toMatchObject({
+      id: 2048,
+      taskNumber: 'TASK-2048',
+    });
+  });
+
+  it('缺少项目编号时回退使用任务 id', () => {
     const task: AgileBoardTask = {
       id: 2048,
       projectId: 8,

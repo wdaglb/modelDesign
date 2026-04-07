@@ -183,6 +183,7 @@ export interface ProjectTaskBoardParams {
 export interface ProjectTaskDetail {
   id: number;
   projectId: number;
+  projectCode?: string;
   parentTaskId?: number;
   parentTaskTitle?: string;
   childTaskCount?: number;

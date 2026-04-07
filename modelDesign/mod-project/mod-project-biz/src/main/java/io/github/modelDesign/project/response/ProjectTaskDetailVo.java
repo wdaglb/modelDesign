@@ -27,6 +27,12 @@ public class ProjectTaskDetailVo {
     private Long projectId;
 
     /**
+     * 项目编号。
+     */
+    @Schema(description = "项目编号")
+    private String projectCode;
+
+    /**
      * 父任务 ID。
      */
     @Schema(description = "父任务 ID")

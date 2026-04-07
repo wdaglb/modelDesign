@@ -65,6 +65,30 @@ class ProjectTaskReadServiceTest {
     }
 
     /**
+     * 任意项目编号前缀应解析为任务 ID。
+     */
+    @Test
+    void getDetailByVisibleNumberShouldSupportProjectCodePrefix() {
+        ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
+        ProjectTaskViewAssembler projectTaskViewAssembler = mock(ProjectTaskViewAssembler.class);
+        ProjectService projectService = mock(ProjectService.class);
+        ProjectTaskReadService service = buildService(projectTaskMapper, projectTaskViewAssembler, projectService);
+
+        ProjectTask task = new ProjectTask();
+        task.setId(2048L);
+        task.setProjectId(100L);
+        ProjectTaskDetailVo expected = ProjectTaskDetailVo.builder().id(2048L).build();
+        when(projectTaskMapper.selectOne(any())).thenReturn(task);
+        when(projectTaskViewAssembler.toTaskVo(task)).thenReturn(expected);
+
+        ProjectTaskDetailVo result = service.getDetailByVisibleNumber("DEMO-CODE-2048");
+
+        assertSame(expected, result);
+        verify(projectService).requireProject(100L);
+        assertQueryWrapperContainsId(projectTaskMapper, 2048L);
+    }
+
+    /**
      * 纯数字编号应解析为任务 ID。
      */
     @Test
