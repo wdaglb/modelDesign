@@ -98,6 +98,7 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
                 return (
                   <TaskItem key={task.id}>
                     <AgileBoardTaskCard
+                      accentColor={props.column.accentColor}
                       task={task}
                       disabled={props.disabled}
                       onPreview={props.onPreview}

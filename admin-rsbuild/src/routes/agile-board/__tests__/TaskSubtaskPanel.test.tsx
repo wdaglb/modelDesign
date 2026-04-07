@@ -170,6 +170,21 @@ describe('TaskSubtaskPanel', () => {
     });
     expect(await screen.findByText('子任务 C（已更新）')).toBeDefined();
   });
+
+  it('无子任务时保留统计文案并隐藏空态提示', async () => {
+    renderWithQuery(
+      <TaskSubtaskPanel
+        parentTask={parentTask}
+        statusConfigs={statusConfigs}
+        onRefresh={vi.fn()}
+        onEditTask={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('子任务列表')).toBeDefined();
+    expect(await screen.findByText('已完成 0 / 0')).toBeDefined();
+    expect(screen.queryByText('暂无子任务')).toBeNull();
+  });
 });
 
 function renderWithQuery(component: ReactElement) {

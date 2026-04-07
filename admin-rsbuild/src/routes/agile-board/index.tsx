@@ -145,6 +145,21 @@ function RouteComponent() {
     }
     return taskMap.get(activeTaskDragId);
   }, [activeTaskDragId, taskMap]);
+  const activeTaskAccentColor = useMemo(() => {
+    if (!activeTask) {
+      return undefined;
+    }
+
+    const matchedColumn = agileBoardColumns.find((column) => {
+      return column.status === activeTask.status;
+    });
+
+    if (!matchedColumn) {
+      return undefined;
+    }
+
+    return matchedColumn.accentColor;
+  }, [activeTask, agileBoardColumns]);
   const { setIsTaskFormOpen } = useBoardAutoRefresh({
     activeTaskDragId,
     previewTaskId,
@@ -387,7 +402,12 @@ function RouteComponent() {
             </BoardColumnsGrid>
           </BoardColumnsScroller>
           <DragOverlay dropAnimation={null}>
-            {activeTask && <AgileBoardTaskCardPreview task={activeTask} />}
+            {activeTask && (
+              <AgileBoardTaskCardPreview
+                task={activeTask}
+                accentColor={activeTaskAccentColor}
+              />
+            )}
           </DragOverlay>
         </DndContext>
       </BoardContentCard>

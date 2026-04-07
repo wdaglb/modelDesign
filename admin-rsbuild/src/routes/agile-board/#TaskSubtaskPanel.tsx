@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Empty, Input, Skeleton, Space, Typography, message } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  Input,
+  Skeleton,
+  Space,
+  Typography,
+  message,
+} from 'antd';
 
 import { ApiProjectTask } from '@/api';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
@@ -167,10 +176,6 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
               showIcon
               message={'子任务加载失败，请稍后重试。'}
             />
-          ) : null}
-
-          {!subtaskQuery.isLoading && !subtaskQuery.isError && !subtaskQuery.data?.length ? (
-            <Empty description={'暂无子任务'} />
           ) : null}
 
           {!subtaskQuery.isLoading && !subtaskQuery.isError && subtaskQuery.data?.length

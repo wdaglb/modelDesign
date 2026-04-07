@@ -12,6 +12,7 @@ import {
 } from '../styles/task-card-shell.styled';
 
 interface AgileBoardTaskCardProps {
+  accentColor?: string;
   disabled?: boolean;
   onPriorityChange: (
     task: AgileBoardTask,
@@ -22,6 +23,7 @@ interface AgileBoardTaskCardProps {
 }
 
 interface AgileBoardTaskCardPreviewProps {
+  accentColor?: string;
   task: AgileBoardTask;
 }
 
@@ -45,7 +47,12 @@ const AgileBoardTaskCard = (props: AgileBoardTaskCardProps) => {
   }
 
   return (
-    <TaskCardShell ref={setNodeRef} $opacity={dragOpacity}>
+    <TaskCardShell
+      ref={setNodeRef}
+      $accentColor={props.accentColor}
+      $disabled={Boolean(props.disabled)}
+      $opacity={dragOpacity}
+    >
       <TaskCard
         task={adaptedTask}
         disabled={props.disabled}
@@ -73,7 +80,12 @@ export function AgileBoardTaskCardPreview(
   const adaptedTask = mapAgileBoardTaskToTaskCardTask(props.task);
 
   return (
-    <OverlayTaskCardShell>
+    <OverlayTaskCardShell
+      $accentColor={props.accentColor}
+      $disabled={false}
+      $opacity={1}
+      $isOverlay
+    >
       <TaskCard isOverlay task={adaptedTask} />
     </OverlayTaskCardShell>
   );
