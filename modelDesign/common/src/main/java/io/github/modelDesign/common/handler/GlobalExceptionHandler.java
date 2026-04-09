@@ -125,16 +125,28 @@ public class GlobalExceptionHandler {
     }
 
     private String resolveValidationMessage(Exception exception) {
-        if (exception instanceof MethodArgumentNotValidException methodArgumentNotValidException
-                && methodArgumentNotValidException.getBindingResult().getFieldError() != null) {
-            return methodArgumentNotValidException.getBindingResult().getFieldError().getDefaultMessage();
+        if (exception instanceof MethodArgumentNotValidException) {
+            MethodArgumentNotValidException methodArgumentNotValidException =
+                    (MethodArgumentNotValidException) exception;
+            if (methodArgumentNotValidException.getBindingResult().getFieldError() != null) {
+                return methodArgumentNotValidException.getBindingResult()
+                        .getFieldError().getDefaultMessage();
+            }
         }
-        if (exception instanceof BindException bindException && bindException.getBindingResult().getFieldError() != null) {
-            return bindException.getBindingResult().getFieldError().getDefaultMessage();
+        if (exception instanceof BindException) {
+            BindException bindException = (BindException) exception;
+            if (bindException.getBindingResult().getFieldError() != null) {
+                return bindException.getBindingResult().getFieldError()
+                        .getDefaultMessage();
+            }
         }
-        if (exception instanceof ConstraintViolationException constraintViolationException
-                && !constraintViolationException.getConstraintViolations().isEmpty()) {
-            return constraintViolationException.getConstraintViolations().iterator().next().getMessage();
+        if (exception instanceof ConstraintViolationException) {
+            ConstraintViolationException constraintViolationException =
+                    (ConstraintViolationException) exception;
+            if (!constraintViolationException.getConstraintViolations().isEmpty()) {
+                return constraintViolationException.getConstraintViolations()
+                        .iterator().next().getMessage();
+            }
         }
         return "请求参数错误";
     }
