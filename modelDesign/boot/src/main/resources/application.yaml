@@ -2,6 +2,15 @@ spring:
   application:
     name: modelDesign-ai
   ai:
+    # 统一模型开关：默认关闭，避免未配置 OpenAI 时触发自动装配报错
+    model:
+      chat: ${model-design.ai.enabled:false}
+      embedding: ${model-design.ai.enabled:false}
+      image: ${model-design.ai.enabled:false}
+      moderation: ${model-design.ai.enabled:false}
+      audio:
+        speech: ${model-design.ai.enabled:false}
+        transcription: ${model-design.ai.enabled:false}
     openai:
       api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:}
@@ -84,6 +93,9 @@ dromara:
         storage-path: ${MODEL_DESIGN_FILE_STORAGE_PATH:./storage/}
 
 model-design:
+  ai:
+    # AI 总开关：默认 false，需要时通过环境变量 MODEL_DESIGN_AI_ENABLED=true 开启
+    enabled: ${MODEL_DESIGN_AI_ENABLED:false}
   auth:
     jwt-secret: ${AUTH_JWT_SECRET:change-this-jwt-secret-change-this-jwt-secret}
     token-expire-seconds: ${AUTH_TOKEN_EXPIRE_SECONDS:7200}

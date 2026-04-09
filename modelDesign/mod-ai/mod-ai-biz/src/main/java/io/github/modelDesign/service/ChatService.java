@@ -15,6 +15,7 @@ import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -24,6 +25,8 @@ import java.util.Map;
 @Service
 @Slf4j
 @Lazy
+// 仅在启用 AI 开关时装配，确保未配置 OpenAI 时服务可正常启动
+@ConditionalOnProperty(prefix = "model-design.ai", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class ChatService {
 

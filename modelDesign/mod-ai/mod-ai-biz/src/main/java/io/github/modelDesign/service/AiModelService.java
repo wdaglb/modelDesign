@@ -6,6 +6,7 @@ import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,8 @@ import org.springframework.web.client.RestClient;
 @Service
 @Slf4j
 @Lazy
+// 仅在启用 AI 开关时装配，避免无 OpenAI 配置导致启动失败
+@ConditionalOnProperty(prefix = "model-design.ai", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class AiModelService {
     private final RestClient restClient;

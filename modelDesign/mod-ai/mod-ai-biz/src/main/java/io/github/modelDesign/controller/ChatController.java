@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/ai/chat")
+// 仅在启用 AI 开关时暴露 AI 接口，避免关闭开关后出现无效入口
+@ConditionalOnProperty(prefix = "model-design.ai", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class ChatController {
 
