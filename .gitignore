@@ -8,3 +8,5 @@
 *.pen
 storage
 .omx/
+docker-data/
+.env.docker
