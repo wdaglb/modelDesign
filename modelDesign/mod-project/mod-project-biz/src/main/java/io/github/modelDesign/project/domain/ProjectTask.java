@@ -56,6 +56,11 @@ public class ProjectTask extends BaseEntity {
     private Long assigneeId;
 
     /**
+     * 当前负责人最近一次被指派时间。
+     */
+    private LocalDateTime assigneeAssignedAt;
+
+    /**
      * 预计工时（人天）。
      */
     private BigDecimal workDays;

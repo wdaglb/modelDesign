@@ -22,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -76,6 +77,11 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
      * 任务变更日志服务。
      */
     private final ProjectTaskChangeLogService projectTaskChangeLogService;
+
+    /**
+     * 任务时间指标支持类。
+     */
+    private final ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport;
 
     /**
      * 获取我的待办列表（当前登录用户作为负责人的任务）。
@@ -191,6 +197,11 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setWorkDays(request.getWorkDays());
         task.setCreatorId(currentUser.getUserId());
         task.setAssigneeId(request.getAssigneeId());
+        LocalDateTime now = LocalDateTime.now();
+        task.setAssigneeAssignedAt(projectTaskTimeMetricsSupport.resolveAssigneeAssignedAtOnCreate(
+                request.getAssigneeId(),
+                now
+        ));
         task.setStartTime(request.getStartTime());
         task.setDueTime(request.getDueTime());
         task.setDeleted(0);
@@ -326,12 +337,20 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     }
 
     private void applyTaskUpdate(ProjectTask task, ProjectTaskEditRequest request, String status, Long parentTaskId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime resolvedAssigneeAssignedAt = projectTaskTimeMetricsSupport.resolveAssigneeAssignedAtOnEdit(
+                task.getAssigneeId(),
+                request.getAssigneeId(),
+                task.getAssigneeAssignedAt(),
+                now
+        );
         task.setParentTaskId(parentTaskId);
         task.setTitle(request.getTitle().trim());
         task.setDescription(projectTaskGuardService.normalizeDescription(request.getDescription()));
         task.setStatus(status);
         task.setPriority(request.getPriority().trim());
         task.setWorkDays(request.getWorkDays());
+        task.setAssigneeAssignedAt(resolvedAssigneeAssignedAt);
         task.setAssigneeId(request.getAssigneeId());
         task.setStartTime(request.getStartTime());
         task.setDueTime(request.getDueTime());
@@ -348,6 +367,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         target.setPriority(source.getPriority());
         target.setCreatorId(source.getCreatorId());
         target.setAssigneeId(source.getAssigneeId());
+        target.setAssigneeAssignedAt(source.getAssigneeAssignedAt());
         target.setWorkDays(source.getWorkDays());
         target.setStartTime(source.getStartTime());
         target.setDueTime(source.getDueTime());

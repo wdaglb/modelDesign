@@ -66,6 +66,11 @@ public class ProjectTaskViewAssembler {
     private final TaskStatusConfigService taskStatusConfigService;
 
     /**
+     * 任务时间指标支持类。
+     */
+    private final ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport;
+
+    /**
      * 批量组装任务详情。
      *
      * @param tasks 任务实体列表
@@ -109,6 +114,7 @@ public class ProjectTaskViewAssembler {
         Map<Long, List<Long>> tagIdMap = projectTaskTagBindingService.findTagIdMapByTaskIds(taskIds);
         Map<Long, List<ProjectTaskTagVo>> tagMap = projectTaskTagBindingService.findTagMapByTaskIds(taskIds);
 
+        LocalDateTime now = LocalDateTime.now();
         List<ProjectTaskDetailVo> result = new ArrayList<>();
         for (ProjectTask task : tasks) {
             List<ProjectTaskPredecessorVo> unfinishedPredecessors = unfinishedPredecessorMap.get(task.getId());
@@ -156,10 +162,19 @@ public class ProjectTaskViewAssembler {
                     .workDays(task.getWorkDays())
                     .assigneeId(task.getAssigneeId())
                     .assignee(resolveUserNickname(userMap.get(task.getAssigneeId())))
+                    .assigneeAssignedAt(formatDateTime(task.getAssigneeAssignedAt()))
+                    .assigneeElapsedDays(projectTaskTimeMetricsSupport.calculateElapsedDays(
+                            task.getAssigneeAssignedAt(),
+                            now
+                    ))
                     .creatorId(task.getCreatorId())
                     .creator(resolveUserNickname(userMap.get(task.getCreatorId())))
                     .startTime(formatDateTime(task.getStartTime()))
                     .dueTime(formatDateTime(task.getDueTime()))
+                    .createdElapsedDays(projectTaskTimeMetricsSupport.calculateElapsedDays(
+                            task.getCreateTime(),
+                            now
+                    ))
                     .createdAt(formatDateTime(task.getCreateTime()))
                     .updatedAt(formatDateTime(task.getUpdateTime()))
                     .build());

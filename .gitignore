@@ -7,3 +7,4 @@
 .codex/skills/**/__pycache__/
 *.pen
 storage
+.omx/

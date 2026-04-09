@@ -5,7 +5,7 @@ import styled from 'styled-components';
  */
 export const SubtaskListRoot = styled.div`
   margin-top: 8px;
-  padding-left: 14px;
+  padding-left: 24px;
   border-left: 1px dashed rgba(15, 23, 42, 0.12);
   display: flex;
   flex-direction: column;

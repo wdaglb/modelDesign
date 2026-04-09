@@ -141,6 +141,18 @@ public class ProjectTaskDetailVo {
     private String assignee;
 
     /**
+     * 负责人最近一次被指派时间。
+     */
+    @Schema(description = "负责人最近一次被指派时间")
+    private String assigneeAssignedAt;
+
+    /**
+     * 负责人指派已持续天数。
+     */
+    @Schema(description = "负责人指派已持续天数")
+    private Integer assigneeElapsedDays;
+
+    /**
      * 创建人 ID。
      */
     @Schema(description = "创建人 ID")
@@ -169,6 +181,12 @@ public class ProjectTaskDetailVo {
      */
     @Schema(description = "创建时间")
     private String createdAt;
+
+    /**
+     * 创建已持续天数。
+     */
+    @Schema(description = "创建已持续天数")
+    private Integer createdElapsedDays;
 
     /**
      * 更新时间。

@@ -86,14 +86,18 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
             <TaskList>
               {props.tasks.map((task) => {
                 const subtasks = props.subtaskMap.get(task.id) ?? [];
-                const subtaskNode: ReactNode = (
-                  <SubtaskList
-                    disabled={props.disabled}
-                    subtasks={subtasks}
-                    onPreview={props.onPreview}
-                    onPriorityChange={props.onPriorityChange}
-                  />
-                );
+                let subtaskNode: ReactNode = null;
+
+                if (subtasks.length > 0) {
+                  subtaskNode = (
+                    <SubtaskList
+                      disabled={props.disabled}
+                      subtasks={subtasks}
+                      onPreview={props.onPreview}
+                      onPriorityChange={props.onPriorityChange}
+                    />
+                  );
+                }
 
                 return (
                   <TaskItem key={task.id}>

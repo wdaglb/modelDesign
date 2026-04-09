@@ -28,7 +28,7 @@ public class LoginAuditCleanupScheduler {
     /**
      * 每日定时清理过期登录审计日志。
      */
-    @Scheduled(cron = "#{@authProperties.loginAuditCleanupCron}")
+    @Scheduled(cron = "${model-design.auth.login-audit-cleanup-cron:0 30 3 * * *}")
     public void cleanupExpiredLoginAuditLogs() {
         try {
             loginAuditCleanupService.cleanupGlobal(

@@ -1,5 +1,3 @@
-import { Empty } from 'antd';
-
 import type { TaskPriority } from '@/api/modules/project-task.types';
 import { TaskCard } from '@/components';
 
@@ -24,17 +22,6 @@ interface SubtaskListProps {
  * 子任务列表，仅展示一级子任务。
  */
 const SubtaskList = (props: SubtaskListProps) => {
-  if (!props.subtasks.length) {
-    return (
-      <SubtaskListRoot data-subtask-list="true">
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="暂无子任务"
-        />
-      </SubtaskListRoot>
-    );
-  }
-
   return (
     <SubtaskListRoot data-subtask-list="true">
       {props.subtasks.map((subtask) => {

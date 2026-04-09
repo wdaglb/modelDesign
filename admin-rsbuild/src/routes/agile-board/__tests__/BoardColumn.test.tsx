@@ -28,6 +28,12 @@ const parentTask = {
   workDays: 3,
 } as AgileBoardTask;
 
+const childTask = {
+  ...parentTask,
+  id: 102,
+  title: '子任务 A',
+} as AgileBoardTask;
+
 describe('BoardColumn', () => {
   it('列无数据时展示 Empty 说明', () => {
     render(
@@ -70,5 +76,65 @@ describe('BoardColumn', () => {
 
     expect(shellStyle.borderTopWidth).toBe('1px');
     expect(shellStyle.boxShadow).not.toBe('none');
+  });
+
+  it('父任务无子任务时不渲染子任务区', () => {
+    const { container } = render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={[parentTask]}
+          subtaskMap={new Map()}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    expect(container.querySelector('[data-subtask-list="true"]')).toBeNull();
+    expect(screen.queryByText('暂无子任务')).toBeNull();
+  });
+
+  it('父任务有子任务时继续渲染子任务区', () => {
+    const { container } = render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={[parentTask]}
+          subtaskMap={new Map([[parentTask.id, [childTask]]])}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    expect(container.querySelector('[data-subtask-list="true"]')).toBeTruthy();
+    expect(screen.getByText('子任务 A')).toBeDefined();
+  });
+
+  it('子任务列表使用更明显的左侧缩进', () => {
+    const { container } = render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={[parentTask]}
+          subtaskMap={new Map([[parentTask.id, [childTask]]])}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    const subtaskList = container.querySelector('[data-subtask-list="true"]');
+
+    expect(subtaskList).toBeTruthy();
+
+    if (!subtaskList) {
+      return;
+    }
+
+    const subtaskStyle = window.getComputedStyle(subtaskList);
+
+    expect(subtaskStyle.paddingLeft).toBe('24px');
   });
 });
