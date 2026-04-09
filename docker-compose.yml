@@ -1,35 +1,78 @@
+name: model-design
+
 services:
-  frontend:
-    build:
-      context: ./admin-rsbuild
-      dockerfile: Dockerfile
-    container_name: model-design-frontend
-    ports:
-      - '${FRONTEND_PORT:-8080}:80'
-    depends_on:
-      - backend
+  kafka:
+    image: apache/kafka:3.9.1
+    container_name: model-design-kafka
     restart: unless-stopped
+    ports:
+      - '${KAFKA_EXTERNAL_PORT:-19092}:19092'
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # 这里使用双 listener，是因为宿主机与 compose 内容器访问 Kafka
+      # 的可达地址不同，broker 必须分别广播各自可用的地址。
+      KAFKA_LISTENERS: PLAINTEXT://:9092,EXTERNAL://:19092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: >-
+        PLAINTEXT://kafka:9092,EXTERNAL://localhost:${KAFKA_EXTERNAL_PORT:-19092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >-
+        PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
 
   backend:
     build:
       context: ./modelDesign
       dockerfile: Dockerfile
     container_name: model-design-backend
-    ports:
-      - '${BACKEND_PORT:-9999}:9999'
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST}
       SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
-      MODEL_NAME: ${MODEL_NAME}
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
+      # backend 固定通过 compose 服务名访问 Kafka，避免 broker 返回宿主机
+      # 的 localhost 地址后在容器内重连失败。
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      MODEL_NAME: ${MODEL_NAME:-MiniMax-M2.7}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-change-this-jwt-secret-change-this-jwt-secret}
+      MODEL_DESIGN_AI_ENABLED: ${MODEL_DESIGN_AI_ENABLED:-false}
       MODEL_DESIGN_FILE_STORAGE_PATH: ${MODEL_DESIGN_FILE_STORAGE_PATH:-/app/storage}
+    ports:
+      - '${BACKEND_PORT:-9999}:9999'
     volumes:
-      - ./docker-data/storage:/app/storage
+      - ./data:/app/storage
     extra_hosts:
-      - 'host.docker.internal:host-gateway'
+      - "host.docker.internal:host-gateway"
+  
+  frontend:
+    build:
+      context: ./admin-rsbuild
+      dockerfile: Dockerfile
+    container_name: model-design-frontend
     restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - '${FRONTEND_PORT:-8080}:80'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  kafka_data:

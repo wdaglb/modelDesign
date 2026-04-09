@@ -1,0 +1,22 @@
+# 依赖与构建产物（Token 消耗大户，强烈建议忽略）
+node_modules/
+dist/
+build/
+.next/
+__pycache__/
+*.lock
+
+# 版本控制与 IDE 配置
+.git/
+.idea/
+.vscode/
+
+# 静态资源与缓存
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.ico
+.cache/
+coverage/
+

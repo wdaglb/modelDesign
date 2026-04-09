@@ -4,9 +4,9 @@ WORKDIR /app
 
 COPY . .
 
-RUN mvn -pl boot -am clean package -DskipTests
+RUN mvn -pl boot -am clean package -Dmaven.test.skip=true
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
