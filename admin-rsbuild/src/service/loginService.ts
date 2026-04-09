@@ -1,5 +1,5 @@
 import { RequestError } from '@/api/types.ts';
-import { redirect } from '@tanstack/react-router';
+import { isRedirect, redirect } from '@tanstack/react-router';
 
 import { router } from '@/App.tsx';
 import { ApiPassport } from '@/api';
@@ -50,13 +50,19 @@ export const logout = async (requestLogout = false) => {
 };
 
 /**
- * 初始化错误处理
- * @param err
+ * 运行期登录态异常处理。
+ *
+ * 说明：
+ * 首屏初始化阶段的 401 已由根路由守卫直接重定向处理，
+ * 这里仅保留运行期兜底，避免在路由 pending 中等待弹窗确认。
+ *
+ * @param err 异常对象
  */
 export const initErrorHandler = async (err: unknown) => {
-  // if (isRedirect(err)) {
-  //   throw err;
-  // }
+  if (isRedirect(err)) {
+    throw err;
+  }
+
   if (err instanceof RequestError) {
     if (err.code === 401) {
       await KModal.confirm({

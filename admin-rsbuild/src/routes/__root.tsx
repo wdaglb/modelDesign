@@ -1,27 +1,25 @@
 import {
   createRootRoute,
   Outlet,
-  ParsedLocation,
   useLocation,
-  useNavigate,
   useRouter,
 } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { Helmet } from 'react-helmet-async';
-import Layout from '../layout';
-import useAuthStore from '@/store/auth.ts';
 import { memo } from 'react';
-import initialState from '@/initialState.ts';
-import { PageLoading } from '@/components';
-import { initErrorHandler } from '@/service/loginService.ts';
-import { useQuery } from '@tanstack/react-query';
+import { Helmet } from 'react-helmet-async';
 
-// 不需要布局的固定路径
+import { runAuthGuard } from '@/initialState.ts';
+
+import Layout from '../layout';
+
 const noLayoutPaths = ['/login'];
 
 /**
  * 判断当前路径是否使用独立页面布局。
  * 项目相关页面需要隐藏侧栏菜单，直接以独立页面展示。
+ *
+ * @param pathname 当前路径
+ * @returns 是否使用独立页面布局
  */
 const isStandalonePage = (pathname: string) => {
   if (noLayoutPaths.includes(pathname)) {
@@ -31,54 +29,33 @@ const isStandalonePage = (pathname: string) => {
   return false;
 };
 
-const loginHandle = async (location: ParsedLocation) => {
-  try {
-    await initialState({ location });
-  } catch (err) {
-    await initErrorHandler(err);
-  }
-};
-
 export const Route = createRootRoute({
   component: RootComponent,
   beforeLoad: async (opts) => {
-    const { context, location } = opts;
-    const authStore = useAuthStore.getState();
-    if (!authStore.currentInfo && authStore.loadState === 0) {
-      await loginHandle(location);
-    }
+    const { location } = opts;
+    await runAuthGuard(location);
   },
 });
 
-const LayoutComponent = memo(
-  (props: { pathname: string; loading: boolean }) => {
-    if (isStandalonePage(props.pathname)) {
-      return <Outlet />;
-    }
-    if (props.loading) {
-      return <PageLoading />;
-    }
-    return <Layout />;
-  },
-);
+const LayoutComponent = memo((props: { pathname: string }) => {
+  if (isStandalonePage(props.pathname)) {
+    return <Outlet />;
+  }
+
+  return <Layout />;
+});
 
 function RootComponent() {
   const router = useRouter();
   const location = useLocation();
-  // @ts-ignore
-  const route = router.routesByPath[location.pathname];
-  const navigate = useNavigate();
+  const routeMap = router.routesByPath as Record<string, { title?: string }>;
+  /**
+   * 路由生成文件按 path 建立索引。
+   * 这里直接读取命中的路由元信息，用于设置页面标题。
+   */
+  const route = routeMap[location.pathname];
 
   const title = route?.title ?? '';
-
-  const { isLoading } = useQuery({
-    queryKey: ['initState'],
-    staleTime: 0,
-    enabled: location.pathname !== '/login',
-    queryFn: async () => {
-      await loginHandle(location);
-    },
-  });
 
   return (
     <>
@@ -88,7 +65,7 @@ function RootComponent() {
         </title>
       </Helmet>
 
-      <LayoutComponent pathname={location.pathname} loading={isLoading} />
+      <LayoutComponent pathname={location.pathname} />
 
       <TanStackRouterDevtools />
     </>
