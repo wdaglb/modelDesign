@@ -8,6 +8,7 @@ import io.github.modelDesign.auth.enums.LoginFailureReasonEnum;
 import io.github.modelDesign.common.exception.BusinessException;
 import io.github.modelDesign.auth.request.ChangePasswordRequest;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
+import io.github.modelDesign.auth.request.RegisterRequest;
 import io.github.modelDesign.auth.request.UpdateCurrentProfileRequest;
 import io.github.modelDesign.auth.response.CurrentInfoVo;
 import io.github.modelDesign.auth.response.LoginHistoryVo;
@@ -153,30 +154,29 @@ public class AuthService {
             );
         }
         tenantService.validateLoginTenant(user.getTenantId());
+        return createLoginResponse(user, loginIp, userAgent, clientInfo);
+    }
 
-        CurrentAdmin currentAdmin = CurrentAdmin.builder()
-                .userId(user.getId())
-                .tenantId(user.getTenantId())
-                .username(user.getUsername())
-                .nickname(user.getNickname())
-                .avatarId(user.getAvatarId())
-                .loginId(UUID.randomUUID().toString().replace("-", ""))
-                .loginIp(loginIp)
-                .tokenCreateTime(LocalDateTime.now())
-                .build();
-        sessionRepository.save(currentAdmin);
-
-        userService.lambdaUpdate()
-                .eq(User::getId, user.getId())
-                .set(User::getLastLoginIp, currentAdmin.getLoginIp())
-                .set(User::getLastLoginTime, currentAdmin.getTokenCreateTime())
-                .update();
-        recordSuccessAudit(currentAdmin, userAgent, clientInfo);
-
-        return UserLoginVo.builder()
-                .token(tokenService.createToken(currentAdmin))
-                .expireTime(tokenService.getExpireTime())
-                .build();
+    /**
+     * 匿名注册并自动登录。
+     *
+     * @param request     注册请求
+     * @param httpRequest HTTP 请求
+     * @return 登录响应
+     */
+    public UserLoginVo register(RegisterRequest request, HttpServletRequest httpRequest) {
+        Long tenantId = tenantService.requireAssignableTenantId(request.getTenantId());
+        User user = userService.createUser(
+                request.getNickname(),
+                request.getUsername(),
+                tenantId,
+                request.getPassword(),
+                false
+        );
+        String loginIp = resolveIp(httpRequest);
+        String userAgent = resolveUserAgent(httpRequest);
+        LoginClientInfo clientInfo = loginClientInfoResolver.resolve(userAgent);
+        return createLoginResponse(user, loginIp, userAgent, clientInfo);
     }
 
     /**
@@ -281,6 +281,46 @@ public class AuthService {
      */
     private String resolveUserAgent(HttpServletRequest request) {
         return normalizeAuditValue(request.getHeader("User-Agent"), "");
+    }
+
+    /**
+     * 创建登录会话并返回令牌响应。
+     *
+     * 这里被密码登录和注册成功共用，确保登录成功后的会话保存、
+     * 用户最近登录信息更新以及审计写入行为保持一致。
+     *
+     * @param user       用户实体
+     * @param loginIp    登录 IP
+     * @param userAgent  用户代理
+     * @param clientInfo 客户端解析信息
+     * @return 登录响应
+     */
+    private UserLoginVo createLoginResponse(User user, String loginIp,
+                                            String userAgent,
+                                            LoginClientInfo clientInfo) {
+        CurrentAdmin currentAdmin = CurrentAdmin.builder()
+                .userId(user.getId())
+                .tenantId(user.getTenantId())
+                .username(user.getUsername())
+                .nickname(user.getNickname())
+                .avatarId(user.getAvatarId())
+                .loginId(UUID.randomUUID().toString().replace("-", ""))
+                .loginIp(loginIp)
+                .tokenCreateTime(LocalDateTime.now())
+                .build();
+        sessionRepository.save(currentAdmin);
+
+        userService.lambdaUpdate()
+                .eq(User::getId, user.getId())
+                .set(User::getLastLoginIp, currentAdmin.getLoginIp())
+                .set(User::getLastLoginTime, currentAdmin.getTokenCreateTime())
+                .update();
+        recordSuccessAudit(currentAdmin, userAgent, clientInfo);
+
+        return UserLoginVo.builder()
+                .token(tokenService.createToken(currentAdmin))
+                .expireTime(tokenService.getExpireTime())
+                .build();
     }
 
     /**

@@ -9,6 +9,7 @@ import io.github.modelDesign.auth.enums.LoginAuditStatusEnum;
 import io.github.modelDesign.auth.enums.LoginDeviceTypeEnum;
 import io.github.modelDesign.auth.enums.LoginFailureReasonEnum;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
+import io.github.modelDesign.auth.request.RegisterRequest;
 import io.github.modelDesign.auth.response.UserLoginVo;
 import io.github.modelDesign.auth.session.CurrentAdmin;
 import io.github.modelDesign.auth.session.SessionRepository;
@@ -149,6 +150,139 @@ class AuthServiceTest {
         assertEquals("Windows", command.getOsName());
         assertEquals("11", command.getOsVersion());
         assertEquals(LoginDeviceTypeEnum.DESKTOP, command.getDeviceType());
+    }
+
+    /**
+     * 注册成功后应创建启用用户并直接返回登录态。
+     */
+    @Test
+    void registerShouldCreateEnabledUserAndReturnLoginVo() {
+        FakeUserService userService = new FakeUserService();
+        FakeSessionRepository sessionRepository = new FakeSessionRepository();
+        FakeTenantService tenantService = new FakeTenantService();
+        FakeTokenService tokenService = new FakeTokenService();
+        FakeUserLoginHistoryService userLoginHistoryService =
+                new FakeUserLoginHistoryService();
+        FakeLoginClientInfoResolver clientInfoResolver =
+                new FakeLoginClientInfoResolver();
+        clientInfoResolver.nextClientInfo = LoginClientInfo.builder()
+                .browserName("Chrome")
+                .browserVersion("136.0.0")
+                .osName("macOS")
+                .osVersion("15")
+                .deviceType(LoginDeviceTypeEnum.DESKTOP)
+                .build();
+        tokenService.tokenToReturn = "register-token";
+        tokenService.expireTimeToReturn = 888L;
+        tenantService.tenantById = buildEnabledTenant(3003L);
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        httpRequest.setRemoteAddr("10.10.10.10");
+        httpRequest.addHeader("User-Agent", "Mozilla/5.0");
+
+        AuthService authService = new AuthService(
+                userService,
+                sessionRepository,
+                tenantService,
+                tokenService,
+                userLoginHistoryService,
+                clientInfoResolver
+        );
+
+        UserLoginVo loginVo = authService.register(
+                buildRegisterRequest("新人", "new-user", 3003L, "md5-password"),
+                httpRequest
+        );
+
+        assertEquals("register-token", loginVo.getToken());
+        assertEquals(888L, loginVo.getExpireTime());
+        assertNotNull(userService.savedUser);
+        assertEquals("新人", userService.savedUser.getNickname());
+        assertEquals("new-user", userService.savedUser.getUsername());
+        assertEquals(3003L, userService.savedUser.getTenantId());
+        assertEquals(1, userService.savedUser.getStatus());
+        assertNotNull(userService.savedUser.getPasswordHash());
+        assertFalse(userService.savedUser.getPasswordHash().isBlank());
+        assertNotNull(sessionRepository.savedAdmin);
+        assertEquals("new-user", sessionRepository.savedAdmin.getUsername());
+        assertEquals(3003L, sessionRepository.savedAdmin.getTenantId());
+        assertNotNull(userLoginHistoryService.lastCommand);
+        assertEquals(LoginAuditStatusEnum.SUCCESS,
+                userLoginHistoryService.lastCommand.getLoginStatus());
+    }
+
+    /**
+     * 注册时若用户名重复，应拒绝创建用户。
+     */
+    @Test
+    void registerShouldRejectDuplicateUsername() {
+        FakeUserService userService = new FakeUserService();
+        FakeSessionRepository sessionRepository = new FakeSessionRepository();
+        FakeTenantService tenantService = new FakeTenantService();
+        FakeTokenService tokenService = new FakeTokenService();
+        FakeUserLoginHistoryService userLoginHistoryService =
+                new FakeUserLoginHistoryService();
+        FakeLoginClientInfoResolver clientInfoResolver =
+                new FakeLoginClientInfoResolver();
+        tenantService.tenantById = buildEnabledTenant(3003L);
+        userService.userByUsername = buildEnabledUser();
+
+        AuthService authService = new AuthService(
+                userService,
+                sessionRepository,
+                tenantService,
+                tokenService,
+                userLoginHistoryService,
+                clientInfoResolver
+        );
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> authService.register(
+                        buildRegisterRequest("新人", "alice", 3003L,
+                                "md5-password"),
+                        new MockHttpServletRequest()
+                )
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST.value(), exception.getStatus());
+        assertEquals("用户名已存在", exception.getMessage());
+    }
+
+    /**
+     * 注册时若租户被禁用，应直接拒绝。
+     */
+    @Test
+    void registerShouldRejectDisabledTenant() {
+        FakeUserService userService = new FakeUserService();
+        FakeSessionRepository sessionRepository = new FakeSessionRepository();
+        FakeTenantService tenantService = new FakeTenantService();
+        FakeTokenService tokenService = new FakeTokenService();
+        FakeUserLoginHistoryService userLoginHistoryService =
+                new FakeUserLoginHistoryService();
+        FakeLoginClientInfoResolver clientInfoResolver =
+                new FakeLoginClientInfoResolver();
+        tenantService.tenantById = buildDisabledTenant(3003L);
+
+        AuthService authService = new AuthService(
+                userService,
+                sessionRepository,
+                tenantService,
+                tokenService,
+                userLoginHistoryService,
+                clientInfoResolver
+        );
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> authService.register(
+                        buildRegisterRequest("新人", "new-user", 3003L,
+                                "md5-password"),
+                        new MockHttpServletRequest()
+                )
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST.value(), exception.getStatus());
+        assertEquals("租户已被禁用，不能继续分配", exception.getMessage());
     }
 
     /**
@@ -363,6 +497,26 @@ class AuthServiceTest {
     }
 
     /**
+     * 组装注册请求对象。
+     *
+     * @param nickname 用户昵称
+     * @param username 用户名
+     * @param tenantId 租户 ID
+     * @param password 密码摘要
+     * @return 注册请求
+     */
+    private RegisterRequest buildRegisterRequest(String nickname, String username,
+                                                 Long tenantId,
+                                                 String password) {
+        RegisterRequest request = new RegisterRequest();
+        request.setNickname(nickname);
+        request.setUsername(username);
+        request.setTenantId(tenantId);
+        request.setPassword(password);
+        return request;
+    }
+
+    /**
      * 组装启用中的用户实体。
      *
      * @return 用户实体
@@ -394,6 +548,20 @@ class AuthServiceTest {
     }
 
     /**
+     * 构造启用租户实体。
+     *
+     * @param tenantId 租户 ID
+     * @return 租户实体
+     */
+    private Tenant buildEnabledTenant(Long tenantId) {
+        Tenant tenant = new Tenant();
+        tenant.setId(tenantId);
+        tenant.setStatus(1);
+        tenant.setDeleted(0);
+        return tenant;
+    }
+
+    /**
      * 用户服务测试替身。
      */
     private static final class FakeUserService extends UserService {
@@ -406,6 +574,11 @@ class AuthServiceTest {
          * 最近一次创建的更新链。
          */
         private FakeLambdaUpdateChainWrapper lastUpdateChain;
+
+        /**
+         * 最近一次保存的用户。
+         */
+        private User savedUser;
 
         FakeUserService() {
             super(
@@ -424,6 +597,36 @@ class AuthServiceTest {
         public LambdaUpdateChainWrapper<User> lambdaUpdate() {
             lastUpdateChain = new FakeLambdaUpdateChainWrapper();
             return lastUpdateChain;
+        }
+
+        @Override
+        public User createUser(String nickname, String username, Long tenantId,
+                               String password, Boolean isDisable) {
+            if (userByUsername != null) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST.value(),
+                        "用户名已存在");
+            }
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+            User user = new User();
+            user.setId(9999L);
+            user.setNickname(nickname);
+            user.setUsername(username);
+            user.setTenantId(tenantId);
+            user.setStatus(1);
+            user.setPasswordHash(encoder.encode(password));
+            savedUser = user;
+            userByUsername = user;
+            return user;
+        }
+
+        @Override
+        public boolean save(User entity) {
+            savedUser = entity;
+            if (entity.getId() == null) {
+                entity.setId(9999L);
+            }
+            userByUsername = entity;
+            return true;
         }
     }
 
@@ -542,6 +745,22 @@ class AuthServiceTest {
         @Override
         public Tenant getById(Serializable id) {
             return tenantById;
+        }
+
+        @Override
+        public Long requireAssignableTenantId(Long tenantId) {
+            Tenant tenant = tenantById;
+            if (tenant == null || tenant.getId() == null
+                    || !tenant.getId().equals(tenantId)
+                    || Integer.valueOf(1).equals(tenant.getDeleted())) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST.value(),
+                        "租户不存在");
+            }
+            if (!Integer.valueOf(1).equals(tenant.getStatus())) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST.value(),
+                        "租户已被禁用，不能继续分配");
+            }
+            return tenantId;
         }
     }
 

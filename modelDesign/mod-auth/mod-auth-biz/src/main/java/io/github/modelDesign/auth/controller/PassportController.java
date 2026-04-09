@@ -2,6 +2,7 @@ package io.github.modelDesign.auth.controller;
 
 import io.github.modelDesign.auth.request.ChangePasswordRequest;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
+import io.github.modelDesign.auth.request.RegisterRequest;
 import io.github.modelDesign.auth.request.UpdateCurrentProfileRequest;
 import io.github.modelDesign.auth.response.CurrentInfoVo;
 import io.github.modelDesign.auth.response.LoginHistoryVo;
@@ -52,6 +53,20 @@ public class PassportController {
     public UserLoginVo passwordLogin(@Valid @RequestBody PasswordLoginRequest request,
                                      HttpServletRequest httpRequest) {
         return authService.passwordLogin(request, httpRequest);
+    }
+
+    /**
+     * 匿名用户注册。
+     *
+     * @param request     注册请求
+     * @param httpRequest HTTP 请求
+     * @return 登录响应
+     */
+    @Operation(summary = "匿名用户注册")
+    @PostMapping("/register")
+    public UserLoginVo register(@Valid @RequestBody RegisterRequest request,
+                                HttpServletRequest httpRequest) {
+        return authService.register(request, httpRequest);
     }
 
     /**

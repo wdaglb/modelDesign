@@ -7,7 +7,10 @@ import { z } from 'zod';
 import { ApiPassport } from '@/api';
 import useAuthStore from '@/store/auth.ts';
 
-import LoginPage, { type LoginFormValues } from './#LoginPage';
+import LoginPage, {
+  type LoginFormValues,
+  type RegisterSubmitValues,
+} from './#LoginPage';
 
 const searchSchema = z.object({
   redirect: z.string().optional().default('/'),
@@ -36,7 +39,8 @@ function RouteComponent() {
   const [activePanel, setActivePanel] = useState<PanelType>('skeleton');
 
   /** 面板切换过渡状态 */
-  const [transitionState, setTransitionState] = useState<TransitionState>('idle');
+  const [transitionState, setTransitionState] =
+    useState<TransitionState>('idle');
 
   /** 面板切换目标 */
   const pendingPanelRef = useRef<PanelType | null>(null);
@@ -52,6 +56,14 @@ function RouteComponent() {
         title: '登录失败',
         content: error.message || '登录失败，请稍后重试',
       });
+    },
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: ApiPassport.register,
+    onSuccess: (data) => {
+      setToken(data.token);
+      navigate({ to: search.redirect, replace: true });
     },
   });
 
@@ -97,9 +109,13 @@ function RouteComponent() {
       activePanel={activePanel}
       transitionState={transitionState}
       loading={mutation.isPending}
+      registerLoading={registerMutation.isPending}
       errorMessage={errorMessage}
       onSubmit={(values: LoginFormValues) => {
         return mutation.mutateAsync(values);
+      }}
+      onRegisterSubmit={(values: RegisterSubmitValues) => {
+        return registerMutation.mutateAsync(values);
       }}
       onSwitchPanel={switchPanel}
       onTransitionEnd={handleTransitionEnd}

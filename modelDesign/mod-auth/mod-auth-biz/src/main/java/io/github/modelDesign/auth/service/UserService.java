@@ -152,14 +152,13 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @return 用户列表项
      */
     public UserListItemVo add(UserAddRequest request) {
-        validateUsername(request.getUsername(), null);
-        User user = new User();
-        user.setNickname(request.getNickname().trim());
-        user.setUsername(request.getUsername().trim());
-        user.setTenantId(resolveTenantIdForCreate(request.getTenantId()));
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setStatus(resolveStatus(request.getIsDisable()));
-        save(user);
+        User user = createUser(
+                request.getNickname(),
+                request.getUsername(),
+                resolveTenantIdForCreate(request.getTenantId()),
+                request.getPassword(),
+                request.getIsDisable()
+        );
         return toUserListItem(user);
     }
 
@@ -234,6 +233,32 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
     }
 
     /**
+     * 创建用户实体并落库。
+     *
+     * 该方法同时服务于后台新增用户和公开注册场景，统一约束
+     * 用户名唯一性、昵称/用户名去空格以及密码编码规则，避免两处逻辑漂移。
+     *
+     * @param nickname 原始昵称
+     * @param username 原始用户名
+     * @param tenantId 已校验可分配的租户 ID
+     * @param password 前端传入的 md5 密码摘要
+     * @param isDisable 是否禁用
+     * @return 已保存的用户实体
+     */
+    public User createUser(String nickname, String username, Long tenantId,
+                           String password, Boolean isDisable) {
+        validateUsername(username, null);
+        User user = new User();
+        user.setNickname(normalizeNickname(nickname));
+        user.setUsername(normalizeUsername(username));
+        user.setTenantId(tenantId);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setStatus(resolveStatus(isDisable));
+        save(user);
+        return user;
+    }
+
+    /**
      * 校验用户名唯一性。
      *
      * 编辑场景下会排除当前用户自身，避免“用户名未改动”时误报重复。
@@ -242,10 +267,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @param currentId 当前用户 ID，可为空
      */
     private void validateUsername(String username, Long currentId) {
-        String normalizedUsername = null;
-        if (username != null) {
-            normalizedUsername = username.trim();
-        }
+        String normalizedUsername = normalizeUsername(username);
         if (!StringUtils.hasText(normalizedUsername)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "用户名不能为空");
         }
@@ -433,5 +455,36 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
             return null;
         }
         return currentAdmin.getTenantId();
+    }
+
+    /**
+     * 规范化昵称。
+     *
+     * @param nickname 原始昵称
+     * @return 去空格后的昵称
+     */
+    private String normalizeNickname(String nickname) {
+        String normalizedNickname = "";
+        if (nickname != null) {
+            normalizedNickname = nickname.trim();
+        }
+        if (!StringUtils.hasText(normalizedNickname)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "用户昵称不能为空");
+        }
+        return normalizedNickname;
+    }
+
+    /**
+     * 规范化用户名。
+     *
+     * @param username 原始用户名
+     * @return 去空格后的用户名
+     */
+    private String normalizeUsername(String username) {
+        String normalizedUsername = "";
+        if (username != null) {
+            normalizedUsername = username.trim();
+        }
+        return normalizedUsername;
     }
 }

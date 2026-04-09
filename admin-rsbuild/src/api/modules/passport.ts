@@ -3,7 +3,9 @@ import { md5 } from 'js-md5';
 import {
   CurrentInfoVo,
   LoginHistoryVo,
+  PassportLoginVo,
   PassportCurrentPermission,
+  RegisterParams,
   UpdateCurrentProfileParams,
 } from './passport.types.ts';
 
@@ -44,7 +46,20 @@ export const getCurrentPermission = () => {
  * 密码登录
  */
 export const passwordLogin = (data: any) => {
-  return request('/passport/password_login', {
+  return request<PassportLoginVo>('/passport/password_login', {
+    method: 'post',
+    data: {
+      ...data,
+      password: md5(data.password),
+    },
+  });
+};
+
+/**
+ * 匿名注册并自动登录。
+ */
+export const register = (data: RegisterParams) => {
+  return request<PassportLoginVo>('/passport/register', {
     method: 'post',
     data: {
       ...data,

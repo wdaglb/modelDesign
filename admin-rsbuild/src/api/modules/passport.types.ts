@@ -35,6 +35,48 @@ export interface CurrentInfoVo {
 }
 
 /**
+ * 登录响应。
+ */
+export interface PassportLoginVo {
+  /**
+   * 访问令牌。
+   */
+  token: string;
+
+  /**
+   * 令牌过期时间戳，单位毫秒。
+   */
+  expireTime: number;
+}
+
+/**
+ * 注册请求参数。
+ */
+export interface RegisterParams {
+  /**
+   * 用户昵称。
+   */
+  nickname: string;
+
+  /**
+   * 用户名。
+   */
+  username: string;
+
+  /**
+   * 租户 ID。
+   */
+  tenantId: number;
+
+  /**
+   * 用户密码。
+   *
+   * 前端发送前会先做一次 md5，后端再继续进行 BCrypt 编码。
+   */
+  password: string;
+}
+
+/**
  * 更新当前登录用户基础资料参数。
  */
 export interface UpdateCurrentProfileParams {

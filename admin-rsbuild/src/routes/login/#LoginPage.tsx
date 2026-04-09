@@ -24,12 +24,39 @@ import type { PanelType, TransitionState } from './index';
 
 export type { LoginFormValues };
 
+/**
+ * 注册提交参数。
+ */
+export interface RegisterSubmitValues {
+  /**
+   * 用户昵称。
+   */
+  nickname: string;
+
+  /**
+   * 用户名。
+   */
+  username: string;
+
+  /**
+   * 租户 ID。
+   */
+  tenantId: number;
+
+  /**
+   * 注册密码。
+   */
+  password: string;
+}
+
 interface LoginPageProps {
   activePanel: PanelType;
   transitionState: TransitionState;
   loading: boolean;
+  registerLoading: boolean;
   errorMessage?: string;
   onSubmit: (values: LoginFormValues) => Promise<void> | void;
+  onRegisterSubmit: (values: RegisterSubmitValues) => Promise<void> | void;
   onSwitchPanel: (target: PanelType) => void;
   onTransitionEnd: () => void;
   onSkeletonReady: () => void;
@@ -121,9 +148,11 @@ function LoginPage(props: LoginPageProps) {
 
       <LoginRegisterModal
         open={registerOpen}
+        loading={props.registerLoading}
         onClose={() => {
           setRegisterOpen(false);
         }}
+        onSubmit={props.onRegisterSubmit}
       />
 
       <LoginForgotPasswordModal
