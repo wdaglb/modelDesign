@@ -52,7 +52,7 @@ services:
       MODEL_NAME: ${MODEL_NAME:-MiniMax-M2.7}
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-change-this-jwt-secret-change-this-jwt-secret}
       MODEL_DESIGN_AI_ENABLED: ${MODEL_DESIGN_AI_ENABLED:-false}
-      MODEL_DESIGN_FILE_STORAGE_PATH: ${MODEL_DESIGN_FILE_STORAGE_PATH:-/app/storage}
+      MODEL_DESIGN_FILE_STORAGE_PATH: ${MODEL_DESIGN_FILE_STORAGE_PATH:-/app/storage/}
     ports:
       - '${BACKEND_PORT:-9999}:9999'
     volumes:
