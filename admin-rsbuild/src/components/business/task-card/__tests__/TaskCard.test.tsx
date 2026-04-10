@@ -1,9 +1,33 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { message } from 'antd';
+import ClipboardJS from 'clipboard';
 
 import TaskCard from '../TaskCard';
 import type { TaskCardTask } from '../TaskCard.types';
+
+const clipboardMockState = vi.hoisted(() => {
+  return {
+    handlers: {} as Record<string, (() => void) | undefined>,
+    destroy: vi.fn(),
+  };
+});
+
+vi.mock('clipboard', () => {
+  return {
+    default: vi.fn().mockImplementation(() => {
+      clipboardMockState.handlers = {};
+      clipboardMockState.destroy = vi.fn();
+
+      return {
+        on(eventName: string, handler: () => void) {
+          clipboardMockState.handlers[eventName] = handler;
+        },
+        destroy: clipboardMockState.destroy,
+      };
+    }),
+  };
+});
 
 const baseTask: TaskCardTask = {
   id: 101,
@@ -16,12 +40,15 @@ const baseTask: TaskCardTask = {
   workDays: 2,
 };
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  clipboardMockState.handlers = {};
+  clipboardMockState.destroy = vi.fn();
+});
+
 describe('TaskCard', () => {
   it('点击左上角任务编号时复制内容并拦截详情打开', async () => {
     const onPreview = vi.fn();
-    const writeTextMock = vi
-      .spyOn(navigator.clipboard, 'writeText')
-      .mockResolvedValue(undefined);
     const successMock = vi
       .spyOn(message, 'success')
       .mockImplementation(() => {
@@ -34,12 +61,12 @@ describe('TaskCard', () => {
 
     expect(taskNumber).toBeDefined();
     expect(taskNumber.getAttribute('data-task-card-copy-trigger')).toBe('true');
+    expect(taskNumber.getAttribute('data-clipboard-text')).toBe('TASK-101');
+    expect(ClipboardJS).toHaveBeenCalled();
 
     fireEvent.click(taskNumber);
+    clipboardMockState.handlers.success?.();
 
-    await waitFor(() => {
-      expect(writeTextMock).toHaveBeenCalledWith('TASK-101');
-    });
     await waitFor(() => {
       expect(successMock).toHaveBeenCalledWith('任务编号已复制');
     });
@@ -47,9 +74,6 @@ describe('TaskCard', () => {
   });
 
   it('任务编号复制失败时给出错误提示', async () => {
-    const writeTextMock = vi
-      .spyOn(navigator.clipboard, 'writeText')
-      .mockRejectedValue(new Error('denied'));
     const errorMock = vi.spyOn(message, 'error').mockImplementation(() => {
       return undefined as never;
     });
@@ -57,10 +81,8 @@ describe('TaskCard', () => {
     render(<TaskCard task={baseTask} />);
 
     fireEvent.click(screen.getByText('# TASK-101'));
+    clipboardMockState.handlers.error?.();
 
-    await waitFor(() => {
-      expect(writeTextMock).toHaveBeenCalledWith('TASK-101');
-    });
     await waitFor(() => {
       expect(errorMock).toHaveBeenCalledWith('任务编号复制失败，请稍后重试');
     });
