@@ -60,6 +60,11 @@ export interface UserPageParams {
   pageSize?: number;
 
   /**
+   * 统一关键字搜索，支持用户名、昵称和纯数字用户 ID。
+   */
+  keyword?: string;
+
+  /**
    * 按用户 ID 集合筛选。
    */
   ids?: number[];
