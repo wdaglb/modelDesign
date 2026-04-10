@@ -22,6 +22,7 @@ import { Route as SystemTenantIndexRouteImport } from './routes/system/tenant/in
 import { Route as SystemRoleIndexRouteImport } from './routes/system/role/index'
 import { Route as SystemPositionIndexRouteImport } from './routes/system/position/index'
 import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
+import { Route as SystemFileConfigIndexRouteImport } from './routes/system/file-config/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
 import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$projectId.tasks'
 import { Route as ProjectProjectIdTablesRouteImport } from './routes/project/$projectId.tables'
@@ -93,6 +94,11 @@ const SystemMenuIndexRoute = SystemMenuIndexRouteImport.update({
   path: '/system/menu/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SystemFileConfigIndexRoute = SystemFileConfigIndexRouteImport.update({
+  id: '/system/file-config/',
+  path: '/system/file-config/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectProjectIdIndexRoute = ProjectProjectIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
+  '/system/file-config/': typeof SystemFileConfigIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
   '/system/position/': typeof SystemPositionIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
+  '/system/file-config': typeof SystemFileConfigIndexRoute
   '/system/menu': typeof SystemMenuIndexRoute
   '/system/position': typeof SystemPositionIndexRoute
   '/system/role': typeof SystemRoleIndexRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
+  '/system/file-config/': typeof SystemFileConfigIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
   '/system/position/': typeof SystemPositionIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/project/$projectId/'
+    | '/system/file-config/'
     | '/system/menu/'
     | '/system/position/'
     | '/system/role/'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/project/$projectId'
+    | '/system/file-config'
     | '/system/menu'
     | '/system/position'
     | '/system/role'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/project/$projectId/'
+    | '/system/file-config/'
     | '/system/menu/'
     | '/system/position/'
     | '/system/role/'
@@ -251,6 +263,7 @@ export interface RootRouteChildren {
   LoginIndexRoute: typeof LoginIndexRoute
   PersonalCenterIndexRoute: typeof PersonalCenterIndexRoute
   ProjectIndexRoute: typeof ProjectIndexRoute
+  SystemFileConfigIndexRoute: typeof SystemFileConfigIndexRoute
   SystemMenuIndexRoute: typeof SystemMenuIndexRoute
   SystemPositionIndexRoute: typeof SystemPositionIndexRoute
   SystemRoleIndexRoute: typeof SystemRoleIndexRoute
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemMenuIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/system/file-config/': {
+      id: '/system/file-config/'
+      path: '/system/file-config'
+      fullPath: '/system/file-config/'
+      preLoaderRoute: typeof SystemFileConfigIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$projectId/': {
       id: '/project/$projectId/'
       path: '/'
@@ -416,6 +436,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginIndexRoute: LoginIndexRoute,
   PersonalCenterIndexRoute: PersonalCenterIndexRoute,
   ProjectIndexRoute: ProjectIndexRoute,
+  SystemFileConfigIndexRoute: SystemFileConfigIndexRoute,
   SystemMenuIndexRoute: SystemMenuIndexRoute,
   SystemPositionIndexRoute: SystemPositionIndexRoute,
   SystemRoleIndexRoute: SystemRoleIndexRoute,

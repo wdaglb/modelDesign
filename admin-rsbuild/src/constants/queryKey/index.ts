@@ -1,3 +1,4 @@
+import * as fileAccessConfig from './fileAccessConfig';
 import * as systemPolicy from './systemPolicy';
 import * as systemMessage from './systemMessage';
 import * as passport from './passport';
@@ -10,6 +11,7 @@ import * as todo from './todo';
 import * as user from './user';
 
 const queryKey = {
+  fileAccessConfig,
   passport,
   position,
   systemPolicy,

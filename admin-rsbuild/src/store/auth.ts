@@ -1,4 +1,5 @@
 import { ParsedLocation } from '@tanstack/react-router';
+import { clearCurrentConfigCache } from '@/api/modules/file-access-config';
 import { ApiPassport } from '@/api';
 import { RequestError } from '@/api/types.ts';
 import {
@@ -124,6 +125,7 @@ const useAuthStore = create<AuthStore>((set, get) => {
     },
     setToken(token) {
       localStorage.setItem('token', token);
+      clearCurrentConfigCache();
       set({ token });
     },
     setCurrentInfo(currentInfo) {
@@ -132,6 +134,7 @@ const useAuthStore = create<AuthStore>((set, get) => {
     clearAuth() {
       authInitPromise = null;
       localStorage.removeItem('token');
+      clearCurrentConfigCache();
       set({
         token: '',
         currentInfo: undefined,

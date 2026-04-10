@@ -1,4 +1,5 @@
 import * as ApiFile from './modules/file';
+import * as ApiFileAccessConfig from './modules/file-access-config';
 import * as ApiPassport from './modules/passport';
 import * as ApiPosition from './modules/position';
 import * as ApiProjectMember from './modules/project-member';
@@ -17,6 +18,7 @@ import * as ApiUser from './modules/user';
 
 export {
   ApiFile,
+  ApiFileAccessConfig,
   ApiMenu,
   ApiPassport,
   ApiPosition,
