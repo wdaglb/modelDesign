@@ -7,6 +7,8 @@ import { ApiMenu, ApiRole } from '@/api';
 import { Role } from '@/api/modules/role';
 import { modalContext } from '@/components/KModal/Modal.tsx';
 import queryKey from '@/constants/queryKey';
+import useAuthStore from '@/store/auth.ts';
+import { filterAssignableMenuNodes } from '@/utils/permission.ts';
 
 interface Props {
   role: Role;
@@ -86,6 +88,7 @@ function collectWithAncestors(checkedNames: string[], menus: any[]): string[] {
 const MenuPermissionPanel = ({ role }: { role: Role }) => {
   const ctx = useContext(modalContext);
   const queryClient = useQueryClient();
+  const currentInfo = useAuthStore((state) => state.currentInfo);
 
   const { data: menuList = [], isLoading: menuLoading } = useQuery({
     // 使用独立 key，避免与菜单管理页面的树形缓存（systemPolicy.list）冲突
@@ -110,7 +113,14 @@ const MenuPermissionPanel = ({ role }: { role: Role }) => {
     }
   }, [permission]);
 
-  const menus = menuList as any[];
+  const menus = useMemo(() => {
+    const rawMenus = menuList as any[];
+    return filterAssignableMenuNodes(
+      rawMenus,
+      currentInfo?.tenantId,
+      currentInfo?.userId,
+    );
+  }, [currentInfo?.tenantId, currentInfo?.userId, menuList]);
 
   // 所有菜单 name 列表，用于全选
   const allKeys = useMemo(() => menus.map((m) => m.name), [menuList]);

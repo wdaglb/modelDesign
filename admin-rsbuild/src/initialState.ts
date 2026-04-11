@@ -1,5 +1,6 @@
 import { ParsedLocation, redirect } from '@tanstack/react-router';
 import useAuthStore, { AuthInitResult } from '@/store/auth.ts';
+import { canAccessPath, getFirstAccessiblePath } from '@/utils/permission.ts';
 
 const LOGIN_PATH = '/login';
 
@@ -48,6 +49,13 @@ export const runAuthGuard = async (location: ParsedLocation): Promise<void> => {
   const initResult = await initialState({ location });
   if (initResult === 'anonymous') {
     throw buildLoginRedirect(location);
+  }
+
+  const authState = useAuthStore.getState();
+  if (!canAccessPath(authState.menus, location.pathname)) {
+    throw redirect({
+      to: getFirstAccessiblePath(authState.menus),
+    });
   }
 };
 

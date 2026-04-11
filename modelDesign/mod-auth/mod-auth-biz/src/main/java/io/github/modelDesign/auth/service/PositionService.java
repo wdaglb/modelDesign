@@ -13,7 +13,7 @@ import io.github.modelDesign.auth.request.PositionUpdateStatusRequest;
 import io.github.modelDesign.auth.response.PageResponse;
 import io.github.modelDesign.auth.response.PositionListItemVo;
 import io.github.modelDesign.common.exception.BusinessException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +33,6 @@ import java.util.Set;
  * 职位服务。
  */
 @Service
-@RequiredArgsConstructor
 public class PositionService extends ServiceImpl<PositionMapper, Position> implements IService<Position> {
     /**
      * 租户服务。
@@ -46,12 +45,46 @@ public class PositionService extends ServiceImpl<PositionMapper, Position> imple
     private final UserPositionService userPositionService;
 
     /**
+     * 当前登录上下文访问器。
+     */
+    private final CurrentAdminAccessor currentAdminAccessor;
+
+    /**
+     * 运行时依赖构造函数。
+     *
+     * @param tenantService 租户服务
+     * @param userPositionService 用户职位关系服务
+     * @param currentAdminAccessor 当前登录上下文访问器
+     */
+    @Autowired
+    public PositionService(TenantService tenantService,
+                           UserPositionService userPositionService,
+                           CurrentAdminAccessor currentAdminAccessor) {
+        this.tenantService = tenantService;
+        this.userPositionService = userPositionService;
+        this.currentAdminAccessor = currentAdminAccessor;
+    }
+
+    /**
+     * 供测试替身复用的精简构造函数。
+     *
+     * @param tenantService 租户服务
+     * @param userPositionService 用户职位关系服务
+     */
+    protected PositionService(TenantService tenantService, UserPositionService userPositionService) {
+        this.tenantService = tenantService;
+        this.userPositionService = userPositionService;
+        this.currentAdminAccessor = null;
+    }
+
+    /**
      * 获取职位列表。
      *
      * @param request 列表请求
      * @return 分页结果
      */
     public PageResponse<PositionListItemVo> getList(PositionListRequest request) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         long current = request.getCurrent();
         long pageSize = request.getPageSize();
         String name = normalizeKeyword(request.getName());
@@ -62,7 +95,7 @@ public class PositionService extends ServiceImpl<PositionMapper, Position> imple
         }
 
         List<Position> allPositions = lambdaQuery()
-                .eq(request.getTenantId() != null, Position::getTenantId, request.getTenantId())
+                .eq(Position::getTenantId, currentTenantId)
                 .like(StringUtils.hasText(name), Position::getName, name)
                 .like(StringUtils.hasText(code), Position::getCode, code)
                 .eq(status != null, Position::getStatus, status)
@@ -133,7 +166,7 @@ public class PositionService extends ServiceImpl<PositionMapper, Position> imple
      * @return 职位列表项
      */
     public PositionListItemVo add(PositionAddRequest request) {
-        Long tenantId = tenantService.requireAssignableTenantId(request.getTenantId());
+        Long tenantId = resolveTenantId(request.getTenantId());
         validateCode(tenantId, request.getCode(), null);
 
         Position position = new Position();
@@ -151,7 +184,7 @@ public class PositionService extends ServiceImpl<PositionMapper, Position> imple
      */
     public PositionListItemVo update(Long id, PositionUpdateRequest request) {
         Position position = requirePosition(id);
-        Long tenantId = tenantService.requireAssignableTenantId(request.getTenantId());
+        Long tenantId = resolveTenantId(request.getTenantId());
         validateTenantChanging(position, tenantId);
         validateCode(tenantId, request.getCode(), id);
 
@@ -166,9 +199,11 @@ public class PositionService extends ServiceImpl<PositionMapper, Position> imple
      * @param request 状态请求
      */
     public void updateStatus(PositionUpdateStatusRequest request) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         requirePosition(request.getId());
         lambdaUpdate()
                 .eq(Position::getId, request.getId())
+                .eq(Position::getTenantId, currentTenantId)
                 .set(Position::getStatus, resolveStatus(request.getIsDisable()))
                 .update();
     }
@@ -179,11 +214,13 @@ public class PositionService extends ServiceImpl<PositionMapper, Position> imple
      * @param request 批量状态请求
      */
     public void batchUpdateStatus(PositionBatchUpdateStatusRequest request) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         List<Long> ids = normalizeIds(request.getIds());
         if (ids.isEmpty()) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "职位 ID 不能为空");
         }
         lambdaUpdate()
+                .eq(Position::getTenantId, currentTenantId)
                 .in(Position::getId, ids)
                 .set(Position::getStatus, resolveStatus(request.getIsDisable()))
                 .update();
@@ -208,11 +245,33 @@ public class PositionService extends ServiceImpl<PositionMapper, Position> imple
      * @return 职位实体
      */
     public Position requirePosition(Long id) {
-        Position position = getById(id);
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
+        Position position = lambdaQuery()
+                .eq(Position::getId, id)
+                .eq(Position::getTenantId, currentTenantId)
+                .last("limit 1")
+                .one();
         if (position == null) {
             throw new BusinessException(HttpStatus.NOT_FOUND.value(), "职位不存在");
         }
         return position;
+    }
+
+    /**
+     * 解析当前请求允许操作的租户 ID。
+     *
+     * 当前职位管理已经收敛为“只允许操作当前登录租户下的数据”，
+     * 因此前端即使传入其它租户 ID，后端也会直接拒绝。
+     *
+     * @param requestTenantId 请求中的租户 ID
+     * @return 当前租户 ID
+     */
+    private Long resolveTenantId(Long requestTenantId) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
+        if (requestTenantId != null && !currentTenantId.equals(requestTenantId)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN.value(), "只能操作当前租户下的职位");
+        }
+        return tenantService.requireAssignableTenantId(currentTenantId);
     }
 
     /**

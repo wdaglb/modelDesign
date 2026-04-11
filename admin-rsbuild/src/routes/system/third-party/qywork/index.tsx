@@ -17,7 +17,9 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { ApiQywork } from '@/api';
 import type { QyworkConfigSaveParams } from '@/api/modules/qywork';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import queryKey from '@/constants/queryKey';
+import usePermission from '@/hooks/usePermission.ts';
 import useAuthStore from '@/store/auth.ts';
 
 /**
@@ -66,6 +68,8 @@ function RouteComponent() {
   const [form] = Form.useForm<QyworkConfigFormValues>();
   const queryClient = useQueryClient();
   const currentInfo = useAuthStore((state) => state.currentInfo);
+  const { hasButtonPermission } = usePermission();
+  const canSave = hasButtonPermission(PERMISSION_RESOURCE.systemQyworkSave);
 
   const currentConfigQuery = useQuery({
     queryKey: queryKey.qywork.current(),
@@ -168,6 +172,9 @@ function RouteComponent() {
           form={form}
           layout={'vertical'}
           onFinish={async (values) => {
+            if (!canSave) {
+              return;
+            }
             await saveMutation.mutateAsync({
               corpId: values.corpId.trim(),
               corpSecret: values.corpSecret.trim(),
@@ -232,13 +239,15 @@ function RouteComponent() {
           </Form.Item>
 
           <Space>
-            <Button
-              type={'primary'}
-              htmlType={'submit'}
-              loading={saveMutation.isPending}
-            >
-              保存配置
-            </Button>
+            {canSave && (
+              <Button
+                type={'primary'}
+                htmlType={'submit'}
+                loading={saveMutation.isPending}
+              >
+                保存配置
+              </Button>
+            )}
             <Button
               onClick={() => {
                 if (currentConfigQuery.data) {

@@ -15,8 +15,11 @@ import java.util.List;
 public class RolePermissionVo {
 
     /**
-     * 菜单权限路径列表（type=menu），每项为菜单 path，例如：/system/role。
+     * 菜单/按钮资源路径列表。
+     *
+     * 当前继续沿用 `menus` 字段名以兼容前端已有接口，
+     * 但其中既包含菜单路径，也包含按钮路径。
      */
-    @Schema(description = "菜单权限路径列表")
+    @Schema(description = "菜单/按钮资源路径列表")
     private List<String> menus;
 }

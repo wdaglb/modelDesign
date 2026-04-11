@@ -7,6 +7,7 @@ import { ApiTenant } from '@/api';
 import type { Tenant } from '@/api/modules/tenant';
 import { KTable } from '@/components';
 import { useKModal } from '@/components/KModal';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import queryKey from '@/constants/queryKey';
 import Icons from '@/icons';
 
@@ -123,6 +124,7 @@ const TenantTable = () => {
               variant={'filled'}
               color={'blue'}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemTenantEdit}
               onClick={async () => {
                 await modal.open({
                   title: '修改租户',
@@ -138,6 +140,7 @@ const TenantTable = () => {
               variant={'filled'}
               color={confirmColor}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemTenantChangeStatus}
               disabled={disableStatusAction}
               onConfirm={async () => {
                 await ApiTenant.updateStatus({
@@ -160,6 +163,7 @@ const TenantTable = () => {
               variant={'filled'}
               color={'danger'}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemTenantDelete}
               disabled={record.id === 1}
               onConfirm={async () => {
                 await ApiTenant.deleteTenant(record.id);
@@ -223,6 +227,7 @@ const TenantTable = () => {
             <KTable.Button
               type={'primary'}
               icon={<Icons.Plus />}
+              permissionCode={PERMISSION_RESOURCE.systemTenantCreate}
               onClick={async () => {
                 await modal.open({
                   title: '添加租户',

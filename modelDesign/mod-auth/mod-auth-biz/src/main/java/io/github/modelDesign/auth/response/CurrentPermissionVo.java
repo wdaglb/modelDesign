@@ -24,6 +24,12 @@ public class CurrentPermissionVo {
     private List<MenuItemVo> menus;
 
     /**
+     * 当前用户可用按钮资源列表。
+     */
+    @Schema(description = "当前用户可用按钮资源列表")
+    private List<String> buttons;
+
+    /**
      * 菜单项。
      */
     @Data

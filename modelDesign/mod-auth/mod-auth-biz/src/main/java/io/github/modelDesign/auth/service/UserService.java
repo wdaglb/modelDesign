@@ -11,10 +11,8 @@ import io.github.modelDesign.auth.request.UserUpdateRequest;
 import io.github.modelDesign.auth.request.UserUpdateStatusRequest;
 import io.github.modelDesign.auth.response.PageResponse;
 import io.github.modelDesign.auth.response.UserListItemVo;
-import io.github.modelDesign.auth.session.AuthContext;
-import io.github.modelDesign.auth.session.CurrentAdmin;
 import io.github.modelDesign.common.exception.BusinessException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,7 +30,6 @@ import java.util.Objects;
  * 单个状态切换以及批量状态切换。
  */
 @Service
-@RequiredArgsConstructor
 public class UserService extends ServiceImpl<UserMapper, User> implements IService<User> {
     /**
      * 密码编码器。
@@ -53,6 +50,49 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * 用户列表视图组装器。
      */
     private final UserListViewAssembler userListViewAssembler;
+
+    /**
+     * 当前登录上下文访问器。
+     */
+    private final CurrentAdminAccessor currentAdminAccessor;
+
+    /**
+     * 运行时依赖构造函数。
+     *
+     * 显式标注为注入入口，避免测试辅助构造函数加入后，
+     * Spring 在多构造函数场景下退回到默认无参实例化。
+     *
+     * @param tenantService 租户服务
+     * @param userListQueryContextFactory 查询上下文工厂
+     * @param userListViewAssembler 列表视图组装器
+     * @param currentAdminAccessor 当前登录上下文访问器
+     */
+    @Autowired
+    public UserService(TenantService tenantService,
+                       UserListQueryContextFactory userListQueryContextFactory,
+                       UserListViewAssembler userListViewAssembler,
+                       CurrentAdminAccessor currentAdminAccessor) {
+        this.tenantService = tenantService;
+        this.userListQueryContextFactory = userListQueryContextFactory;
+        this.userListViewAssembler = userListViewAssembler;
+        this.currentAdminAccessor = currentAdminAccessor;
+    }
+
+    /**
+     * 供测试替身复用的精简构造函数。
+     *
+     * @param tenantService 租户服务
+     * @param userListQueryContextFactory 查询上下文工厂
+     * @param userListViewAssembler 列表视图组装器
+     */
+    protected UserService(TenantService tenantService,
+                          UserListQueryContextFactory userListQueryContextFactory,
+                          UserListViewAssembler userListViewAssembler) {
+        this.tenantService = tenantService;
+        this.userListQueryContextFactory = userListQueryContextFactory;
+        this.userListViewAssembler = userListViewAssembler;
+        this.currentAdminAccessor = null;
+    }
 
     /**
      * 按用户名查询管理员。
@@ -78,6 +118,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @return 分页结果
      */
     public PageResponse<UserListItemVo> getList(UserListRequest request) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         long current = request.getCurrent();
         long pageSize = request.getPageSize();
         List<Long> ids = normalizeIds(request.getIds());
@@ -85,6 +126,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
         if (context == null) {
             context = new UserListQueryContext();
         }
+        context.setTenantId(currentTenantId);
         Integer status = resolveStatusFilter(context.getIsDisable());
         final UserListQueryContext finalContext = context;
         final Integer finalStatus = status;
@@ -193,9 +235,11 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @param request 状态请求
      */
     public void updateStatus(UserUpdateStatusRequest request) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         requireUser(request.getId());
         lambdaUpdate()
                 .eq(User::getId, request.getId())
+                .eq(User::getTenantId, currentTenantId)
                 .set(User::getStatus, resolveStatus(request.getIsDisable()))
                 .update();
     }
@@ -208,11 +252,13 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @param request 批量状态请求
      */
     public void batchUpdateStatus(UserBatchUpdateStatusRequest request) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         List<Long> ids = request.getIds().stream().filter(Objects::nonNull).distinct().toList();
         if (ids.isEmpty()) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "用户 ID 不能为空");
         }
         lambdaUpdate()
+                .eq(User::getTenantId, currentTenantId)
                 .in(User::getId, ids)
                 .set(User::getStatus, resolveStatus(request.getIsDisable()))
                 .update();
@@ -225,7 +271,12 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @return 用户实体
      */
     public User requireUser(Long id) {
-        User user = getById(id);
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
+        User user = lambdaQuery()
+                .eq(User::getId, id)
+                .eq(User::getTenantId, currentTenantId)
+                .last("limit 1")
+                .one();
         if (user == null) {
             throw new BusinessException(HttpStatus.NOT_FOUND.value(), "用户不存在");
         }
@@ -382,16 +433,15 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @return 最终租户 ID
      */
     private Long resolveTenantIdForCreate(Long requestTenantId) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         Long targetTenantId = requestTenantId;
         if (targetTenantId != null) {
+            if (!currentTenantId.equals(targetTenantId)) {
+                throw new BusinessException(HttpStatus.FORBIDDEN.value(), "只能在当前租户下创建用户");
+            }
             return tenantService.requireAssignableTenantId(targetTenantId);
         }
-        targetTenantId = getCurrentTenantId();
-        if (targetTenantId != null) {
-            return tenantService.requireAssignableTenantId(targetTenantId);
-        }
-        targetTenantId = TenantService.DEFAULT_TENANT_ID;
-        return tenantService.requireAssignableTenantId(targetTenantId);
+        return tenantService.requireAssignableTenantId(currentTenantId);
     }
 
     /**
@@ -402,20 +452,22 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
      * @return 最终租户 ID
      */
     private Long resolveTenantIdForUpdate(Long requestTenantId, Long existingTenantId) {
+        Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         Long targetTenantId = requestTenantId;
         if (targetTenantId != null) {
+            if (!currentTenantId.equals(targetTenantId)) {
+                throw new BusinessException(HttpStatus.FORBIDDEN.value(), "不能把用户转移到其它租户");
+            }
             return tenantService.requireAssignableTenantId(targetTenantId);
         }
         targetTenantId = existingTenantId;
         if (targetTenantId != null) {
+            if (!currentTenantId.equals(targetTenantId)) {
+                throw new BusinessException(HttpStatus.FORBIDDEN.value(), "不能修改其它租户用户");
+            }
             return tenantService.requireAssignableTenantId(targetTenantId);
         }
-        targetTenantId = getCurrentTenantId();
-        if (targetTenantId != null) {
-            return tenantService.requireAssignableTenantId(targetTenantId);
-        }
-        targetTenantId = TenantService.DEFAULT_TENANT_ID;
-        return tenantService.requireAssignableTenantId(targetTenantId);
+        return tenantService.requireAssignableTenantId(currentTenantId);
     }
 
     /**
@@ -442,19 +494,6 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IServi
             return Boolean.FALSE;
         }
         return Boolean.TRUE;
-    }
-
-    /**
-     * 获取当前登录租户 ID。
-     *
-     * @return 当前租户 ID
-     */
-    private Long getCurrentTenantId() {
-        CurrentAdmin currentAdmin = AuthContext.get();
-        if (currentAdmin == null) {
-            return null;
-        }
-        return currentAdmin.getTenantId();
     }
 
     /**

@@ -1,6 +1,7 @@
 package io.github.modelDesign.auth.configuration;
 
 import io.github.modelDesign.auth.interceptor.AuthInterceptor;
+import io.github.modelDesign.auth.interceptor.PermissionInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +13,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableConfigurationProperties(AuthProperties.class)
 public class AuthWebMvcConfigurer implements WebMvcConfigurer {
     private final AuthInterceptor authInterceptor;
+    private final PermissionInterceptor permissionInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -30,5 +32,7 @@ public class AuthWebMvcConfigurer implements WebMvcConfigurer {
                         "/swagger-ui/**",
                         "/swagger-ui.html"
                 );
+        registry.addInterceptor(permissionInterceptor)
+                .addPathPatterns("/**");
     }
 }

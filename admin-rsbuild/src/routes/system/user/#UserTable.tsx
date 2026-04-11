@@ -1,11 +1,12 @@
 import React, { Key, useMemo, useState } from 'react';
-import { Avatar, Empty, Flex, Input, InputNumber, Space, Tag, Typography, message } from 'antd';
+import { Avatar, Empty, Flex, Input, Space, Tag, Typography, message } from 'antd';
 import type { TableColumnsType } from 'antd';
 
 import { ApiUser } from '@/api';
 import type { User } from '@/api/modules/user';
 import { KTable } from '@/components';
 import { useKModal } from '@/components/KModal';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import queryKey from '@/constants/queryKey';
 import useFileUrl from '@/hooks/useFileUrl';
 import Icons from '@/icons';
@@ -59,7 +60,6 @@ const UserTable = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [nickname, setNickname] = useState('');
-  const [tenantId, setTenantId] = useState<number>();
 
   /**
    * 列表查询参数。
@@ -70,9 +70,8 @@ const UserTable = () => {
     () => ({
       ...pagination,
       nickname: nickname.trim() || undefined,
-      tenantId,
     }),
-    [nickname, pagination, tenantId],
+    [nickname, pagination],
   );
 
   const columns: TableColumnsType<User> = [
@@ -132,6 +131,7 @@ const UserTable = () => {
               variant={'filled'}
               color={'blue'}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemUserEdit}
               onClick={async () => {
                 await modal.open({
                   title: '修改用户',
@@ -148,6 +148,7 @@ const UserTable = () => {
               color={'cyan'}
               size={'small'}
               icon={<Icons.AccountKey />}
+              permissionCode={PERMISSION_RESOURCE.systemUserBindRole}
               onClick={async () => {
                 await modal.open({
                   title: `绑定角色 - ${bindRoleTitle}`,
@@ -164,6 +165,7 @@ const UserTable = () => {
               color={'geekblue'}
               size={'small'}
               icon={<Icons.BadgeAccountHorizontal />}
+              permissionCode={PERMISSION_RESOURCE.systemUserBindPosition}
               onClick={async () => {
                 if (
                   record.tenantId === undefined ||
@@ -187,6 +189,7 @@ const UserTable = () => {
               variant={'filled'}
               color={confirmColor}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemUserChangeStatus}
               onConfirm={async () => {
                 await ApiUser.updateStatus({
                   id: record.id,
@@ -230,27 +233,13 @@ const UserTable = () => {
               }}
             />
 
-            <InputNumber
-              min={1}
-              precision={0}
-              style={{ width: 180 }}
-              placeholder={'按租户 ID 筛选'}
-              value={tenantId}
-              onChange={(value) => {
-                setPagination((prev) => ({ ...prev, current: 1 }));
-                if (typeof value === 'number') {
-                  setTenantId(value);
-                  return;
-                }
-                setTenantId(undefined);
-              }}
-            />
           </Space>
 
           <Space>
             <KTable.Button
               type={'primary'}
               icon={<Icons.Plus />}
+              permissionCode={PERMISSION_RESOURCE.systemUserCreate}
               onClick={async () => {
                 await modal.open({
                   title: '添加用户',
@@ -263,6 +252,7 @@ const UserTable = () => {
             </KTable.Button>
 
             <KTable.Button
+              permissionCode={PERMISSION_RESOURCE.systemUserBatchChangeStatus}
               disabled={selectedRowKeys.length === 0}
               onClick={async () => {
                 await modal.open({

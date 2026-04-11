@@ -48,6 +48,7 @@ import Updater from './#updater';
 import { KTableActionRef } from '@/components/KTable/types.ts';
 import { useKTableContext } from '@/components/KTable/context.tsx';
 import { MenuData } from '@/routes/system/menu/#types.ts';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import Icons from '@/icons';
 
 interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
@@ -205,6 +206,7 @@ const SortTable = () => {
                 variant={'filled'}
                 color={'magenta'}
                 size={'small'}
+                permissionCode={PERMISSION_RESOURCE.systemMenuCreate}
                 onClick={async (evt) => {
                   evt.stopPropagation();
                   return modal.open({
@@ -221,6 +223,7 @@ const SortTable = () => {
               variant={'filled'}
               color={'blue'}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemMenuEdit}
               onClick={async (evt) => {
                 evt.stopPropagation();
                 await modal.open({
@@ -236,6 +239,7 @@ const SortTable = () => {
               variant={'filled'}
               color={'danger'}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemMenuDelete}
               onConfirm={async (evt) => {
                 evt?.stopPropagation();
                 await handleDelete([record.id]);
@@ -276,6 +280,7 @@ const SortTable = () => {
         <KTable.Button
           type={'primary'}
           icon={<Icons.Plus />}
+          permissionCode={PERMISSION_RESOURCE.systemMenuCreate}
           onClick={async (evt) => {
             evt.stopPropagation();
             return modal.open({
@@ -290,6 +295,7 @@ const SortTable = () => {
         <KTable.ConfirmButton
           variant={'filled'}
           color={'danger'}
+          permissionCode={PERMISSION_RESOURCE.systemMenuDelete}
           disabled={selected.length === 0}
           onConfirm={async () => {
             await ApiMenu.deleted(selected);

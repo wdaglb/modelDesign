@@ -1,18 +1,19 @@
 import React, { Key, useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Empty, Flex, Input, Select, Space, Tag, Typography } from 'antd';
+import { useQueryClient } from '@tanstack/react-query';
+import { Empty, Flex, Input, Space, Tag, Typography } from 'antd';
 import type { TableColumnsType } from 'antd';
 
-import { ApiPosition, ApiTenant } from '@/api';
+import { ApiPosition } from '@/api';
 import type { Position } from '@/api/modules/position';
 import { KTable } from '@/components';
 import { useKModal } from '@/components/KModal';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import queryKey from '@/constants/queryKey';
 import Icons from '@/icons';
 
 import BatchUpdateForm from './#BatchUpdateForm';
 import CreatePositionForm from './#CreatePositionForm';
-import { buildTenantSelectOptions, getPositionTenantText } from './#tenantHelper';
+import { getPositionTenantText } from './#tenantHelper';
 import UpdatePositionForm from './#UpdatePositionForm';
 
 /**
@@ -39,14 +40,6 @@ const PositionTable = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([]);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [keyword, setKeyword] = useState('');
-  const [tenantId, setTenantId] = useState<number>();
-
-  const { data: tenantOptionsData = [], isLoading: tenantLoading } = useQuery({
-    queryKey: queryKey.tenant.options(),
-    queryFn: ApiTenant.getOptions,
-  });
-
-  const tenantOptions = buildTenantSelectOptions(tenantOptionsData);
 
   const params = useMemo(() => {
     const trimmedKeyword = keyword.trim();
@@ -54,9 +47,8 @@ const PositionTable = () => {
       ...pagination,
       name: trimmedKeyword || undefined,
       code: trimmedKeyword || undefined,
-      tenantId,
     };
-  }, [keyword, pagination, tenantId]);
+  }, [keyword, pagination]);
 
   const columns: TableColumnsType<Position> = [
     {
@@ -116,6 +108,7 @@ const PositionTable = () => {
               variant={'filled'}
               color={'blue'}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemPositionEdit}
               onClick={async () => {
                 await modal.open({
                   title: '修改职位',
@@ -131,6 +124,7 @@ const PositionTable = () => {
               variant={'filled'}
               color={confirmColor}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemPositionChangeStatus}
               onConfirm={async () => {
                 await ApiPosition.updateStatus({
                   id: record.id,
@@ -149,6 +143,7 @@ const PositionTable = () => {
               variant={'filled'}
               color={'danger'}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemPositionDelete}
               confirmText={'删除后将自动解除该职位与所有用户的绑定关系，且不可恢复，是否继续？'}
               onConfirm={async () => {
                 await ApiPosition.deletePosition(record.id);
@@ -194,30 +189,13 @@ const PositionTable = () => {
               }}
             />
 
-            <Select
-              allowClear
-              showSearch
-              loading={tenantLoading}
-              options={tenantOptions}
-              placeholder={'按租户筛选'}
-              style={{ width: 220 }}
-              optionFilterProp={'label'}
-              value={tenantId}
-              onChange={(value) => {
-                setPagination((prev) => ({ ...prev, current: 1 }));
-                if (typeof value === 'number') {
-                  setTenantId(value);
-                  return;
-                }
-                setTenantId(undefined);
-              }}
-            />
           </Space>
 
           <Space>
             <KTable.Button
               type={'primary'}
               icon={<Icons.Plus />}
+              permissionCode={PERMISSION_RESOURCE.systemPositionCreate}
               onClick={async () => {
                 await modal.open({
                   title: '添加职位',
@@ -230,6 +208,7 @@ const PositionTable = () => {
             </KTable.Button>
 
             <KTable.Button
+              permissionCode={PERMISSION_RESOURCE.systemPositionBatchChangeStatus}
               disabled={selectedRowKeys.length === 0}
               onClick={async () => {
                 await modal.open({

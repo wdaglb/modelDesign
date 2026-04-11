@@ -1,5 +1,7 @@
 package io.github.modelDesign.auth.controller;
 
+import io.github.modelDesign.auth.annotation.RequirePermission;
+import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.request.PositionAddRequest;
 import io.github.modelDesign.auth.request.PositionBatchUpdateStatusRequest;
 import io.github.modelDesign.auth.request.PositionDeleteRequest;
@@ -44,6 +46,10 @@ public class PositionController {
      * @return 分页结果
      */
     @Operation(summary = "获取职位列表")
+    @RequirePermission(anyOf = {
+            PermissionResource.SYSTEM_POSITION,
+            PermissionResource.SYSTEM_USER_BIND_POSITION
+    })
     @GetMapping("/list")
     public PageResponse<PositionListItemVo> list(@Valid PositionListRequest request) {
         return positionService.getList(request);
@@ -56,6 +62,7 @@ public class PositionController {
      * @return 职位信息
      */
     @Operation(summary = "新增职位")
+    @RequirePermission(PermissionResource.SYSTEM_POSITION_CREATE)
     @PostMapping("/add")
     public PositionListItemVo add(@Valid @RequestBody PositionAddRequest request) {
         return positionService.add(request);
@@ -69,6 +76,7 @@ public class PositionController {
      * @return 职位信息
      */
     @Operation(summary = "编辑职位")
+    @RequirePermission(PermissionResource.SYSTEM_POSITION_EDIT)
     @PostMapping("/update")
     public PositionListItemVo update(
             @Parameter(description = "职位 ID", required = true)
@@ -85,6 +93,7 @@ public class PositionController {
      * @param request 状态请求
      */
     @Operation(summary = "修改单个职位状态")
+    @RequirePermission(PermissionResource.SYSTEM_POSITION_CHANGE_STATUS)
     @PostMapping("/update_status")
     public void updateStatus(@Valid @RequestBody PositionUpdateStatusRequest request) {
         positionService.updateStatus(request);
@@ -96,6 +105,7 @@ public class PositionController {
      * @param request 批量状态请求
      */
     @Operation(summary = "批量修改职位状态")
+    @RequirePermission(PermissionResource.SYSTEM_POSITION_BATCH_CHANGE_STATUS)
     @PostMapping("/batch_update_status")
     public void batchUpdateStatus(@Valid @RequestBody PositionBatchUpdateStatusRequest request) {
         positionService.batchUpdateStatus(request);
@@ -107,6 +117,7 @@ public class PositionController {
      * @param request 删除请求
      */
     @Operation(summary = "删除职位")
+    @RequirePermission(PermissionResource.SYSTEM_POSITION_DELETE)
     @PostMapping("/delete")
     public void delete(@Valid @RequestBody PositionDeleteRequest request) {
         positionService.delete(request);

@@ -1,5 +1,7 @@
 package io.github.modelDesign.auth.controller;
 
+import io.github.modelDesign.auth.annotation.RequirePermission;
+import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.request.TenantAddRequest;
 import io.github.modelDesign.auth.request.TenantDeleteRequest;
 import io.github.modelDesign.auth.request.TenantListRequest;
@@ -46,6 +48,7 @@ public class TenantController {
      * @return 分页结果
      */
     @Operation(summary = "获取租户列表")
+    @RequirePermission(PermissionResource.SYSTEM_TENANT)
     @GetMapping("/list")
     public PageResponse<TenantListItemVo> list(@Valid TenantListRequest request) {
         return tenantService.getList(request);
@@ -58,6 +61,7 @@ public class TenantController {
      * @return 租户信息
      */
     @Operation(summary = "新增租户")
+    @RequirePermission(PermissionResource.SYSTEM_TENANT_CREATE)
     @PostMapping("/add")
     public TenantListItemVo add(@Valid @RequestBody TenantAddRequest request) {
         return tenantService.add(request);
@@ -71,6 +75,7 @@ public class TenantController {
      * @return 租户信息
      */
     @Operation(summary = "编辑租户")
+    @RequirePermission(PermissionResource.SYSTEM_TENANT_EDIT)
     @PostMapping("/update")
     public TenantListItemVo update(
             @Parameter(description = "租户 ID", required = true)
@@ -87,6 +92,7 @@ public class TenantController {
      * @param request 状态请求
      */
     @Operation(summary = "修改单个租户状态")
+    @RequirePermission(PermissionResource.SYSTEM_TENANT_CHANGE_STATUS)
     @PostMapping("/update_status")
     public void updateStatus(@Valid @RequestBody TenantUpdateStatusRequest request) {
         tenantService.updateStatus(request);
@@ -98,6 +104,7 @@ public class TenantController {
      * @param request 删除请求
      */
     @Operation(summary = "删除租户")
+    @RequirePermission(PermissionResource.SYSTEM_TENANT_DELETE)
     @PostMapping("/delete")
     public void delete(@Valid @RequestBody TenantDeleteRequest request) {
         tenantService.delete(request);

@@ -1,5 +1,7 @@
 package io.github.modelDesign.auth.controller;
 
+import io.github.modelDesign.auth.annotation.RequirePermission;
+import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.request.UserAddRequest;
 import io.github.modelDesign.auth.request.UserBatchUpdateStatusRequest;
 import io.github.modelDesign.auth.request.UserListRequest;
@@ -64,6 +66,10 @@ public class UserController {
      * @return 分页结果
      */
     @Operation(summary = "获取用户列表", description = "支持统一搜索、高级筛选与治理状态筛选")
+    @RequirePermission(anyOf = {
+            PermissionResource.SYSTEM_USER,
+            PermissionResource.SYSTEM_ROLE_BIND_USER
+    })
     @GetMapping("/list")
     public PageResponse<UserListItemVo> list(@Valid UserListRequest request) {
         return userService.getList(request);
@@ -78,6 +84,7 @@ public class UserController {
      * @return 用户信息
      */
     @Operation(summary = "新增用户")
+    @RequirePermission(PermissionResource.SYSTEM_USER_CREATE)
     @PostMapping("/add")
     public UserListItemVo add(@Valid @RequestBody UserAddRequest request) {
         return userService.add(request);
@@ -93,6 +100,7 @@ public class UserController {
      * @return 用户信息
      */
     @Operation(summary = "编辑用户")
+    @RequirePermission(PermissionResource.SYSTEM_USER_EDIT)
     @PostMapping("/update")
     public UserListItemVo update(@Parameter(description = "用户 ID", required = true) @RequestParam @NotNull(message = "用户 ID 不能为空") Long id,
                                  @Valid @RequestBody UserUpdateRequest request) {
@@ -107,6 +115,7 @@ public class UserController {
      * @param request 状态请求
      */
     @Operation(summary = "修改单个用户状态")
+    @RequirePermission(PermissionResource.SYSTEM_USER_CHANGE_STATUS)
     @PostMapping("/update_status")
     public void updateStatus(@Valid @RequestBody UserUpdateStatusRequest request) {
         userService.updateStatus(request);
@@ -120,6 +129,7 @@ public class UserController {
      * @param request 批量状态请求
      */
     @Operation(summary = "批量修改用户状态")
+    @RequirePermission(PermissionResource.SYSTEM_USER_BATCH_CHANGE_STATUS)
     @PostMapping("/batch_update_status")
     public void batchUpdateStatus(@Valid @RequestBody UserBatchUpdateStatusRequest request) {
         userService.batchUpdateStatus(request);
@@ -132,6 +142,7 @@ public class UserController {
      * @return 角色编码列表
      */
     @Operation(summary = "获取用户已绑定角色")
+    @RequirePermission(PermissionResource.SYSTEM_USER_BIND_ROLE)
     @GetMapping("/roles")
     public List<String> getRoles(@Parameter(description = "用户 ID", required = true) @RequestParam @NotNull(message = "用户 ID 不能为空") Long userId) {
         userService.requireUser(userId);
@@ -147,6 +158,7 @@ public class UserController {
      * @param request 角色编码列表
      */
     @Operation(summary = "更新用户绑定角色")
+    @RequirePermission(PermissionResource.SYSTEM_USER_BIND_ROLE)
     @PostMapping("/roles/update")
     public void updateRoles(@Parameter(description = "用户 ID", required = true) @RequestParam @NotNull(message = "用户 ID 不能为空") Long userId,
                             @Valid @RequestBody UserRoleUpdateRequest request) {
@@ -161,6 +173,7 @@ public class UserController {
      * @return 职位 ID 列表
      */
     @Operation(summary = "获取用户已绑定职位")
+    @RequirePermission(PermissionResource.SYSTEM_USER_BIND_POSITION)
     @GetMapping("/positions")
     public List<Long> getPositions(
             @Parameter(description = "用户 ID", required = true)
@@ -177,6 +190,7 @@ public class UserController {
      * @param request 职位 ID 列表
      */
     @Operation(summary = "更新用户绑定职位")
+    @RequirePermission(PermissionResource.SYSTEM_USER_BIND_POSITION)
     @PostMapping("/positions/update")
     public void updatePositions(
             @Parameter(description = "用户 ID", required = true)

@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -61,6 +62,45 @@ public class MenuService extends ServiceImpl<MenuMapper, Menu> implements IServi
                 .orderByAsc(Menu::getSort)
                 .orderByAsc(Menu::getId)
                 .list();
+    }
+
+    /**
+     * 按资源标识批量查询已启用节点。
+     *
+     * 该方法同时服务于“当前用户权限回显”和“按钮权限判定”场景，
+     * 因此不会限制节点类型，由调用方自行区分菜单或按钮。
+     *
+     * @param names 资源标识集合
+     * @return 已启用节点列表
+     */
+    public List<Menu> listEnabledNodesByNames(Collection<String> names) {
+        if (names == null || names.isEmpty()) {
+            return List.of();
+        }
+        return lambdaQuery()
+                .eq(Menu::getStatus, MenuStatusEnum.ENABLED)
+                .in(Menu::getName, names)
+                .orderByAsc(Menu::getSort)
+                .orderByAsc(Menu::getId)
+                .list();
+    }
+
+    /**
+     * 获取资源标识集合中真实存在的标识。
+     *
+     * @param names 待校验资源标识
+     * @return 已存在的资源标识集合
+     */
+    public Set<String> getExistingNameSet(Collection<String> names) {
+        if (names == null || names.isEmpty()) {
+            return Set.of();
+        }
+        return lambdaQuery()
+                .in(Menu::getName, names)
+                .list()
+                .stream()
+                .map(Menu::getName)
+                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
     }
 
     /**

@@ -1,13 +1,9 @@
 import React from 'react';
-import { Form, Input, Radio, Select } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+import { Form, Input, Radio } from 'antd';
 
-import { ApiTenant, ApiUser } from '@/api';
+import { ApiUser } from '@/api';
 import { User } from '@/api/modules/user';
 import KModal from '@/components/KModal';
-import queryKey from '@/constants/queryKey';
-
-import { buildTenantSelectOptions } from './#tenantHelper';
 
 interface UpdateUserFormProps {
   /**
@@ -24,17 +20,6 @@ interface UpdateUserFormProps {
  */
 const UpdateUserForm = ({ record }: UpdateUserFormProps) => {
   const [form] = Form.useForm();
-
-  const { data: tenantOptionsData = [], isLoading: tenantLoading } = useQuery({
-    queryKey: queryKey.tenant.options(),
-    queryFn: ApiTenant.getOptions,
-  });
-
-  const tenantOptions = buildTenantSelectOptions(
-    tenantOptionsData,
-    record.tenantId,
-    record.tenantName,
-  );
 
   return (
     <KModal.Form
@@ -64,20 +49,6 @@ const UpdateUserForm = ({ record }: UpdateUserFormProps) => {
         rules={[{ required: true, message: '请输入用户名' }]}
       >
         <Input placeholder={'请输入用户名'} />
-      </Form.Item>
-
-      <Form.Item
-        name={'tenantId'}
-        label={'默认租户'}
-        rules={[{ required: true, message: '请选择默认租户' }]}
-      >
-        <Select
-          showSearch
-          loading={tenantLoading}
-          options={tenantOptions}
-          placeholder={'请选择默认租户'}
-          optionFilterProp={'label'}
-        />
       </Form.Item>
 
       <Form.Item

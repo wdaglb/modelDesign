@@ -13,6 +13,11 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class Role extends BaseEntity {
     /**
+     * 所属租户 ID。
+     */
+    private Long tenantId;
+
+    /**
      * 角色名称。
      */
     private String name;

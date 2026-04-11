@@ -6,6 +6,7 @@ import { ApiRole } from '@/api';
 import type { Role } from '@/api/modules/role';
 import { KTable } from '@/components';
 import { useKModal } from '@/components/KModal';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import queryKey from '@/constants/queryKey';
 import Icons from '@/icons';
 
@@ -110,6 +111,7 @@ const RoleTable = () => {
               variant={'filled'}
               color={'blue'}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemRoleEdit}
               onClick={async () => {
                 await modal.open({
                   title: '修改角色',
@@ -126,6 +128,7 @@ const RoleTable = () => {
               color={'purple'}
               size={'small'}
               icon={<Icons.ShieldEdit />}
+              permissionCode={PERMISSION_RESOURCE.systemRolePermission}
               onClick={async () => {
                 await modal.open({
                   title: `权限配置 - ${record.name}`,
@@ -142,6 +145,7 @@ const RoleTable = () => {
               color={'geekblue'}
               size={'small'}
               icon={<Icons.AccountGroup />}
+              permissionCode={PERMISSION_RESOURCE.systemRoleBindUser}
               onClick={async () => {
                 await modal.open({
                   title: `绑定用户 - ${record.name}`,
@@ -157,6 +161,7 @@ const RoleTable = () => {
               variant={'filled'}
               color={confirmColor}
               size={'small'}
+              permissionCode={PERMISSION_RESOURCE.systemRoleChangeStatus}
               onConfirm={async () => {
                 await ApiRole.updateStatus({
                   id: record.id,
@@ -205,6 +210,7 @@ const RoleTable = () => {
             <KTable.Button
               type={'primary'}
               icon={<Icons.Plus />}
+              permissionCode={PERMISSION_RESOURCE.systemRoleCreate}
               onClick={async () => {
                 await modal.open({
                   title: '添加角色',
@@ -217,6 +223,7 @@ const RoleTable = () => {
             </KTable.Button>
 
             <KTable.Button
+              permissionCode={PERMISSION_RESOURCE.systemRoleBatchChangeStatus}
               disabled={selectedRowKeys.length === 0}
               onClick={async () => {
                 await modal.open({

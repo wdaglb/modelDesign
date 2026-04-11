@@ -1,13 +1,11 @@
 import React from 'react';
-import { Form, Input, InputNumber, Radio, Select } from 'antd';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Form, Input, InputNumber, Radio } from 'antd';
+import { useQueryClient } from '@tanstack/react-query';
 
-import { ApiPosition, ApiTenant } from '@/api';
+import { ApiPosition } from '@/api';
 import type { Position } from '@/api/modules/position';
 import KModal from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
-
-import { buildTenantSelectOptions } from './#tenantHelper';
 
 interface UpdatePositionFormProps {
   /**
@@ -23,17 +21,6 @@ const UpdatePositionForm = ({ record }: UpdatePositionFormProps) => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
 
-  const { data: tenantOptionsData = [], isLoading: tenantLoading } = useQuery({
-    queryKey: queryKey.tenant.options(),
-    queryFn: ApiTenant.getOptions,
-  });
-
-  const tenantOptions = buildTenantSelectOptions(
-    tenantOptionsData,
-    record.tenantId,
-    record.tenantName,
-  );
-
   return (
     <KModal.Form
       form={form}
@@ -48,7 +35,7 @@ const UpdatePositionForm = ({ record }: UpdatePositionFormProps) => {
       }}
       onFinish={async (values) => {
         await ApiPosition.update(record.id, {
-          tenantId: values.tenantId,
+          tenantId: record.tenantId,
           name: values.name.trim(),
           code: values.code.trim(),
           sort: values.sort,
@@ -60,20 +47,6 @@ const UpdatePositionForm = ({ record }: UpdatePositionFormProps) => {
         });
       }}
     >
-      <Form.Item
-        name={'tenantId'}
-        label={'所属租户'}
-        rules={[{ required: true, message: '请选择所属租户' }]}
-      >
-        <Select
-          showSearch
-          loading={tenantLoading}
-          options={tenantOptions}
-          placeholder={'请选择所属租户'}
-          optionFilterProp={'label'}
-        />
-      </Form.Item>
-
       <Form.Item
         name={'name'}
         label={'职位名称'}

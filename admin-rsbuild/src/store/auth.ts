@@ -42,6 +42,7 @@ interface AuthStore {
   token: string;
   currentInfo?: CurrentInfoVo;
   menus: PassportCurrentPermissionMenu[];
+  buttons: string[];
 
   /**
    * 初始化状态，0=未初始化，1=初始化中，2=初始化完成
@@ -57,6 +58,7 @@ const useAuthStore = create<AuthStore>((set, get) => {
   return {
     token: localStorage.getItem('token') || '',
     menus: [],
+    buttons: [],
 
     loadState: 0,
     async initState(location) {
@@ -96,10 +98,12 @@ const useAuthStore = create<AuthStore>((set, get) => {
             ApiPassport.getCurrentUser(),
             ApiPassport.getCurrentPermission(),
           ]);
+          const nextButtons = permission.buttons || [];
 
           set({
             currentInfo,
             menus: permission.menus,
+            buttons: nextButtons,
             loadState: 2,
           });
           return 'authenticated';
@@ -139,6 +143,7 @@ const useAuthStore = create<AuthStore>((set, get) => {
         token: '',
         currentInfo: undefined,
         menus: [],
+        buttons: [],
         loadState: 0,
       });
     },
