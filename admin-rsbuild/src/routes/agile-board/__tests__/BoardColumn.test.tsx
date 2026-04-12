@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { DndContext } from '@dnd-kit/core';
 
 import type {
@@ -107,6 +108,33 @@ describe('BoardColumn', () => {
         />
       </DndContext>,
     );
+
+    expect(container.querySelector('[data-subtask-list="true"]')).toBeTruthy();
+    expect(screen.getByText('子任务 A')).toBeDefined();
+  });
+
+  it('子任务列表支持展开与收起', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={[parentTask]}
+          subtaskMap={new Map([[parentTask.id, [childTask]]])}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    expect(screen.getByText('子任务 A')).toBeDefined();
+
+    await user.click(screen.getByRole('button', { name: '收起子任务' }));
+
+    expect(container.querySelector('[data-subtask-list="true"]')).toBeNull();
+    expect(screen.queryByText('子任务 A')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: '展开子任务' }));
 
     expect(container.querySelector('[data-subtask-list="true"]')).toBeTruthy();
     expect(screen.getByText('子任务 A')).toBeDefined();
