@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -69,6 +70,30 @@ public class ProjectTaskLifecycleService {
         Set<Long> notifiedTaskIds = new LinkedHashSet<>();
         autoCompleteParentIfNeeded(task.getParentTaskId(), notifiedTaskIds);
         notifyDependencyReady(task, notifiedTaskIds);
+    }
+
+    /**
+     * 处理负责人指派后的通知逻辑。
+     *
+     * @param beforeTask 变更前任务；创建场景下允许为空
+     * @param afterTask  变更后任务
+     */
+    public void handleTaskAssigneeChanged(ProjectTask beforeTask, ProjectTask afterTask) {
+        Long currentAssigneeId = normalizeAssigneeId(afterTask.getAssigneeId());
+        if (currentAssigneeId == null) {
+            return;
+        }
+
+        Long previousAssigneeId = null;
+        if (beforeTask != null) {
+            previousAssigneeId = normalizeAssigneeId(beforeTask.getAssigneeId());
+        }
+
+        if (Objects.equals(previousAssigneeId, currentAssigneeId)) {
+            return;
+        }
+
+        publishTaskAssignedMessage(afterTask);
     }
 
     private void autoCompleteParentIfNeeded(Long parentTaskId, Set<Long> notifiedTaskIds) {
@@ -150,9 +175,35 @@ public class ProjectTaskLifecycleService {
                 .category("projectTask")
                 .title("任务已满足开始条件")
                 .content("任务【" + task.getTitle() + "】的前置任务已全部完成，可以开始处理。")
-                .redirectUrl("/project/task/detail?id=" + task.getId())
+                .redirectUrl("/agile-board/?taskId=" + task.getId())
                 .build();
         systemMessageApi.publish(command);
+    }
+
+    private void publishTaskAssignedMessage(ProjectTask task) {
+        Long assigneeId = normalizeAssigneeId(task.getAssigneeId());
+        if (assigneeId == null) {
+            return;
+        }
+
+        Project project = projectService.requireProject(task.getProjectId());
+        SystemMessagePublishCommand command = SystemMessagePublishCommand.builder()
+                .scopeType(SystemMessageScopeType.USER)
+                .tenantId(project.getTenantId())
+                .receiverUserIds(List.of(assigneeId))
+                .category("projectTask")
+                .title("你被指派了新任务")
+                .content("任务【" + task.getTitle() + "】已指派给你，请及时处理。")
+                .redirectUrl("/agile-board/?taskId=" + task.getId())
+                .build();
+        systemMessageApi.publish(command);
+    }
+
+    private Long normalizeAssigneeId(Long assigneeId) {
+        if (assigneeId == null || assigneeId.equals(0L)) {
+            return null;
+        }
+        return assigneeId;
     }
 
     private ProjectTask copyTask(ProjectTask source) {

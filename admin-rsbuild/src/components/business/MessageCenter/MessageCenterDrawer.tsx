@@ -1,9 +1,9 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
 import { Empty, Segmented, Space, Spin, Typography, Button, message } from 'antd';
 import { useContext, useState } from 'react';
 
 import { ApiSystemMessage } from '@/api';
+import { router } from '@/App.tsx';
 import type { SystemMessageListItem } from '@/api/modules/system-message';
 import { drawerContext } from '@/components/KDrawer/Drawer.tsx';
 import queryKey from '@/constants/queryKey';
@@ -21,7 +21,6 @@ import MessageListItem from './MessageListItem';
  * 消息中心抽屉。
  */
 const MessageCenterDrawer = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const drawer = useContext(drawerContext);
   const [filterKey, setFilterKey] = useState<MessageFilterKey>('all');
@@ -84,7 +83,7 @@ const MessageCenterDrawer = () => {
       }
 
       drawer.close();
-      await navigateToMessage(messageItem.redirectUrl, navigate);
+      await navigateToMessage(messageItem.redirectUrl);
     } finally {
       setReadingMessageId(undefined);
     }
@@ -267,16 +266,37 @@ const MessageCenterDrawer = () => {
 
 async function navigateToMessage(
   redirectUrl: string,
-  navigate: ReturnType<typeof useNavigate>,
 ) {
   if (redirectUrl.startsWith('http://') || redirectUrl.startsWith('https://')) {
     window.open(redirectUrl, '_blank', 'noopener,noreferrer');
     return;
   }
 
-  await navigate({
-    to: redirectUrl,
+  const normalizedRedirectUrl = normalizeMessageRedirectUrl(redirectUrl);
+
+  await router.navigate({
+    to: normalizedRedirectUrl as never,
   });
+}
+
+/**
+ * 兼容历史消息里遗留的任务详情地址。
+ *
+ * 旧消息使用 `/project/task/detail?id=任务ID`，但当前前端没有独立任务详情页，
+ * 任务详情实际承载在敏捷面板抽屉里，因此这里统一改写为可落到现有页面的地址。
+ */
+function normalizeMessageRedirectUrl(redirectUrl: string) {
+  if (!redirectUrl.startsWith('/project/task/detail')) {
+    return redirectUrl;
+  }
+
+  const legacyUrl = new URL(redirectUrl, window.location.origin);
+  const taskId = legacyUrl.searchParams.get('id');
+  if (!taskId) {
+    return '/agile-board/';
+  }
+
+  return `/agile-board/?taskId=${encodeURIComponent(taskId)}`;
 }
 
 export default MessageCenterDrawer;

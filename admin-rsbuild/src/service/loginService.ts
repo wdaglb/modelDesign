@@ -4,10 +4,11 @@ import { isRedirect, redirect } from '@tanstack/react-router';
 import { router } from '@/App.tsx';
 import { ApiPassport } from '@/api';
 import KModal from '@/components/KModal';
+import { buildLoginRedirectFromLocation } from '@/service/loginRedirect.ts';
 import useAuthStore from '@/store/auth.ts';
 
 const getLoginRedirect = () => {
-  return router.state.location.pathname;
+  return buildLoginRedirectFromLocation(router.state.location);
 };
 
 /**

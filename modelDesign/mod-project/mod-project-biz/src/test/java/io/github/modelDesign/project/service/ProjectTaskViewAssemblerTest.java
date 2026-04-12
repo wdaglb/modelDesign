@@ -29,13 +29,15 @@ class ProjectTaskViewAssemblerTest {
         ProjectTaskDependencyService dependencyService = mock(ProjectTaskDependencyService.class);
         ProjectTaskTagBindingService tagBindingService = mock(ProjectTaskTagBindingService.class);
         TaskStatusConfigService taskStatusConfigService = mock(TaskStatusConfigService.class);
+        ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport = mock(ProjectTaskTimeMetricsSupport.class);
         ProjectTaskViewAssembler assembler = new ProjectTaskViewAssembler(
                 mock(io.github.modelDesign.auth.api.AuthUserApi.class),
                 projectMapper,
                 projectTaskMapper,
                 dependencyService,
                 tagBindingService,
-                taskStatusConfigService
+                taskStatusConfigService,
+                projectTaskTimeMetricsSupport
         );
 
         ProjectTask task = new ProjectTask();
@@ -63,6 +65,8 @@ class ProjectTaskViewAssemblerTest {
         when(tagBindingService.findTagMapByTaskIds(any()))
                 .thenReturn(Collections.emptyMap());
         when(taskStatusConfigService.getCompletedStatusCode()).thenReturn("done");
+        when(projectTaskTimeMetricsSupport.calculateElapsedDays(any(), any()))
+                .thenReturn(null);
 
         List<ProjectTaskDetailVo> result = assembler.toTaskVoList(List.of(task));
 

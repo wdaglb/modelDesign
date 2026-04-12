@@ -1,5 +1,6 @@
 package io.github.modelDesign.project.service;
 
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import io.github.modelDesign.auth.api.AuthCurrentUserApi;
 import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
 import io.github.modelDesign.project.domain.Project;
@@ -19,7 +20,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -182,5 +185,88 @@ class ProjectTaskServiceAssignmentTimeTest {
                 eq(previousAssignedAt),
                 any(LocalDateTime.class)
         );
+    }
+
+    /**
+     * 编辑任务时传入未分配负责人应显式清空数据库中的负责人字段。
+     */
+    @Test
+    void editShouldClearAssigneeWhenRequestMeansUnassigned() {
+        AuthCurrentUserApi authCurrentUserApi = mock(AuthCurrentUserApi.class);
+        ProjectService projectService = mock(ProjectService.class);
+        ProjectTaskReadService projectTaskReadService = mock(ProjectTaskReadService.class);
+        ProjectTaskGuardService projectTaskGuardService = mock(ProjectTaskGuardService.class);
+        ProjectTaskLifecycleService projectTaskLifecycleService = mock(ProjectTaskLifecycleService.class);
+        ProjectTaskDependencyService projectTaskDependencyService = mock(ProjectTaskDependencyService.class);
+        ProjectTaskTagBindingService projectTaskTagBindingService = mock(ProjectTaskTagBindingService.class);
+        ProjectTaskViewAssembler projectTaskViewAssembler = mock(ProjectTaskViewAssembler.class);
+        ProjectTaskChangeLogService projectTaskChangeLogService = mock(ProjectTaskChangeLogService.class);
+        ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport = mock(ProjectTaskTimeMetricsSupport.class);
+
+        ProjectTaskService service = spy(new ProjectTaskService(
+                authCurrentUserApi,
+                projectService,
+                projectTaskReadService,
+                projectTaskGuardService,
+                projectTaskLifecycleService,
+                projectTaskDependencyService,
+                projectTaskTagBindingService,
+                projectTaskViewAssembler,
+                projectTaskChangeLogService,
+                projectTaskTimeMetricsSupport
+        ));
+
+        ProjectTask existedTask = new ProjectTask();
+        existedTask.setId(9001L);
+        existedTask.setProjectId(101L);
+        existedTask.setTitle("原任务");
+        existedTask.setDescription("原描述");
+        existedTask.setStatus("todo");
+        existedTask.setPriority("medium");
+        existedTask.setCreatorId(2001L);
+        existedTask.setAssigneeId(7001L);
+        existedTask.setDeleted(0);
+        LocalDateTime previousAssignedAt = LocalDateTime.of(2026, 4, 5, 10, 0, 0);
+        existedTask.setAssigneeAssignedAt(previousAssignedAt);
+
+        doReturn(existedTask).when(service).requireTask(9001L);
+        doReturn(true).when(service).updateById(any(ProjectTask.class));
+
+        Project project = new Project();
+        project.setId(101L);
+        project.setTenantId(1001L);
+        when(projectService.requireProject(101L)).thenReturn(project);
+        when(projectTaskGuardService.validateStatus("todo")).thenReturn("todo");
+        when(projectTaskGuardService.normalizeDescription(any())).thenReturn("编辑后描述");
+        when(projectTaskDependencyService.findPredecessorIdsByTaskId(9001L))
+                .thenReturn(Collections.emptyList());
+        when(projectTaskTagBindingService.findTagIdsByTaskId(9001L))
+                .thenReturn(Collections.emptyList());
+        when(projectTaskViewAssembler.toTaskVo(any()))
+                .thenReturn(ProjectTaskDetailVo.builder().id(9001L).build());
+        when(projectTaskTimeMetricsSupport.resolveAssigneeAssignedAtOnEdit(
+                eq(7001L), eq(null), eq(previousAssignedAt), any(LocalDateTime.class)))
+                .thenReturn(null);
+
+        @SuppressWarnings("unchecked")
+        LambdaUpdateChainWrapper<ProjectTask> updateChain =
+                mock(LambdaUpdateChainWrapper.class, RETURNS_SELF);
+        doReturn(updateChain).when(service).lambdaUpdate();
+        doReturn(updateChain).when(updateChain).eq(any(), any());
+        doReturn(updateChain).when(updateChain).set(any(), any());
+        when(updateChain.update()).thenReturn(true);
+
+        ProjectTaskEditRequest request = new ProjectTaskEditRequest();
+        request.setTitle("编辑后任务");
+        request.setDescription("编辑后描述");
+        request.setStatus("todo");
+        request.setPriority("medium");
+        request.setAssigneeId(null);
+
+        service.edit(9001L, request);
+
+        verify(updateChain).eq(any(), eq(9001L));
+        verify(updateChain, times(2)).set(any(), eq(null));
+        verify(updateChain).update();
     }
 }

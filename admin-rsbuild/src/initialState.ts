@@ -1,4 +1,5 @@
 import { ParsedLocation, redirect } from '@tanstack/react-router';
+import { buildLoginRedirectFromLocation } from '@/service/loginRedirect.ts';
 import useAuthStore, { AuthInitResult } from '@/store/auth.ts';
 import { canAccessPath, getFirstAccessiblePath } from '@/utils/permission.ts';
 
@@ -9,9 +10,9 @@ const LOGIN_PATH = '/login';
  *
  * @param context 路由上下文
  */
-const initialState = async (
-  context: { location: ParsedLocation },
-): Promise<AuthInitResult> => {
+const initialState = async (context: {
+  location: ParsedLocation;
+}): Promise<AuthInitResult> => {
   const { location } = context;
   const authStore = useAuthStore.getState();
   return authStore.initState(location);
@@ -27,7 +28,7 @@ export const buildLoginRedirect = (location: ParsedLocation) => {
   return redirect({
     to: LOGIN_PATH,
     search: {
-      redirect: location.pathname,
+      redirect: buildLoginRedirectFromLocation(location),
     },
   });
 };
