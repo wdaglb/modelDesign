@@ -184,6 +184,10 @@ export interface ProjectTaskDetail {
   id: number;
   projectId: number;
   projectCode?: string;
+  taskNo?: string;
+  taskCode?: string;
+  code?: string;
+  serialNumber?: string | number;
   parentTaskId?: number;
   parentTaskTitle?: string;
   childTaskCount?: number;

@@ -4,7 +4,10 @@ import type { AxiosResponse } from 'axios';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 import { RequestError } from '@/api/types';
 
-import { handleBoardTitleSearch } from '../#helper';
+import {
+  buildAgileBoardTaskShareUrl,
+  handleBoardTitleSearch,
+} from '../#helper';
 
 const taskDetail: ProjectTaskDetail = {
   id: 1201,
@@ -26,6 +29,18 @@ function buildRequestError(status: number) {
 }
 
 describe('handleBoardTitleSearch', () => {
+  it('分享链接会包含任务 id 与任务编号', () => {
+    const shareUrl = buildAgileBoardTaskShareUrl(
+      {
+        ...taskDetail,
+        taskNo: 'TASK-1201',
+      },
+      'https://demo.local',
+    );
+
+    expect(shareUrl).toBe('https://demo.local/agile-board/?taskId=1201');
+  });
+
   it('普通标题输入时直接触发标题搜索', async () => {
     const getDetailByCode = vi.fn().mockResolvedValue(taskDetail);
     const onOpenPreview = vi.fn();

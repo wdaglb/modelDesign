@@ -21,12 +21,15 @@ import { drawerContext } from '@/components/KDrawer/Drawer.tsx';
 import queryKey from '@/constants/queryKey';
 
 import {
+  buildAgileBoardTaskShareUrl,
   buildBoardEditPayload,
+  copyTextToClipboard,
   buildBoardStatusOptions,
   getBoardStatusText,
   getTaskAssigneeText,
   getTaskPriorityText,
   getTaskProjectText,
+  resolveTaskNumberText,
   getTaskWorkDaysText,
 } from './#helper';
 import TaskChangeLogPanel from './#TaskChangeLogPanel';
@@ -187,7 +190,36 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
 
   const taskDetail = detailQuery.data;
   const statusText = getBoardStatusText(taskDetail.status, props.statusConfigs);
+  const taskNumberText = resolveTaskNumberText(taskDetail);
   const canApplyStatus = Boolean(selectedStatus) && selectedStatus !== taskDetail.status;
+  const taskShareUrl = buildAgileBoardTaskShareUrl(
+    taskDetail,
+    window.location.origin,
+  );
+
+  /**
+   * 复制当前任务编号，便于与卡片区保持一致的交互体验。
+   */
+  const handleCopyTaskNumber = async () => {
+    try {
+      await copyTextToClipboard(taskNumberText);
+      message.success('任务编号已复制');
+    } catch {
+      message.error('任务编号复制失败，请稍后重试');
+    }
+  };
+
+  /**
+   * 复制当前任务分享链接，便于他人直达当前任务详情。
+   */
+  const handleCopyTaskLink = async () => {
+    try {
+      await copyTextToClipboard(taskShareUrl);
+      message.success('任务链接已复制');
+    } catch {
+      message.error('任务链接复制失败，请稍后重试');
+    }
+  };
 
   return (
     <div
@@ -213,6 +245,7 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
           priorityColor={priorityColor}
           statusText={statusText}
           statusTagColor={statusTagColor}
+          taskNumberText={taskNumberText}
           selectedStatus={selectedStatus}
           statusOptions={statusOptions}
           updatingStatus={updatingStatus}
@@ -221,6 +254,8 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
             setSelectedStatus(value);
           }}
           onApplyStatus={handleStatusUpdate}
+          onCopyTaskLink={handleCopyTaskLink}
+          onCopyTaskNumber={handleCopyTaskNumber}
           onEdit={handleEdit}
           onClose={() => {
             ctx.close();
