@@ -6,7 +6,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 登录会话仓储。
@@ -20,10 +19,19 @@ public class SessionRepository {
     /**
      * 保存登录会话。
      *
-     * @param currentAdmin 当前登录管理员
+     * @param currentAdmin    当前登录管理员
+     * @param refreshTokenId refresh token 标识
      */
-    public void save(CurrentAdmin currentAdmin) {
-        redisTemplate.opsForValue().set(getKey(currentAdmin.getLoginId()), currentAdmin, getTtl());
+    public void save(CurrentAdmin currentAdmin, String refreshTokenId) {
+        AuthSession authSession = AuthSession.builder()
+                .currentAdmin(currentAdmin)
+                .refreshTokenId(refreshTokenId)
+                .build();
+        redisTemplate.opsForValue().set(
+                getKey(currentAdmin.getLoginId()),
+                authSession,
+                getTtl()
+        );
     }
 
     /**
@@ -33,9 +41,23 @@ public class SessionRepository {
      * @return 当前登录管理员会话
      */
     public CurrentAdmin get(String loginId) {
+        AuthSession authSession = getSession(loginId);
+        if (authSession == null) {
+            return null;
+        }
+        return authSession.getCurrentAdmin();
+    }
+
+    /**
+     * 获取完整登录会话。
+     *
+     * @param loginId 登录流水号
+     * @return 登录会话聚合
+     */
+    public AuthSession getSession(String loginId) {
         Object value = redisTemplate.opsForValue().get(getKey(loginId));
-        if (value instanceof CurrentAdmin currentAdmin) {
-            return currentAdmin;
+        if (value instanceof AuthSession authSession) {
+            return authSession;
         }
         return null;
     }
@@ -50,12 +72,16 @@ public class SessionRepository {
     }
 
     /**
-     * 刷新登录会话有效期。
+     * 更新当前登录用户会话内容。
      *
-     * @param loginId 登录流水号
+     * @param currentAdmin 当前登录管理员
      */
-    public void refresh(String loginId) {
-        redisTemplate.expire(getKey(loginId), authProperties.getTokenExpireSeconds(), TimeUnit.SECONDS);
+    public void updateCurrentAdmin(CurrentAdmin currentAdmin) {
+        AuthSession authSession = getSession(currentAdmin.getLoginId());
+        if (authSession == null) {
+            return;
+        }
+        save(currentAdmin, authSession.getRefreshTokenId());
     }
 
     private String getKey(String loginId) {
@@ -63,6 +89,6 @@ public class SessionRepository {
     }
 
     private Duration getTtl() {
-        return Duration.ofSeconds(authProperties.getTokenExpireSeconds());
+        return Duration.ofSeconds(authProperties.getRefreshTokenExpireSeconds());
     }
 }

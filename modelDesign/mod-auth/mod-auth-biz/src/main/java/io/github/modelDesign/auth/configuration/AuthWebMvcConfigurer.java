@@ -22,6 +22,7 @@ public class AuthWebMvcConfigurer implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/passport/password_login",
                         "/passport/register",
+                        "/passport/refresh_token",
                         "/tenant/options",
                         "/third-party/qywork/binding/scan-entry",
                         "/third-party/qywork/oauth/callback",

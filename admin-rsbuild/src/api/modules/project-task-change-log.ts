@@ -1,6 +1,6 @@
 import type { PageResponse } from './project.types';
 
-import request from '@/utils/request.ts';
+import request from '@/utils/request';
 
 /**
  * 任务变更日志内容项。

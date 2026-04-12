@@ -33,7 +33,7 @@ export const Route = createFileRoute('/login/')({
 function RouteComponent() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
-  const setToken = useAuthStore((state) => state.setToken);
+  const setTokens = useAuthStore((state) => state.setTokens);
 
   /** 当前激活的面板 */
   const [activePanel, setActivePanel] = useState<PanelType>('skeleton');
@@ -48,7 +48,7 @@ function RouteComponent() {
   const mutation = useMutation({
     mutationFn: ApiPassport.passwordLogin,
     onSuccess: (data) => {
-      setToken(data.token);
+      setTokens(data.accessToken, data.refreshToken);
       navigate({ to: search.redirect, replace: true });
     },
     onError: (error) => {
@@ -62,7 +62,7 @@ function RouteComponent() {
   const registerMutation = useMutation({
     mutationFn: ApiPassport.register,
     onSuccess: (data) => {
-      setToken(data.token);
+      setTokens(data.accessToken, data.refreshToken);
       navigate({ to: search.redirect, replace: true });
     },
   });

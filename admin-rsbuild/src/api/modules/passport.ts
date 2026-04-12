@@ -5,6 +5,7 @@ import {
   LoginHistoryVo,
   PassportLoginVo,
   PassportCurrentPermission,
+  RefreshTokenParams,
   RegisterParams,
   UpdateCurrentProfileParams,
 } from './passport.types.ts';
@@ -65,6 +66,19 @@ export const register = (data: RegisterParams) => {
       ...data,
       password: md5(data.password),
     },
+  });
+};
+
+/**
+ * 使用 refresh token 刷新登录态。
+ */
+export const refreshToken = (data: RefreshTokenParams) => {
+  return request<PassportLoginVo>('/passport/refresh_token', {
+    method: 'post',
+    data,
+    skipErrorHandler: true,
+    skipAuthRefresh: true,
+    skipAuthToken: true,
   });
 };
 

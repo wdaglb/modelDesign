@@ -1,5 +1,5 @@
 import type { List } from '@/components/KTable/types.ts';
-import request from '@/utils/request.ts';
+import request from '@/utils/request';
 
 /**
  * 消息读取状态。

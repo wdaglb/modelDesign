@@ -39,14 +39,34 @@ export interface CurrentInfoVo {
  */
 export interface PassportLoginVo {
   /**
-   * 访问令牌。
+   * access token。
    */
-  token: string;
+  accessToken: string;
 
   /**
-   * 令牌过期时间戳，单位毫秒。
+   * access token 过期时间戳，单位毫秒。
    */
-  expireTime: number;
+  accessExpireTime: number;
+
+  /**
+   * refresh token。
+   */
+  refreshToken: string;
+
+  /**
+   * refresh token 过期时间戳，单位毫秒。
+   */
+  refreshExpireTime: number;
+}
+
+/**
+ * refresh token 刷新参数。
+ */
+export interface RefreshTokenParams {
+  /**
+   * 当前 refresh token。
+   */
+  refreshToken: string;
 }
 
 /**

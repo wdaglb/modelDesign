@@ -16,14 +16,26 @@ import lombok.NoArgsConstructor;
 @Schema(description = "登录响应")
 public class UserLoginVo {
     /**
-     * 访问令牌。
+     * access token。
      */
-    @Schema(description = "访问令牌")
-    private String token;
+    @Schema(description = "access token")
+    private String accessToken;
 
     /**
-     * 令牌过期时间戳，单位毫秒。
+     * access token 过期时间戳，单位毫秒。
      */
-    @Schema(description = "令牌过期时间戳，单位毫秒")
-    private Long expireTime;
+    @Schema(description = "access token 过期时间戳，单位毫秒")
+    private Long accessExpireTime;
+
+    /**
+     * refresh token。
+     */
+    @Schema(description = "refresh token")
+    private String refreshToken;
+
+    /**
+     * refresh token 过期时间戳，单位毫秒。
+     */
+    @Schema(description = "refresh token 过期时间戳，单位毫秒")
+    private Long refreshExpireTime;
 }

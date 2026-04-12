@@ -1,16 +1,26 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import qs from 'qs';
-import useAuthStore from '@/store/auth.ts';
-import { RequestError } from '@/api/types.ts';
 import { get } from 'lodash-es';
 import { message, Modal } from 'antd';
+import useAuthStore from '@/store/auth.ts';
+import { RequestError } from '@/api/types.ts';
 import { navigateLogin } from '@/service/loginService.ts';
+import type { PassportLoginVo } from '@/api/modules/passport.types.ts';
 
 interface RequestOptions {
   method?: 'get' | 'post';
   params?: any;
   data?: any;
   skipErrorHandler?: boolean;
+  skipAuthRefresh?: boolean;
+  skipAuthToken?: boolean;
+}
+
+interface AuthRequestConfig extends AxiosRequestConfig {
+  skipErrorHandler?: boolean;
+  skipAuthRefresh?: boolean;
+  skipAuthToken?: boolean;
+  _retry?: boolean;
 }
 
 const errorMessageMap: Record<number, string> = {
@@ -22,7 +32,28 @@ const errorMessageMap: Record<number, string> = {
 };
 
 let unauthorizedModalOpened = false;
+let refreshTokenPromise: Promise<string | null> | null = null;
 
+/**
+ * 复用 axios 客户端基础配置，避免主请求与刷新请求在参数序列化上出现差异。
+ *
+ * @returns axios 实例
+ */
+const createHttpClient = () => {
+  return axios.create({
+    baseURL: '/api',
+    paramsSerializer: (params) => {
+      return qs.stringify(params, { arrayFormat: 'repeat' });
+    },
+  });
+};
+
+const instance = createHttpClient();
+const refreshClient = createHttpClient();
+
+/**
+ * 打开登录失效提示。
+ */
 const openUnauthorizedModal = () => {
   if (unauthorizedModalOpened) {
     return;
@@ -42,36 +73,128 @@ const openUnauthorizedModal = () => {
   });
 };
 
-const instance = axios.create({
-  baseURL: '/api',
-  paramsSerializer: (params) => {
-    return qs.stringify(params, { arrayFormat: 'repeat' });
-  },
-});
-instance.interceptors.request.use((config) => {
-  const authStore = useAuthStore.getState();
-
-  if (authStore.token) {
-    config.headers['Authorization'] = authStore.token;
+/**
+ * 使用 refresh token 申请新的 access token。
+ *
+ * <p>这里单独使用 refreshClient，目的是避免刷新接口再次走主拦截器，
+ * 从而造成 401 递归刷新。</p>
+ *
+ * @returns 新的 access token；若无法刷新则返回 null
+ */
+const refreshAccessToken = async (): Promise<string | null> => {
+  if (refreshTokenPromise) {
+    return refreshTokenPromise;
   }
-  return config;
+
+  refreshTokenPromise = (async () => {
+    const authStore = useAuthStore.getState();
+    const currentRefreshToken =
+      authStore.refreshToken || localStorage.getItem('refreshToken') || '';
+    if (!currentRefreshToken) {
+      authStore.clearAuth();
+      return null;
+    }
+
+    try {
+      const response = await refreshClient.request<PassportLoginVo>({
+        url: '/passport/refresh_token',
+        method: 'post',
+        data: {
+          refreshToken: currentRefreshToken,
+        },
+      });
+      const nextTokens = response.data;
+      authStore.setTokens(nextTokens.accessToken, nextTokens.refreshToken);
+      return nextTokens.accessToken;
+    } catch (error) {
+      authStore.clearAuth();
+      throw error;
+    } finally {
+      refreshTokenPromise = null;
+    }
+  })();
+
+  return refreshTokenPromise;
+};
+
+/**
+ * 基于刷新后的 access token 重放原始请求。
+ *
+ * @param config 原始请求配置
+ * @returns 重放后的响应；若无需重放则返回 null
+ */
+const retryWithFreshToken = async (
+  config?: AuthRequestConfig,
+): Promise<unknown | null> => {
+  if (!config) {
+    return null;
+  }
+  if (config.skipAuthRefresh || config._retry) {
+    return null;
+  }
+
+  const nextToken = await refreshAccessToken();
+  if (!nextToken) {
+    return null;
+  }
+
+  config._retry = true;
+  if (!config.headers) {
+    config.headers = {};
+  }
+  config.headers['Authorization'] = nextToken;
+  return instance.request(config);
+};
+
+instance.interceptors.request.use((config) => {
+  const authConfig = config as AuthRequestConfig;
+  if (authConfig.skipAuthToken) {
+    return authConfig;
+  }
+
+  const authStore = useAuthStore.getState();
+  if (authStore.token) {
+    if (!authConfig.headers) {
+      authConfig.headers = {};
+    }
+    authConfig.headers['Authorization'] = authStore.token;
+  }
+  return authConfig;
 });
+
 instance.interceptors.response.use(
   (response) => {
     return response.data;
   },
-  (error) => {
+  async (error) => {
     if (error?.response) {
       const requestError = new RequestError(error.response);
-      const config = error.config;
-      if (!get(config, 'skipErrorHandler', false)) {
-        if (requestError.code === 401) {
-          const { loadState } = useAuthStore.getState();
+      const config = error.config as AuthRequestConfig | undefined;
 
+      if (requestError.code === 401) {
+        try {
+          const retryResponse = await retryWithFreshToken(config);
+          if (retryResponse) {
+            return retryResponse;
+          }
+        } catch {
+          /**
+           * 刷新失败后继续走统一的未登录提示，
+           * 不在这里直接抛出原始刷新异常，避免页面出现两套错误处理。
+           */
+        }
+
+        if (!get(config, 'skipErrorHandler', false)) {
+          const { loadState } = useAuthStore.getState();
           if (loadState === 2) {
             openUnauthorizedModal();
           }
-        } else if (requestError.code === 417) {
+        }
+        return Promise.reject(requestError);
+      }
+
+      if (!get(config, 'skipErrorHandler', false)) {
+        if (requestError.code === 417) {
           Modal.confirm({
             title: '提示',
             content: requestError.message,
@@ -94,6 +217,6 @@ instance.interceptors.response.use(
 export default <T = any>(uri: string, options?: RequestOptions): Promise<T> => {
   return instance.request({
     url: uri,
-    ...options,
-  });
+    ...(options || {}),
+  } as AuthRequestConfig);
 };

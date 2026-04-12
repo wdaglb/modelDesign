@@ -1,6 +1,6 @@
 import { md5 } from 'js-md5';
 
-import request from '@/utils/request.ts';
+import request from '@/utils/request';
 import { List } from '@/components/KTable/types.ts';
 
 /**

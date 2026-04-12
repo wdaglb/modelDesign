@@ -1,4 +1,4 @@
-import request from '@/utils/request.ts';
+import request from '@/utils/request';
 import * as ApiFileAccessConfig from './file-access-config';
 
 const API_PREFIX = '/api';

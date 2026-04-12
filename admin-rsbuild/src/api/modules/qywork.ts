@@ -1,4 +1,4 @@
-import request from '@/utils/request.ts';
+import request from '@/utils/request';
 import { RequestError } from '@/api/types.ts';
 
 /**

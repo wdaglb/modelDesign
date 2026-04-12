@@ -2,6 +2,7 @@ package io.github.modelDesign.auth.controller;
 
 import io.github.modelDesign.auth.request.ChangePasswordRequest;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
+import io.github.modelDesign.auth.request.RefreshTokenRequest;
 import io.github.modelDesign.auth.request.RegisterRequest;
 import io.github.modelDesign.auth.request.UpdateCurrentProfileRequest;
 import io.github.modelDesign.auth.response.CurrentInfoVo;
@@ -67,6 +68,18 @@ public class PassportController {
     public UserLoginVo register(@Valid @RequestBody RegisterRequest request,
                                 HttpServletRequest httpRequest) {
         return authService.register(request, httpRequest);
+    }
+
+    /**
+     * 使用 refresh token 刷新登录态。
+     *
+     * @param request 刷新请求
+     * @return 新的双 token
+     */
+    @Operation(summary = "使用 refresh token 刷新登录态")
+    @PostMapping("/refresh_token")
+    public UserLoginVo refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return authService.refreshToken(request);
     }
 
     /**

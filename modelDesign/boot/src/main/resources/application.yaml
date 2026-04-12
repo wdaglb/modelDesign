@@ -99,7 +99,8 @@ model-design:
     enabled: ${MODEL_DESIGN_AI_ENABLED:false}
   auth:
     jwt-secret: ${AUTH_JWT_SECRET:change-this-jwt-secret-change-this-jwt-secret}
-    token-expire-seconds: ${AUTH_TOKEN_EXPIRE_SECONDS:7200}
+    access-token-expire-seconds: ${AUTH_ACCESS_TOKEN_EXPIRE_SECONDS:${AUTH_TOKEN_EXPIRE_SECONDS:7200}}
+    refresh-token-expire-seconds: ${AUTH_REFRESH_TOKEN_EXPIRE_SECONDS:2592000}
     session-key-prefix: ${AUTH_SESSION_KEY_PREFIX:auth:admin:token:}
     login-audit-retention-days: ${AUTH_LOGIN_AUDIT_RETENTION_DAYS:90}
     login-audit-cleanup-cron: ${AUTH_LOGIN_AUDIT_CLEANUP_CRON:0 30 3 * * *}

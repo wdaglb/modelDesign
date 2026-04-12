@@ -6,14 +6,17 @@ import io.github.modelDesign.auth.enums.LoginAuditStatusEnum;
 import io.github.modelDesign.auth.enums.LoginDeviceTypeEnum;
 import io.github.modelDesign.auth.enums.LoginFailureReasonEnum;
 import io.github.modelDesign.common.exception.BusinessException;
+import io.github.modelDesign.common.exception.UnauthorizedException;
 import io.github.modelDesign.auth.request.ChangePasswordRequest;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
+import io.github.modelDesign.auth.request.RefreshTokenRequest;
 import io.github.modelDesign.auth.request.RegisterRequest;
 import io.github.modelDesign.auth.request.UpdateCurrentProfileRequest;
 import io.github.modelDesign.auth.response.CurrentInfoVo;
 import io.github.modelDesign.auth.response.LoginHistoryVo;
 import io.github.modelDesign.auth.response.UserLoginVo;
 import io.github.modelDesign.auth.session.AuthContext;
+import io.github.modelDesign.auth.session.AuthSession;
 import io.github.modelDesign.auth.session.CurrentAdmin;
 import io.github.modelDesign.auth.session.SessionRepository;
 import io.github.modelDesign.auth.session.TokenService;
@@ -180,6 +183,35 @@ public class AuthService {
     }
 
     /**
+     * 刷新双 token。
+     *
+     * @param request 刷新请求
+     * @return 新的双 token
+     */
+    public UserLoginVo refreshToken(RefreshTokenRequest request) {
+        try {
+            var claims = tokenService.parseRefreshClaims(request.getRefreshToken());
+            String loginId = claims.get("loginId", String.class);
+            String refreshTokenId = claims.get("refreshTokenId", String.class);
+            AuthSession authSession = sessionRepository.getSession(loginId);
+            if (authSession == null || authSession.getCurrentAdmin() == null) {
+                throw new UnauthorizedException("未登录或登录已过期");
+            }
+            if (!Objects.equals(authSession.getRefreshTokenId(), refreshTokenId)) {
+                sessionRepository.remove(loginId);
+                throw new UnauthorizedException("未登录或登录已过期");
+            }
+            CurrentAdmin currentAdmin = authSession.getCurrentAdmin();
+            currentAdmin.setTokenCreateTime(LocalDateTime.now());
+            return buildTokenResponse(currentAdmin);
+        } catch (UnauthorizedException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new UnauthorizedException("未登录或登录已过期");
+        }
+    }
+
+    /**
      * 获取当前登录用户信息。
      *
      * @return 当前登录用户信息
@@ -207,7 +239,7 @@ public class AuthService {
 
         currentAdmin.setNickname(nickname);
         currentAdmin.setAvatarId(avatarId);
-        sessionRepository.save(currentAdmin);
+        sessionRepository.updateCurrentAdmin(currentAdmin);
 
         return toCurrentInfoVo(currentAdmin);
     }
@@ -308,7 +340,7 @@ public class AuthService {
                 .loginIp(loginIp)
                 .tokenCreateTime(LocalDateTime.now())
                 .build();
-        sessionRepository.save(currentAdmin);
+        UserLoginVo loginVo = buildTokenResponse(currentAdmin);
 
         userService.lambdaUpdate()
                 .eq(User::getId, user.getId())
@@ -317,10 +349,7 @@ public class AuthService {
                 .update();
         recordSuccessAudit(currentAdmin, userAgent, clientInfo);
 
-        return UserLoginVo.builder()
-                .token(tokenService.createToken(currentAdmin))
-                .expireTime(tokenService.getExpireTime())
-                .build();
+        return loginVo;
     }
 
     /**
@@ -519,6 +548,26 @@ public class AuthService {
                 .tenantId(currentAdmin.getTenantId())
                 .userId(currentAdmin.getUserId())
                 .username(currentAdmin.getUsername())
+                .build();
+    }
+
+    /**
+     * 统一生成双 token 响应，并刷新 Redis 中保存的 refresh token 轮换状态。
+     *
+     * <p>登录与刷新接口都走同一条路径，确保 access token、refresh token、
+     * refresh token 轮换 ID 与 Redis TTL 始终保持一致。</p>
+     *
+     * @param currentAdmin 当前登录管理员
+     * @return 双 token 响应
+     */
+    private UserLoginVo buildTokenResponse(CurrentAdmin currentAdmin) {
+        String refreshTokenId = UUID.randomUUID().toString().replace("-", "");
+        sessionRepository.save(currentAdmin, refreshTokenId);
+        return UserLoginVo.builder()
+                .accessToken(tokenService.createAccessToken(currentAdmin))
+                .accessExpireTime(tokenService.getAccessExpireTime())
+                .refreshToken(tokenService.createRefreshToken(currentAdmin, refreshTokenId))
+                .refreshExpireTime(tokenService.getRefreshExpireTime())
                 .build();
     }
 
