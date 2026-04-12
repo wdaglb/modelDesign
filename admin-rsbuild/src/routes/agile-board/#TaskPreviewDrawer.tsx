@@ -18,6 +18,7 @@ import {
   type TaskStatusCode,
 } from '@/api/modules/project-task.types';
 import { drawerContext } from '@/components/KDrawer/Drawer.tsx';
+import { KMarkdownPreview } from '@/components';
 import queryKey from '@/constants/queryKey';
 
 import {
@@ -191,11 +192,24 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
   const taskDetail = detailQuery.data;
   const statusText = getBoardStatusText(taskDetail.status, props.statusConfigs);
   const taskNumberText = resolveTaskNumberText(taskDetail);
-  const canApplyStatus = Boolean(selectedStatus) && selectedStatus !== taskDetail.status;
+  const canApplyStatus =
+    Boolean(selectedStatus) && selectedStatus !== taskDetail.status;
   const taskShareUrl = buildAgileBoardTaskShareUrl(
     taskDetail,
     window.location.origin,
   );
+
+  /**
+   * 详情抽屉与编辑表单复用同一套 Markdown 预览风格，减少阅读落差。
+   */
+  let descriptionContent = (
+    <Typography.Text type="secondary">暂无描述</Typography.Text>
+  );
+  if (taskDetail.description) {
+    descriptionContent = (
+      <KMarkdownPreview value={taskDetail.description} />
+    );
+  }
 
   /**
    * 复制当前任务编号，便于与卡片区保持一致的交互体验。
@@ -343,16 +357,7 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
                   </TaskPreviewSection>
 
                   <TaskPreviewSection title="任务说明">
-                    <Typography.Paragraph
-                      style={{
-                        marginBottom: 0,
-                        whiteSpace: 'pre-wrap',
-                        color: 'rgba(15, 23, 42, 0.88)',
-                        lineHeight: '24px',
-                      }}
-                    >
-                      {taskDetail.description || '暂无描述'}
-                    </Typography.Paragraph>
+                    {descriptionContent}
                   </TaskPreviewSection>
                 </Space>
               ),

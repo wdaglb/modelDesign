@@ -62,3 +62,20 @@ export interface KMarkdownEditorProps {
    */
   onUploadImage?: (file: File) => Promise<MarkdownImageUploadResult>;
 }
+
+/**
+ * Markdown 预览组件属性。
+ */
+export interface KMarkdownPreviewProps {
+  /**
+   * 预览内容。
+   */
+  value?: string;
+
+  /**
+   * 预览区域高度。
+   *
+   * 不传时使用自适应高度，适合详情态展示。
+   */
+  height?: number | string;
+}
