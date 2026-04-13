@@ -132,7 +132,7 @@ const RoleTable = () => {
               onClick={async () => {
                 await modal.open({
                   title: `权限配置 - ${record.name}`,
-                  width: 560,
+                  width: 760,
                   children: <PermissionDrawer role={record} />,
                 });
               }}

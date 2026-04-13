@@ -16,7 +16,9 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { ApiFileAccessConfig } from '@/api';
 import type { FileAccessConfigSaveParams } from '@/api/modules/file-access-config';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import queryKey from '@/constants/queryKey';
+import usePermission from '@/hooks/usePermission.ts';
 import useAuthStore from '@/store/auth.ts';
 
 /**
@@ -50,6 +52,10 @@ function RouteComponent() {
   const [form] = Form.useForm<FileAccessConfigFormValues>();
   const queryClient = useQueryClient();
   const currentInfo = useAuthStore((state) => state.currentInfo);
+  const { hasButtonPermission } = usePermission();
+  const canSaveConfig = hasButtonPermission(
+    PERMISSION_RESOURCE.systemFileConfigSave,
+  );
 
   const currentConfigQuery = useQuery({
     queryKey: queryKey.fileAccessConfig.current(),
@@ -179,13 +185,15 @@ function RouteComponent() {
           </Form.Item>
 
           <Space>
-            <Button
-              type={'primary'}
-              htmlType={'submit'}
-              loading={saveMutation.isPending}
-            >
-              保存配置
-            </Button>
+            {canSaveConfig ? (
+              <Button
+                type={'primary'}
+                htmlType={'submit'}
+                loading={saveMutation.isPending}
+              >
+                保存配置
+              </Button>
+            ) : null}
             <Button
               onClick={() => {
                 if (currentConfigQuery.data) {

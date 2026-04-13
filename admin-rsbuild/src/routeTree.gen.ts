@@ -21,6 +21,7 @@ import { Route as SystemUserIndexRouteImport } from './routes/system/user/index'
 import { Route as SystemTenantIndexRouteImport } from './routes/system/tenant/index'
 import { Route as SystemRoleIndexRouteImport } from './routes/system/role/index'
 import { Route as SystemPositionIndexRouteImport } from './routes/system/position/index'
+import { Route as SystemPermissionGroupIndexRouteImport } from './routes/system/permission-group/index'
 import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
 import { Route as SystemFileConfigIndexRouteImport } from './routes/system/file-config/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
@@ -89,6 +90,12 @@ const SystemPositionIndexRoute = SystemPositionIndexRouteImport.update({
   path: '/system/position/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SystemPermissionGroupIndexRoute =
+  SystemPermissionGroupIndexRouteImport.update({
+    id: '/system/permission-group/',
+    path: '/system/permission-group/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SystemMenuIndexRoute = SystemMenuIndexRouteImport.update({
   id: '/system/menu/',
   path: '/system/menu/',
@@ -141,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
+  '/system/permission-group/': typeof SystemPermissionGroupIndexRoute
   '/system/position/': typeof SystemPositionIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
   '/system/tenant/': typeof SystemTenantIndexRoute
@@ -161,6 +169,7 @@ export interface FileRoutesByTo {
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
   '/system/file-config': typeof SystemFileConfigIndexRoute
   '/system/menu': typeof SystemMenuIndexRoute
+  '/system/permission-group': typeof SystemPermissionGroupIndexRoute
   '/system/position': typeof SystemPositionIndexRoute
   '/system/role': typeof SystemRoleIndexRoute
   '/system/tenant': typeof SystemTenantIndexRoute
@@ -183,6 +192,7 @@ export interface FileRoutesById {
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
+  '/system/permission-group/': typeof SystemPermissionGroupIndexRoute
   '/system/position/': typeof SystemPositionIndexRoute
   '/system/role/': typeof SystemRoleIndexRoute
   '/system/tenant/': typeof SystemTenantIndexRoute
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/'
     | '/system/file-config/'
     | '/system/menu/'
+    | '/system/permission-group/'
     | '/system/position/'
     | '/system/role/'
     | '/system/tenant/'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/project/$projectId'
     | '/system/file-config'
     | '/system/menu'
+    | '/system/permission-group'
     | '/system/position'
     | '/system/role'
     | '/system/tenant'
@@ -247,6 +259,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/'
     | '/system/file-config/'
     | '/system/menu/'
+    | '/system/permission-group/'
     | '/system/position/'
     | '/system/role/'
     | '/system/tenant/'
@@ -265,6 +278,7 @@ export interface RootRouteChildren {
   ProjectIndexRoute: typeof ProjectIndexRoute
   SystemFileConfigIndexRoute: typeof SystemFileConfigIndexRoute
   SystemMenuIndexRoute: typeof SystemMenuIndexRoute
+  SystemPermissionGroupIndexRoute: typeof SystemPermissionGroupIndexRoute
   SystemPositionIndexRoute: typeof SystemPositionIndexRoute
   SystemRoleIndexRoute: typeof SystemRoleIndexRoute
   SystemTenantIndexRoute: typeof SystemTenantIndexRoute
@@ -358,6 +372,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemPositionIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/system/permission-group/': {
+      id: '/system/permission-group/'
+      path: '/system/permission-group'
+      fullPath: '/system/permission-group/'
+      preLoaderRoute: typeof SystemPermissionGroupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/system/menu/': {
       id: '/system/menu/'
       path: '/system/menu'
@@ -438,6 +459,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectIndexRoute: ProjectIndexRoute,
   SystemFileConfigIndexRoute: SystemFileConfigIndexRoute,
   SystemMenuIndexRoute: SystemMenuIndexRoute,
+  SystemPermissionGroupIndexRoute: SystemPermissionGroupIndexRoute,
   SystemPositionIndexRoute: SystemPositionIndexRoute,
   SystemRoleIndexRoute: SystemRoleIndexRoute,
   SystemTenantIndexRoute: SystemTenantIndexRoute,

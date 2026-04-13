@@ -45,6 +45,36 @@ public final class PermissionResource {
     public static final String SYSTEM_QYWORK = "/system/third-party/qywork";
 
     /**
+     * 文件访问配置页面。
+     */
+    public static final String SYSTEM_FILE_CONFIG = "/system/file-config";
+
+    /**
+     * 权限资源组页面。
+     */
+    public static final String SYSTEM_PERMISSION_GROUP = "/system/permission-group";
+
+    /**
+     * 项目管理页面。
+     */
+    public static final String PROJECT = "/project";
+
+    /**
+     * 敏捷看板页面。
+     */
+    public static final String AGILE_BOARD = "/agile-board";
+
+    /**
+     * AI 对话页面。
+     */
+    public static final String AI_CHAT = "/ai/chat";
+
+    /**
+     * 项目任务页面。
+     */
+    public static final String PROJECT_TASK = "/project/task";
+
+    /**
      * 菜单新增。
      */
     public static final String SYSTEM_MENU_CREATE = "/system/menu/create";
@@ -175,6 +205,86 @@ public final class PermissionResource {
     public static final String SYSTEM_QYWORK_SAVE = "/system/third-party/qywork/save";
 
     /**
+     * 文件访问配置保存。
+     */
+    public static final String SYSTEM_FILE_ACCESS_CONFIG_SAVE = "/system/file/access-config/save";
+
+    /**
+     * 权限资源组新增。
+     */
+    public static final String SYSTEM_PERMISSION_GROUP_CREATE = "/permission-group/add";
+
+    /**
+     * 权限资源组编辑。
+     */
+    public static final String SYSTEM_PERMISSION_GROUP_EDIT = "/permission-group/update";
+
+    /**
+     * 权限资源组状态切换。
+     */
+    public static final String SYSTEM_PERMISSION_GROUP_CHANGE_STATUS = "/permission-group/update_status";
+
+    /**
+     * 权限资源组资源配置。
+     */
+    public static final String SYSTEM_PERMISSION_GROUP_RESOURCE = "/permission-group/resources/update";
+
+    /**
+     * 项目新增。
+     */
+    public static final String PROJECT_CREATE = "/project/create";
+
+    /**
+     * 项目编辑。
+     */
+    public static final String PROJECT_EDIT = "/project/edit";
+
+    /**
+     * 项目删除。
+     */
+    public static final String PROJECT_DELETE = "/project/deleted";
+
+    /**
+     * 项目成员管理。
+     */
+    public static final String PROJECT_MEMBER_MANAGE = "/project/member/*";
+
+    /**
+     * 项目任务创建。
+     */
+    public static final String PROJECT_TASK_CREATE = "/project/task/create";
+
+    /**
+     * 项目任务编辑。
+     */
+    public static final String PROJECT_TASK_EDIT = "/project/task/edit";
+
+    /**
+     * 项目任务删除。
+     */
+    public static final String PROJECT_TASK_DELETE = "/project/task/deleted";
+
+    /**
+     * 项目任务成员管理。
+     */
+    public static final String PROJECT_TASK_MEMBER_MANAGE = "/project/task/member/*";
+
+    /**
+     * 任务状态配置保存。
+     */
+    public static final String PROJECT_TASK_STATUS_SAVE = "/project/task-status/save";
+
+    /**
+     * 任务标签管理。
+     */
+    public static final String PROJECT_TASK_TAG_MANAGE = "/project/task/tag/*";
+
+    /**
+     * AI 对话消息接口。
+     */
+    public static final String AI_CHAT_MESSAGE = "/ai/chat/messages";
+
+    /**
      * 平台级资源前缀。
      *
      * 这些资源会直接影响所有租户的全局治理能力，
@@ -182,7 +292,8 @@ public final class PermissionResource {
      */
     private static final Set<String> PLATFORM_ONLY_PREFIXES = Set.of(
             SYSTEM_MENU,
-            SYSTEM_TENANT
+            SYSTEM_TENANT,
+            SYSTEM_PERMISSION_GROUP
     );
 
     private PermissionResource() {

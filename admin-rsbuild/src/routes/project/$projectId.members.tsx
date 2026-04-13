@@ -15,6 +15,8 @@ import type { TableProps } from 'antd';
 import { ApiProjectMember } from '@/api';
 import { UserPickerModal } from '@/components';
 import { useKModal } from '@/components/KModal';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
+import usePermission from '@/hooks/usePermission.ts';
 import useFileUrl from '@/hooks/useFileUrl';
 import { Route as ProjectDetailRoute } from './$projectId';
 import Icons from '@/icons';
@@ -31,10 +33,14 @@ function RouteComponent() {
   const { projectId } = Route.useParams();
   const modal = useKModal();
   const queryClient = useQueryClient();
+  const { hasButtonPermission } = usePermission();
   ProjectDetailRoute.useLoaderData();
   const numericProjectId = Number(projectId);
   const isValidProjectId =
     Number.isInteger(numericProjectId) && numericProjectId > 0;
+  const canManageMembers = hasButtonPermission(
+    PERMISSION_RESOURCE.projectMemberManage,
+  );
 
   const { data: memberData, isLoading } = useQuery({
     queryKey: ['projectMemberList', numericProjectId],
@@ -83,19 +89,21 @@ function RouteComponent() {
       width: 120,
       align: 'right',
       render: (_: unknown, item: ProjectMemberItem) => (
-        <Popconfirm
-          title="确认移除"
-          description="确认将该成员移出当前项目吗？"
-          okText="确认"
-          cancelText="取消"
-          onConfirm={async () => {
-            await handleDelete(item.userId);
-          }}
-        >
-          <Button danger size="small">
-            移除
-          </Button>
-        </Popconfirm>
+        canManageMembers ? (
+          <Popconfirm
+            title="确认移除"
+            description="确认将该成员移出当前项目吗？"
+            okText="确认"
+            cancelText="取消"
+            onConfirm={async () => {
+              await handleDelete(item.userId);
+            }}
+          >
+            <Button danger size="small">
+              移除
+            </Button>
+          </Popconfirm>
+        ) : null
       ),
     },
   ];
@@ -106,35 +114,37 @@ function RouteComponent() {
         title="成员列表"
         loading={isLoading}
         extra={
-          <Button
-            type="primary"
-            icon={<Icons.Plus />}
-            disabled={!isValidProjectId}
-            onClick={async () => {
-              await modal.open({
-                title: '添加项目成员',
-                width: 720,
-                children: (
-                  <UserPickerModal
-                    defaultMode="search"
-                    excludeUserIds={existUserIds}
-                    onSubmit={async (userIds: number[]) => {
-                      await ApiProjectMember.add({
-                        projectId: numericProjectId,
-                        userIds,
-                      });
-                    }}
-                  />
-                ),
-              });
+          canManageMembers ? (
+            <Button
+              type="primary"
+              icon={<Icons.Plus />}
+              disabled={!isValidProjectId}
+              onClick={async () => {
+                await modal.open({
+                  title: '添加项目成员',
+                  width: 720,
+                  children: (
+                    <UserPickerModal
+                      defaultMode="search"
+                      excludeUserIds={existUserIds}
+                      onSubmit={async (userIds: number[]) => {
+                        await ApiProjectMember.add({
+                          projectId: numericProjectId,
+                          userIds,
+                        });
+                      }}
+                    />
+                  ),
+                });
 
-              await queryClient.invalidateQueries({
-                queryKey: ['projectMemberList', numericProjectId],
-              });
-            }}
-          >
-            添加成员
-          </Button>
+                await queryClient.invalidateQueries({
+                  queryKey: ['projectMemberList', numericProjectId],
+                });
+              }}
+            >
+              添加成员
+            </Button>
+          ) : null
         }
       >
         {memberData?.length ? (

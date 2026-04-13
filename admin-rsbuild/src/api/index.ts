@@ -1,6 +1,7 @@
 import * as ApiFile from './modules/file';
 import * as ApiFileAccessConfig from './modules/file-access-config';
 import * as ApiPassport from './modules/passport';
+import * as ApiPermissionGroup from './modules/permission-group';
 import * as ApiPosition from './modules/position';
 import * as ApiProjectMember from './modules/project-member';
 import * as ApiProjectTaskChangeLog from './modules/project-task-change-log';
@@ -21,6 +22,7 @@ export {
   ApiFileAccessConfig,
   ApiMenu,
   ApiPassport,
+  ApiPermissionGroup,
   ApiPosition,
   ApiProject,
   ApiProjectMember,

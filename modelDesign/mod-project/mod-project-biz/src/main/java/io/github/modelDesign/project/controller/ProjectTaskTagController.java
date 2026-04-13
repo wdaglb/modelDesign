@@ -1,5 +1,7 @@
 package io.github.modelDesign.project.controller;
 
+import io.github.modelDesign.auth.annotation.RequirePermission;
+import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.project.request.ProjectTaskTagCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskTagDeleteRequest;
 import io.github.modelDesign.project.request.ProjectTaskTagEditRequest;
@@ -43,6 +45,10 @@ public class ProjectTaskTagController {
      * @return 标签列表
      */
     @Operation(summary = "获取任务标签列表")
+    @RequirePermission(anyOf = {
+            PermissionResource.PROJECT_TASK,
+            PermissionResource.PROJECT_TASK_TAG_MANAGE
+    })
     @GetMapping("/list")
     public List<ProjectTaskTagVo> list(@Valid ProjectTaskTagListRequest request) {
         return taskTagService.getList(request);

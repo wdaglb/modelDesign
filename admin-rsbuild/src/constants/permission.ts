@@ -10,7 +10,13 @@ export const PERMISSION_RESOURCE = {
   systemUser: '/system/user',
   systemPosition: '/system/position',
   systemTenant: '/system/tenant',
+  systemFileConfig: '/system/file-config',
+  systemPermissionGroup: '/system/permission-group',
   systemQywork: '/system/third-party/qywork',
+  project: '/project',
+  agileBoard: '/agile-board',
+  aiChat: '/ai/chat',
+  projectTask: '/project/task',
   systemMenuCreate: '/system/menu/create',
   systemMenuEdit: '/system/menu/edit',
   systemMenuDelete: '/system/menu/delete',
@@ -36,7 +42,22 @@ export const PERMISSION_RESOURCE = {
   systemTenantEdit: '/system/tenant/edit',
   systemTenantDelete: '/system/tenant/delete',
   systemTenantChangeStatus: '/system/tenant/change-status',
+  systemFileConfigSave: '/system/file/access-config/save',
+  systemPermissionGroupCreate: '/permission-group/add',
+  systemPermissionGroupEdit: '/permission-group/update',
+  systemPermissionGroupChangeStatus: '/permission-group/update_status',
+  systemPermissionGroupResource: '/permission-group/resources/update',
   systemQyworkSave: '/system/third-party/qywork/save',
+  projectCreate: '/project/create',
+  projectEdit: '/project/edit',
+  projectDelete: '/project/deleted',
+  projectMemberManage: '/project/member/*',
+  projectTaskCreate: '/project/task/create',
+  projectTaskEdit: '/project/task/edit',
+  projectTaskDelete: '/project/task/deleted',
+  projectTaskMemberManage: '/project/task/member/*',
+  projectTaskStatusSave: '/project/task-status/save',
+  projectTaskTagManage: '/project/task/tag/*',
 } as const;
 
 /**
@@ -48,4 +69,5 @@ export const PERMISSION_RESOURCE = {
 export const PLATFORM_ONLY_PERMISSION_PREFIXES = [
   PERMISSION_RESOURCE.systemMenu,
   PERMISSION_RESOURCE.systemTenant,
+  PERMISSION_RESOURCE.systemPermissionGroup,
 ];

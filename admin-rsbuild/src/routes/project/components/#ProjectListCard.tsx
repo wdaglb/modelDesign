@@ -25,6 +25,8 @@ import {
  * 项目卡片属性。
  */
 interface ProjectListCardProps {
+  canDelete: boolean;
+  canEdit: boolean;
   project: Project;
   selected: boolean;
   onToggleSelect: (projectId: number, checked: boolean) => void;
@@ -95,38 +97,42 @@ const ProjectListCard = (props: ProjectListCardProps) => {
           进入项目
         </Button>
 
-        <Button
-          size="small"
-          onClick={async (event) => {
-            event.stopPropagation();
-            await props.onEdit(props.project);
-          }}
-        >
-          编辑
-        </Button>
-
-        <Popconfirm
-          title="确认删除项目"
-          description="删除后无法恢复，确认删除此项目吗？"
-          okText="确认"
-          cancelText="取消"
-          onPopupClick={(event) => {
-            event.stopPropagation();
-          }}
-          onConfirm={async () => {
-            await props.onDelete(props.project.id);
-          }}
-        >
+        {props.canEdit ? (
           <Button
             size="small"
-            danger
-            onClick={(event) => {
+            onClick={async (event) => {
               event.stopPropagation();
+              await props.onEdit(props.project);
             }}
           >
-            删除
+            编辑
           </Button>
-        </Popconfirm>
+        ) : null}
+
+        {props.canDelete ? (
+          <Popconfirm
+            title="确认删除项目"
+            description="删除后无法恢复，确认删除此项目吗？"
+            okText="确认"
+            cancelText="取消"
+            onPopupClick={(event) => {
+              event.stopPropagation();
+            }}
+            onConfirm={async () => {
+              await props.onDelete(props.project.id);
+            }}
+          >
+            <Button
+              size="small"
+              danger
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              删除
+            </Button>
+          </Popconfirm>
+        ) : null}
       </ProjectCardActions>
     </ProjectCardSurface>
   );

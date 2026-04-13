@@ -3,11 +3,14 @@ package io.github.modelDesign.auth.service;
 import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.constant.PermissionType;
 import io.github.modelDesign.auth.domain.Menu;
+import io.github.modelDesign.auth.domain.RolePermissionGroup;
 import io.github.modelDesign.auth.domain.User;
 import io.github.modelDesign.auth.enums.MenuNodeTypeEnum;
+import io.github.modelDesign.auth.mapper.RolePermissionGroupMapper;
 import io.github.modelDesign.auth.mapper.UserMapper;
 import io.github.modelDesign.auth.response.CurrentPermissionVo;
 import io.github.modelDesign.auth.response.RolePermissionVo;
+import io.github.modelDesign.auth.util.PermissionPathMatcher;
 import io.github.modelDesign.common.exception.BusinessException;
 import org.casbin.jcasbin.main.Enforcer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +32,11 @@ import java.util.stream.Collectors;
 /**
  * 权限服务。
  *
- * 当前实现完成三件事：
+ * 当前实现完成四件事：
  * 1. 以租户域为边界维护 Casbin 中的用户-角色、角色-资源关系。
- * 2. 统一把菜单和按钮都视为菜单树上的“资源节点”做授权。
- * 3. 为当前登录用户输出可见菜单与可用按钮，供前后端同时消费。
+ * 2. 支持角色同时直绑资源与绑定权限资源组。
+ * 3. 统一按通配符规则计算接口鉴权、菜单回显与按钮显隐。
+ * 4. 为当前登录用户输出可见菜单与可用按钮，供前后端同时消费。
  */
 @Service
 public class PermissionService {
@@ -62,6 +66,21 @@ public class PermissionService {
     private final Enforcer enforcer;
 
     /**
+     * 权限资源组服务。
+     */
+    private final PermissionGroupService permissionGroupService;
+
+    /**
+     * 角色-资源组关系 Mapper。
+     */
+    private final RolePermissionGroupMapper rolePermissionGroupMapper;
+
+    /**
+     * 权限资源校验器。
+     */
+    private final PermissionResourceValidator permissionResourceValidator;
+
+    /**
      * 运行时依赖构造函数。
      *
      * @param menuService 菜单服务
@@ -69,18 +88,27 @@ public class PermissionService {
      * @param userMapper 用户 Mapper
      * @param currentAdminAccessor 当前登录上下文访问器
      * @param enforcer Casbin 执行器
+     * @param permissionGroupService 权限资源组服务
+     * @param rolePermissionGroupMapper 角色-资源组关系 Mapper
+     * @param permissionResourceValidator 权限资源校验器
      */
     @Autowired
     public PermissionService(MenuService menuService,
                              RoleService roleService,
                              UserMapper userMapper,
                              CurrentAdminAccessor currentAdminAccessor,
-                             Enforcer enforcer) {
+                             Enforcer enforcer,
+                             PermissionGroupService permissionGroupService,
+                             RolePermissionGroupMapper rolePermissionGroupMapper,
+                             PermissionResourceValidator permissionResourceValidator) {
         this.menuService = menuService;
         this.roleService = roleService;
         this.userMapper = userMapper;
         this.currentAdminAccessor = currentAdminAccessor;
         this.enforcer = enforcer;
+        this.permissionGroupService = permissionGroupService;
+        this.rolePermissionGroupMapper = rolePermissionGroupMapper;
+        this.permissionResourceValidator = permissionResourceValidator;
     }
 
     /**
@@ -95,12 +123,15 @@ public class PermissionService {
         this.userMapper = null;
         this.currentAdminAccessor = null;
         this.enforcer = enforcer;
+        this.permissionGroupService = null;
+        this.rolePermissionGroupMapper = null;
+        this.permissionResourceValidator = null;
     }
 
     /**
      * 获取当前登录用户权限。
      *
-     * 这里会先按“当前用户 + 当前租户域”计算资源集合，
+     * 这里会先按“当前用户 + 当前租户域”计算最终资源集合，
      * 再根据菜单节点类型分别拆成侧边导航菜单和页面按钮权限。
      *
      * @return 当前登录用户权限
@@ -109,21 +140,20 @@ public class PermissionService {
         Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         Long currentUserId = currentAdminAccessor.requireCurrentUserId();
         if (currentAdminAccessor.isSuperAdmin()) {
-            return buildCurrentPermission(menuService.listAllMenus());
+            return buildCurrentPermission(menuService.listEnabledNodes());
         }
+
         Set<String> resourceNames = getUserGrantedResourceNames(
                 String.valueOf(currentUserId),
                 currentTenantId
         );
-
         if (resourceNames.isEmpty()) {
             return CurrentPermissionVo.builder()
                     .menus(List.of())
                     .buttons(List.of())
                     .build();
         }
-
-        return buildCurrentPermission(menuService.listEnabledNodesByNames(resourceNames));
+        return buildCurrentPermission(resourceNames);
     }
 
     /**
@@ -161,6 +191,9 @@ public class PermissionService {
     /**
      * 检查主体在指定租户域下是否拥有权限。
      *
+     * 这里不再依赖 Casbin 直接做对象匹配，
+     * 而是先解析角色直绑资源与资源组展开资源，再统一按通配符规则匹配。
+     *
      * @param sub 主体
      * @param domain 租户域
      * @param type 权限类型
@@ -168,7 +201,21 @@ public class PermissionService {
      * @return 是否拥有权限
      */
     public boolean hasPermission(String sub, String domain, String type, String obj) {
-        return enforcer.enforce(sub, domain, type, obj);
+        if (!StringUtils.hasText(sub) || !StringUtils.hasText(domain)) {
+            return false;
+        }
+        if (!PermissionType.MENU.equals(type)) {
+            return false;
+        }
+
+        Long tenantId;
+        try {
+            tenantId = Long.parseLong(domain);
+        } catch (NumberFormatException exception) {
+            return false;
+        }
+        Set<String> resourceNames = getUserGrantedResourceNames(sub, tenantId);
+        return PermissionPathMatcher.matchesAny(resourceNames, obj);
     }
 
     /**
@@ -185,7 +232,7 @@ public class PermissionService {
     }
 
     /**
-     * 获取角色拥有的资源策略。
+     * 获取角色拥有的直接资源策略。
      *
      * @param roleCode 角色编码
      * @return 资源策略列表
@@ -207,29 +254,45 @@ public class PermissionService {
     public RolePermissionVo getRolePermission(String roleCode) {
         roleService.requireRoleByCode(roleCode);
         Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
-        List<String> resources = loadResourceNamesByRole(roleCode, currentTenantId);
         return RolePermissionVo.builder()
-                .menus(resources)
+                .resources(loadDirectResourceNamesByRole(roleCode, currentTenantId))
+                .resourceGroupCodes(loadRolePermissionGroupCodes(roleCode, currentTenantId))
                 .build();
     }
 
     /**
-     * 批量更新角色的菜单/按钮权限。
+     * 批量更新角色的直接资源与资源组绑定。
      *
      * @param roleCode 角色编码
-     * @param menus 菜单/按钮资源路径列表
+     * @param resources 直接绑定的资源路径列表
+     * @param resourceGroupCodes 资源组编码列表
      */
     @Transactional
-    public void updateRoleMenuPermissions(String roleCode, List<String> menus) {
+    public void updateRolePermissions(String roleCode,
+                                      List<String> resources,
+                                      List<String> resourceGroupCodes) {
         roleService.requireRoleByCode(roleCode);
         Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
-        List<String> normalizedResources = normalizeResourceNames(menus, currentTenantId);
+        List<String> normalizedResources = permissionResourceValidator.normalizeResourceNames(
+                resources,
+                currentTenantId
+        );
+        Set<String> normalizedGroupCodes = permissionGroupService.normalizeGroupCodes(resourceGroupCodes);
+        if (!normalizedGroupCodes.isEmpty()) {
+            Map<String, List<String>> groupResourceMap = permissionGroupService.getResourceMapByGroupCodes(
+                    normalizedGroupCodes
+            );
+            for (List<String> groupResources : groupResourceMap.values()) {
+                permissionResourceValidator.normalizeResourceNames(groupResources, currentTenantId);
+            }
+        }
 
         enforcer.removeFilteredPolicy(0, roleCode, toDomain(currentTenantId), PermissionType.MENU);
-
-        if (normalizedResources.isEmpty()) {
-            return;
-        }
+        rolePermissionGroupMapper.delete(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.lambdaQuery(RolePermissionGroup.class)
+                        .eq(RolePermissionGroup::getTenantId, currentTenantId)
+                        .eq(RolePermissionGroup::getRoleCode, roleCode)
+        );
 
         List<List<String>> policies = new ArrayList<>();
         for (String resource : normalizedResources) {
@@ -240,7 +303,17 @@ public class PermissionService {
                     resource
             ));
         }
-        enforcer.addPolicies(policies);
+        if (!policies.isEmpty()) {
+            enforcer.addPolicies(policies);
+        }
+
+        for (String groupCode : normalizedGroupCodes) {
+            RolePermissionGroup relation = new RolePermissionGroup();
+            relation.setTenantId(currentTenantId);
+            relation.setRoleCode(roleCode);
+            relation.setGroupCode(groupCode);
+            rolePermissionGroupMapper.insert(relation);
+        }
     }
 
     /**
@@ -384,7 +457,7 @@ public class PermissionService {
     }
 
     /**
-     * 计算用户在当前租户下拥有的资源集合。
+     * 计算用户在当前租户下拥有的最终资源集合。
      *
      * @param userId 用户 ID
      * @param tenantId 租户 ID
@@ -398,19 +471,19 @@ public class PermissionService {
 
         Set<String> resourceNames = new LinkedHashSet<>();
         for (String roleCode : roleCodes) {
-            resourceNames.addAll(loadResourceNamesByRole(roleCode, tenantId));
+            resourceNames.addAll(loadEffectiveResourceNamesByRole(roleCode, tenantId));
         }
         return resourceNames;
     }
 
     /**
-     * 获取角色在指定租户下绑定的资源集合。
+     * 获取角色在指定租户下直接绑定的资源集合。
      *
      * @param roleCode 角色编码
      * @param tenantId 租户 ID
      * @return 资源路径列表
      */
-    private List<String> loadResourceNamesByRole(String roleCode, Long tenantId) {
+    private List<String> loadDirectResourceNamesByRole(String roleCode, Long tenantId) {
         List<List<String>> policies = enforcer.getFilteredPolicy(
                 0,
                 roleCode,
@@ -429,6 +502,55 @@ public class PermissionService {
             resources.add(resource);
         }
         return resources;
+    }
+
+    /**
+     * 获取角色在指定租户下最终生效的资源集合。
+     *
+     * @param roleCode 角色编码
+     * @param tenantId 租户 ID
+     * @return 生效资源集合
+     */
+    private Set<String> loadEffectiveResourceNamesByRole(String roleCode, Long tenantId) {
+        Set<String> resources = new LinkedHashSet<>(loadDirectResourceNamesByRole(roleCode, tenantId));
+        resources.addAll(permissionGroupService.collectResourcesByGroupCodes(
+                loadRolePermissionGroupCodes(roleCode, tenantId)
+        ));
+
+        Set<String> assignableResources = new LinkedHashSet<>();
+        for (String resource : resources) {
+            if (PermissionResource.isResourceAssignable(tenantId, resource)) {
+                assignableResources.add(resource);
+            }
+        }
+        return assignableResources;
+    }
+
+    /**
+     * 获取角色绑定的资源组编码列表。
+     *
+     * @param roleCode 角色编码
+     * @param tenantId 租户 ID
+     * @return 资源组编码列表
+     */
+    private List<String> loadRolePermissionGroupCodes(String roleCode, Long tenantId) {
+        if (rolePermissionGroupMapper == null) {
+            return List.of();
+        }
+        List<RolePermissionGroup> relations = rolePermissionGroupMapper.selectList(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.lambdaQuery(RolePermissionGroup.class)
+                        .eq(RolePermissionGroup::getTenantId, tenantId)
+                        .eq(RolePermissionGroup::getRoleCode, roleCode)
+                        .orderByAsc(RolePermissionGroup::getId)
+        );
+        List<String> groupCodes = new ArrayList<>(relations.size());
+        for (RolePermissionGroup relation : relations) {
+            if (!StringUtils.hasText(relation.getGroupCode())) {
+                continue;
+            }
+            groupCodes.add(relation.getGroupCode().trim());
+        }
+        return groupCodes;
     }
 
     /**
@@ -451,41 +573,6 @@ public class PermissionService {
             normalizedRoles.add(roleCode.trim());
         }
         return normalizedRoles;
-    }
-
-    /**
-     * 校验并规范化资源列表。
-     *
-     * @param resourceNames 原始资源列表
-     * @param tenantId 当前租户 ID
-     * @return 规范化后的资源列表
-     */
-    private List<String> normalizeResourceNames(List<String> resourceNames, Long tenantId) {
-        if (resourceNames == null || resourceNames.isEmpty()) {
-            return List.of();
-        }
-
-        LinkedHashSet<String> normalizedNames = new LinkedHashSet<>();
-        for (String resourceName : resourceNames) {
-            if (!StringUtils.hasText(resourceName)) {
-                continue;
-            }
-            String normalizedResourceName = resourceName.trim();
-            if (!PermissionResource.isResourceAssignable(tenantId, normalizedResourceName)) {
-                throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "当前租户不能分配平台级权限");
-            }
-            normalizedNames.add(normalizedResourceName);
-        }
-        if (normalizedNames.isEmpty()) {
-            return List.of();
-        }
-
-        Set<String> existingNames = menuService.getExistingNameSet(normalizedNames);
-        if (existingNames.size() != normalizedNames.size()) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "存在无效的权限资源");
-        }
-
-        return new ArrayList<>(normalizedNames);
     }
 
     /**
@@ -558,10 +645,26 @@ public class PermissionService {
     /**
      * 组装当前权限返回值。
      *
-     * 该方法把同一批资源节点拆成“页面菜单”和“按钮权限”两个视图，
+     * 该方法把命中的资源节点拆成“页面菜单”和“按钮权限”两个视图，
      * 让前端既能渲染侧边导航，也能直接做按钮级显隐。
      *
-     * @param menusOrButtons 菜单与按钮节点
+     * @param resourceNames 权限资源集合
+     * @return 当前权限返回值
+     */
+    private CurrentPermissionVo buildCurrentPermission(Set<String> resourceNames) {
+        List<Menu> matchedNodes = new ArrayList<>();
+        for (Menu menu : menuService.listEnabledNodes()) {
+            if (PermissionPathMatcher.matchesAny(resourceNames, menu.getName())) {
+                matchedNodes.add(menu);
+            }
+        }
+        return buildCurrentPermission(matchedNodes);
+    }
+
+    /**
+     * 把命中的菜单节点拆分成菜单和按钮两个视图。
+     *
+     * @param menusOrButtons 命中的菜单与按钮节点
      * @return 当前权限返回值
      */
     private CurrentPermissionVo buildCurrentPermission(List<Menu> menusOrButtons) {

@@ -8,6 +8,8 @@ import { CardsGrid, EmptyCard } from './#ProjectListPage.styled';
  * 项目列表网格属性。
  */
 interface ProjectListGridProps {
+  canDelete: boolean;
+  canEdit: boolean;
   loading: boolean;
   items: Project[];
   hasFilters: boolean;
@@ -55,6 +57,8 @@ const ProjectListGrid = (props: ProjectListGridProps) => {
         return (
           <ProjectListCard
             key={project.id}
+            canDelete={props.canDelete}
+            canEdit={props.canEdit}
             project={project}
             selected={props.selectedProjectIds.includes(project.id)}
             onToggleSelect={props.onToggleSelect}

@@ -11,6 +11,7 @@ import {
   getFirstAccessiblePath,
   hasButtonPermission,
   isPlatformOnlyPermission,
+  matchPermissionResource,
 } from '@/utils/permission.ts';
 
 const menus: PassportCurrentPermissionMenu[] = [
@@ -37,6 +38,17 @@ describe('permission utils', () => {
     expect(canAccessPath(menus, '/project/123')).toBe(true);
     expect(canAccessPath(menus, '/system/tenant')).toBe(false);
     expect(canAccessPath(menus, '/personal-center')).toBe(true);
+  });
+
+  it('should match wildcard resources', () => {
+    expect(matchPermissionResource('/project/*', '/project')).toBe(true);
+    expect(matchPermissionResource('/project/*', '/project/create')).toBe(true);
+    expect(matchPermissionResource('/project/*', '/project/task/edit')).toBe(
+      false,
+    );
+    expect(matchPermissionResource('/project/**', '/project/task/edit')).toBe(
+      true,
+    );
   });
 
   it('should return first accessible menu path', () => {
@@ -68,6 +80,18 @@ describe('permission utils', () => {
       hasButtonPermission(
         [PERMISSION_RESOURCE.systemUserCreate],
         PERMISSION_RESOURCE.systemUserCreate,
+      ),
+    ).toBe(true);
+    expect(
+      hasButtonPermission(
+        [PERMISSION_RESOURCE.projectTaskEdit],
+        '/project/task/123/edit',
+      ),
+    ).toBe(false);
+    expect(
+      hasButtonPermission(
+        ['/project/**'],
+        '/project/task/123/edit',
       ),
     ).toBe(true);
     expect(

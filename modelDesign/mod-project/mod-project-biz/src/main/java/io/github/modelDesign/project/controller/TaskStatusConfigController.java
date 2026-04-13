@@ -1,5 +1,7 @@
 package io.github.modelDesign.project.controller;
 
+import io.github.modelDesign.auth.annotation.RequirePermission;
+import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.project.request.TaskStatusSaveRequest;
 import io.github.modelDesign.project.response.TaskStatusConfigVo;
 import io.github.modelDesign.project.service.TaskStatusConfigService;
@@ -36,6 +38,10 @@ public class TaskStatusConfigController {
      * @return 状态配置列表
      */
     @Operation(summary = "获取任务状态配置列表")
+    @RequirePermission(anyOf = {
+            PermissionResource.PROJECT_TASK,
+            PermissionResource.PROJECT_TASK_STATUS_SAVE
+    })
     @GetMapping("/list")
     public List<TaskStatusConfigVo> list() {
         return taskStatusConfigService.getList();

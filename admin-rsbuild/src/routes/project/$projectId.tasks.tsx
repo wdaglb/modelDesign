@@ -5,6 +5,7 @@ import { message } from 'antd';
 import type { TableProps } from 'antd';
 
 import { ApiProjectMember, ApiProjectTask } from '@/api';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import {
   TaskPriority,
   TaskStatus,
@@ -13,6 +14,7 @@ import {
 } from '@/api/modules/project-task.types';
 import { useKModal } from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
+import usePermission from '@/hooks/usePermission.ts';
 import { openTaskModal } from '@/service/taskModalService.tsx';
 import { Route as ProjectDetailRoute } from './$projectId';
 import ProjectTaskTable from './components/#ProjectTaskTable';
@@ -42,6 +44,14 @@ function RouteComponent() {
   const modal = useKModal();
   const queryClient = useQueryClient();
   const project = ProjectDetailRoute.useLoaderData();
+  const { hasButtonPermission } = usePermission();
+  const canCreateTask = hasButtonPermission(
+    PERMISSION_RESOURCE.projectTaskCreate,
+  );
+  const canEditTask = hasButtonPermission(PERMISSION_RESOURCE.projectTaskEdit);
+  const canDeleteTask = hasButtonPermission(
+    PERMISSION_RESOURCE.projectTaskDelete,
+  );
 
   const numericProjectId = Number(projectId);
   const isValidProjectId =
@@ -117,6 +127,9 @@ function RouteComponent() {
   };
 
   const startEditCell = (taskId: number, field: EditableField) => {
+    if (!canEditTask) {
+      return;
+    }
     if (saveLockRef.current) {
       return;
     }
@@ -310,6 +323,8 @@ function RouteComponent() {
 
   return (
     <ProjectTaskTable
+      canDelete={canDeleteTask}
+      canEdit={canEditTask}
       editingCell={editingCell}
       hasFilters={hasFilters}
       memberOptions={memberOptions}
@@ -333,6 +348,7 @@ function RouteComponent() {
       toolbar={
         <ProjectTaskToolbar
           assigneeId={assigneeId}
+          canCreateTask={canCreateTask}
           memberOptions={memberOptions}
           priority={priority}
           status={status}

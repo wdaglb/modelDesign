@@ -1,5 +1,7 @@
 package io.github.modelDesign.project.controller;
 
+import io.github.modelDesign.auth.annotation.RequirePermission;
+import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.project.request.MyTodoListRequest;
 import io.github.modelDesign.project.request.ProjectTaskBoardRequest;
 import io.github.modelDesign.project.request.ProjectTaskChangeLogListRequest;
@@ -69,6 +71,7 @@ public class ProjectTaskController {
      * @return 分页结果
      */
     @Operation(summary = "获取任务列表")
+    @RequirePermission(PermissionResource.PROJECT_TASK)
     @GetMapping("/list")
     public PageResponse<ProjectTaskDetailVo> list(@Valid ProjectTaskListRequest request) {
         return projectTaskService.getList(request);
@@ -81,6 +84,10 @@ public class ProjectTaskController {
      * @return 任务列表
      */
     @Operation(summary = "获取敏捷面板任务列表")
+    @RequirePermission(anyOf = {
+            PermissionResource.PROJECT_TASK,
+            PermissionResource.AGILE_BOARD
+    })
     @GetMapping("/board")
     public List<ProjectTaskDetailVo> board(@Valid ProjectTaskBoardRequest request) {
         return projectTaskBoardQueryService.getBoard(request);
@@ -93,6 +100,10 @@ public class ProjectTaskController {
      * @return 按优先级排序的任务列表
      */
     @Operation(summary = "获取敏捷面板专用任务列表（按优先级从高到低排序）")
+    @RequirePermission(anyOf = {
+            PermissionResource.PROJECT_TASK,
+            PermissionResource.AGILE_BOARD
+    })
     @GetMapping("/agile-board")
     public List<ProjectTaskDetailVo> agileBoard(@Valid ProjectTaskBoardRequest request) {
         return projectTaskBoardQueryService.getAgileBoard(request);
@@ -105,6 +116,7 @@ public class ProjectTaskController {
      * @return 任务详情
      */
     @Operation(summary = "获取任务详情")
+    @RequirePermission(PermissionResource.PROJECT_TASK)
     @GetMapping("/detail")
     public ProjectTaskDetailVo detail(@Parameter(description = "任务 ID", required = true) @RequestParam @NotNull(message = "任务 ID 不能为空") Long id) {
         return projectTaskService.getDetail(id);
@@ -117,6 +129,7 @@ public class ProjectTaskController {
      * @return 子任务列表
      */
     @Operation(summary = "获取子任务列表")
+    @RequirePermission(PermissionResource.PROJECT_TASK)
     @GetMapping("/children")
     public List<ProjectTaskDetailVo> children(@Parameter(description = "父任务 ID", required = true) @RequestParam @NotNull(message = "父任务 ID 不能为空") Long parentTaskId) {
         return projectTaskService.getChildren(parentTaskId);
@@ -129,6 +142,7 @@ public class ProjectTaskController {
      * @return 子任务列表
      */
     @Operation(summary = "批量获取子任务列表")
+    @RequirePermission(PermissionResource.PROJECT_TASK)
     @GetMapping("/children/batch")
     public List<ProjectTaskDetailVo> childrenBatch(
             @Parameter(description = "父任务 ID 列表", required = true)
@@ -145,6 +159,7 @@ public class ProjectTaskController {
      * @return 任务详情
      */
     @Operation(summary = "按编号获取任务详情")
+    @RequirePermission(PermissionResource.PROJECT_TASK)
     @GetMapping("/detail/by-code")
     public ProjectTaskDetailVo detailByCode(
             @Parameter(description = "任务编号", required = true)
@@ -161,6 +176,7 @@ public class ProjectTaskController {
      * @return 分页结果
      */
     @Operation(summary = "获取任务变更日志列表")
+    @RequirePermission(PermissionResource.PROJECT_TASK)
     @GetMapping("/change-log/list")
     public PageResponse<ProjectTaskChangeLogItemVo> changeLogList(@Valid ProjectTaskChangeLogListRequest request) {
         return projectTaskService.getChangeLogList(request);

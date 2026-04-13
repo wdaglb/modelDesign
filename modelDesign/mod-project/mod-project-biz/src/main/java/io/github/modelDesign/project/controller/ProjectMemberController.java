@@ -1,5 +1,7 @@
 package io.github.modelDesign.project.controller;
 
+import io.github.modelDesign.auth.annotation.RequirePermission;
+import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.project.request.ProjectMemberUpdateRequest;
 import io.github.modelDesign.project.response.ProjectMemberVo;
 import io.github.modelDesign.project.service.ProjectMemberService;
@@ -40,6 +42,10 @@ public class ProjectMemberController {
      * @return 项目成员列表
      */
     @Operation(summary = "获取项目成员列表")
+    @RequirePermission(anyOf = {
+            PermissionResource.PROJECT,
+            PermissionResource.PROJECT_MEMBER_MANAGE
+    })
     @GetMapping("/list")
     public List<ProjectMemberVo> list(@Parameter(description = "项目 ID", required = true) @RequestParam @NotNull(message = "项目 ID 不能为空") Long projectId) {
         return projectMemberService.getList(projectId);

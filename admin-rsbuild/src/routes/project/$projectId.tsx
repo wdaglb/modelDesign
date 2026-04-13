@@ -22,7 +22,9 @@ import { Helmet } from 'react-helmet-async';
 import { ApiProject } from '@/api';
 import { useKModal } from '@/components/KModal';
 import { DatabaseTypeLabel } from '@/api/modules/project.types';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import queryKey from '@/constants/queryKey';
+import usePermission from '@/hooks/usePermission.ts';
 import Icons from '@/icons';
 import { openTaskModal } from '@/service/taskModalService.tsx';
 import ProjectForm from './components/#ProjectForm';
@@ -70,6 +72,11 @@ function RouteComponent() {
   const location = useLocation();
   const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
+  const { hasButtonPermission } = usePermission();
+  const canEditProject = hasButtonPermission(PERMISSION_RESOURCE.projectEdit);
+  const canCreateTask = hasButtonPermission(
+    PERMISSION_RESOURCE.projectTaskCreate,
+  );
 
   // 项目数据库类型标签颜色映射。
   const databaseTypeColors: Record<string, string> = {
@@ -293,50 +300,54 @@ function RouteComponent() {
               wrap
               size={12}
             >
-              <Button
-                type="primary"
-                onClick={async () => {
-                  await modal.open({
-                    title: '编辑项目',
-                    children: <ProjectForm record={data} />,
-                  });
+              {canEditProject ? (
+                <Button
+                  type="primary"
+                  onClick={async () => {
+                    await modal.open({
+                      title: '编辑项目',
+                      children: <ProjectForm record={data} />,
+                    });
 
-                  await Promise.all([
-                    queryClient.invalidateQueries({
-                      queryKey: queryKey.project.detail(numericProjectId),
-                    }),
-                    queryClient.invalidateQueries({
-                      queryKey: queryKey.project.list(),
-                    }),
-                  ]);
-                }}
-              >
-                编辑项目
-              </Button>
+                    await Promise.all([
+                      queryClient.invalidateQueries({
+                        queryKey: queryKey.project.detail(numericProjectId),
+                      }),
+                      queryClient.invalidateQueries({
+                        queryKey: queryKey.project.list(),
+                      }),
+                    ]);
+                  }}
+                >
+                  编辑项目
+                </Button>
+              ) : null}
 
-              <Button
-                icon={<Icons.Plus />}
-                onClick={async () => {
-                  const submitted = await openTaskModal(modal, {
-                    projectId: numericProjectId,
-                  });
+              {canCreateTask ? (
+                <Button
+                  icon={<Icons.Plus />}
+                  onClick={async () => {
+                    const submitted = await openTaskModal(modal, {
+                      projectId: numericProjectId,
+                    });
 
-                  if (!submitted) {
-                    return;
-                  }
+                    if (!submitted) {
+                      return;
+                    }
 
-                  await Promise.all([
-                    queryClient.invalidateQueries({
-                      queryKey: queryKey.project.taskList(numericProjectId),
-                    }),
-                    queryClient.invalidateQueries({
-                      queryKey: queryKey.todo.list(),
-                    }),
-                  ]);
-                }}
-              >
-                新建任务
-              </Button>
+                    await Promise.all([
+                      queryClient.invalidateQueries({
+                        queryKey: queryKey.project.taskList(numericProjectId),
+                      }),
+                      queryClient.invalidateQueries({
+                        queryKey: queryKey.todo.list(),
+                      }),
+                    ]);
+                  }}
+                >
+                  新建任务
+                </Button>
+              ) : null}
 
               <Button>
                 <Link to="/project">返回项目列表</Link>

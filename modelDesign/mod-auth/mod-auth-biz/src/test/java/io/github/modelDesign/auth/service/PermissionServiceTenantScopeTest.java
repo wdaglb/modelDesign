@@ -6,6 +6,7 @@ import io.github.modelDesign.auth.domain.Role;
 import io.github.modelDesign.auth.enums.MenuNodeTypeEnum;
 import io.github.modelDesign.auth.response.CurrentPermissionVo;
 import io.github.modelDesign.common.exception.BusinessException;
+import io.github.modelDesign.auth.util.PermissionPathMatcher;
 import org.casbin.jcasbin.main.Enforcer;
 import org.casbin.jcasbin.model.Model;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,9 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 权限服务租户域测试。
@@ -49,7 +52,10 @@ class PermissionServiceTenantScopeTest {
                 new StubRoleService(),
                 null,
                 new StubCurrentAdminAccessor(101L, 2002L),
-                enforcer
+                enforcer,
+                new StubPermissionGroupService(),
+                null,
+                null
         );
 
         CurrentPermissionVo permissionVo = permissionService.getCurrentPermission();
@@ -63,24 +69,39 @@ class PermissionServiceTenantScopeTest {
      * 非平台租户不允许给角色分配平台级资源。
      */
     @Test
-    void updateRoleMenuPermissionsShouldRejectPlatformResourcesForTenantRole() {
+    void updateRolePermissionsShouldRejectPlatformResourcesForTenantRole() {
         PermissionService permissionService = new PermissionService(
                 new StubMenuService(List.of()),
                 new StubRoleService(),
                 null,
                 new StubCurrentAdminAccessor(101L, 2002L),
-                createEnforcer()
+                createEnforcer(),
+                new StubPermissionGroupService(),
+                null,
+                null
         );
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
-                () -> permissionService.updateRoleMenuPermissions(
+                () -> permissionService.updateRolePermissions(
                         "tenant-admin",
-                        List.of(PermissionResource.SYSTEM_TENANT)
+                        List.of(PermissionResource.SYSTEM_TENANT),
+                        List.of()
                 )
         );
 
         assertEquals("当前租户不能分配平台级权限", exception.getMessage());
+    }
+
+    /**
+     * 通配符权限应支持单层与深层匹配。
+     */
+    @Test
+    void permissionPathMatcherShouldSupportWildcardRules() {
+        assertTrue(PermissionPathMatcher.matches("/project/*", "/project"));
+        assertTrue(PermissionPathMatcher.matches("/project/*", "/project/create"));
+        assertFalse(PermissionPathMatcher.matches("/project/*", "/project/task/edit"));
+        assertTrue(PermissionPathMatcher.matches("/project/**", "/project/task/edit"));
     }
 
     /**
@@ -194,5 +215,11 @@ class PermissionServiceTenantScopeTest {
             role.setCode(code);
             return role;
         }
+    }
+
+    /**
+     * 资源组服务测试替身。
+     */
+    private static final class StubPermissionGroupService extends PermissionGroupService {
     }
 }

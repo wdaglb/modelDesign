@@ -65,6 +65,22 @@ public class MenuService extends ServiceImpl<MenuMapper, Menu> implements IServi
     }
 
     /**
+     * 查询全部已启用节点。
+     *
+     * 该方法同时返回菜单与按钮节点，
+     * 用于支持通配符权限回显时的全量匹配。
+     *
+     * @return 已启用节点列表
+     */
+    public List<Menu> listEnabledNodes() {
+        return lambdaQuery()
+                .eq(Menu::getStatus, MenuStatusEnum.ENABLED)
+                .orderByAsc(Menu::getSort)
+                .orderByAsc(Menu::getId)
+                .list();
+    }
+
+    /**
      * 按资源标识批量查询已启用节点。
      *
      * 该方法同时服务于“当前用户权限回显”和“按钮权限判定”场景，
@@ -97,6 +113,20 @@ public class MenuService extends ServiceImpl<MenuMapper, Menu> implements IServi
         }
         return lambdaQuery()
                 .in(Menu::getName, names)
+                .list()
+                .stream()
+                .map(Menu::getName)
+                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+    }
+
+    /**
+     * 获取全部资源标识集合。
+     *
+     * @return 全部资源标识集合
+     */
+    public Set<String> getAllNameSet() {
+        return lambdaQuery()
+                .select(Menu::getName)
                 .list()
                 .stream()
                 .map(Menu::getName)

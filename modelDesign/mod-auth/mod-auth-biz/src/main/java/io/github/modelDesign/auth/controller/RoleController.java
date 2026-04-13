@@ -157,7 +157,11 @@ public class RoleController {
     public void updatePermission(
             @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode,
             @Valid @RequestBody RolePermissionUpdateRequest request) {
-        permissionService.updateRoleMenuPermissions(roleCode, request.getMenus());
+        permissionService.updateRolePermissions(
+                roleCode,
+                request.getResources(),
+                request.getResourceGroupCodes()
+        );
     }
 
     /**

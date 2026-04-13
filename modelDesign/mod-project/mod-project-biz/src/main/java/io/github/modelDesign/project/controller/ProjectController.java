@@ -1,5 +1,7 @@
 package io.github.modelDesign.project.controller;
 
+import io.github.modelDesign.auth.annotation.RequirePermission;
+import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.project.request.ProjectCreateRequest;
 import io.github.modelDesign.project.request.ProjectDeleteRequest;
 import io.github.modelDesign.project.request.ProjectEditRequest;
@@ -42,6 +44,7 @@ public class ProjectController {
      * @return 分页结果
      */
     @Operation(summary = "获取项目列表")
+    @RequirePermission(PermissionResource.PROJECT)
     @GetMapping("/list")
     public ProjectListResponse list(@Valid ProjectListRequest request) {
         return projectService.getList(request);
@@ -54,6 +57,7 @@ public class ProjectController {
      * @return 项目详情
      */
     @Operation(summary = "获取项目详情")
+    @RequirePermission(PermissionResource.PROJECT)
     @GetMapping("/detail")
     public ProjectDetailVo detail(@Parameter(description = "项目 ID", required = true) @RequestParam @NotNull(message = "项目 ID 不能为空") Long id) {
         return projectService.getDetail(id);

@@ -32,6 +32,8 @@ import type {
 } from './#projectTaskTypes';
 
 export interface ProjectTaskColumnProps {
+  canDelete: boolean;
+  canEdit: boolean;
   editingCell: EditingCell | null;
   memberOptions: CellOption[];
   savingCellKey?: string;
@@ -127,8 +129,11 @@ export function createProjectTaskColumns(
 
         return (
           <CellDisplay
-            disabled={Boolean(props.savingCellKey)}
+            disabled={Boolean(props.savingCellKey) || !props.canEdit}
             onClick={() => {
+              if (!props.canEdit) {
+                return;
+              }
               props.onStartEditCell(task.id, 'assigneeId');
             }}
           >
@@ -188,8 +193,11 @@ export function createProjectTaskColumns(
 
         return (
           <CellDisplay
-            disabled={Boolean(props.savingCellKey)}
+            disabled={Boolean(props.savingCellKey) || !props.canEdit}
             onClick={() => {
+              if (!props.canEdit) {
+                return;
+              }
               props.onStartEditCell(task.id, 'priority');
             }}
           >
@@ -235,8 +243,11 @@ export function createProjectTaskColumns(
 
         return (
           <CellDisplay
-            disabled={Boolean(props.savingCellKey)}
+            disabled={Boolean(props.savingCellKey) || !props.canEdit}
             onClick={() => {
+              if (!props.canEdit) {
+                return;
+              }
               props.onStartEditCell(task.id, 'status');
             }}
           >
@@ -275,8 +286,11 @@ export function createProjectTaskColumns(
 
         return (
           <CellDisplay
-            disabled={Boolean(props.savingCellKey)}
+            disabled={Boolean(props.savingCellKey) || !props.canEdit}
             onClick={() => {
+              if (!props.canEdit) {
+                return;
+              }
               props.onStartEditCell(task.id, 'startTime');
             }}
           >
@@ -313,8 +327,11 @@ export function createProjectTaskColumns(
 
         return (
           <CellDisplay
-            disabled={Boolean(props.savingCellKey)}
+            disabled={Boolean(props.savingCellKey) || !props.canEdit}
             onClick={() => {
+              if (!props.canEdit) {
+                return;
+              }
               props.onStartEditCell(task.id, 'dueTime');
             }}
           >
@@ -359,29 +376,33 @@ export function createProjectTaskColumns(
       render: (_: unknown, task: ProjectTaskItem) => {
         return (
           <Space size={4}>
-            <Button
-              size="small"
-              type="text"
-              onClick={async () => {
-                await props.onEdit(task);
-              }}
-            >
-              编辑
-            </Button>
-
-            <Popconfirm
-              title="确认删除任务"
-              description="删除后无法恢复，确认继续吗？"
-              okText="确认"
-              cancelText="取消"
-              onConfirm={async () => {
-                await props.onDelete(task.id);
-              }}
-            >
-              <Button danger size="small" type="text">
-                删除
+            {props.canEdit ? (
+              <Button
+                size="small"
+                type="text"
+                onClick={async () => {
+                  await props.onEdit(task);
+                }}
+              >
+                编辑
               </Button>
-            </Popconfirm>
+            ) : null}
+
+            {props.canDelete ? (
+              <Popconfirm
+                title="确认删除任务"
+                description="删除后无法恢复，确认继续吗？"
+                okText="确认"
+                cancelText="取消"
+                onConfirm={async () => {
+                  await props.onDelete(task.id);
+                }}
+              >
+                <Button danger size="small" type="text">
+                  删除
+                </Button>
+              </Popconfirm>
+            ) : null}
           </Space>
         );
       },

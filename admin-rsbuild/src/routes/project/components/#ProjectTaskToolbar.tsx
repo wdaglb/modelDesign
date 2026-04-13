@@ -22,6 +22,7 @@ import type { CellOption } from './#projectTaskTypes';
 
 interface ProjectTaskToolbarProps {
   assigneeId?: number;
+  canCreateTask: boolean;
   memberOptions: CellOption[];
   priority?: TaskPriority;
   status?: TaskStatus;
@@ -91,14 +92,16 @@ const ProjectTaskToolbar = (props: ProjectTaskToolbarProps) => {
         />
       </Space>
 
-      <Button
-        type="primary"
-        size="small"
-        icon={<Icons.Plus />}
-        onClick={props.onCreate}
-      >
-        新建任务
-      </Button>
+      {props.canCreateTask ? (
+        <Button
+          type="primary"
+          size="small"
+          icon={<Icons.Plus />}
+          onClick={props.onCreate}
+        >
+          新建任务
+        </Button>
+      ) : null}
     </Flex>
   );
 };

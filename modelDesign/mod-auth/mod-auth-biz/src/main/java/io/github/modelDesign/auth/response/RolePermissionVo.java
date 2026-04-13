@@ -15,11 +15,14 @@ import java.util.List;
 public class RolePermissionVo {
 
     /**
-     * 菜单/按钮资源路径列表。
-     *
-     * 当前继续沿用 `menus` 字段名以兼容前端已有接口，
-     * 但其中既包含菜单路径，也包含按钮路径。
+     * 直接绑定的资源路径列表。
      */
-    @Schema(description = "菜单/按钮资源路径列表")
-    private List<String> menus;
+    @Schema(description = "直接绑定的资源路径列表")
+    private List<String> resources;
+
+    /**
+     * 直接绑定的资源组编码列表。
+     */
+    @Schema(description = "直接绑定的资源组编码列表")
+    private List<String> resourceGroupCodes;
 }

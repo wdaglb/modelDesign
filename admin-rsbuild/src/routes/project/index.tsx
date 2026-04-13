@@ -6,12 +6,14 @@ import { Helmet } from 'react-helmet-async';
 
 import { ApiProject } from '@/api';
 import { useKModal } from '@/components/KModal';
+import { PERMISSION_RESOURCE } from '@/constants/permission.ts';
 import {
   Project,
   ProjectStatus,
   ProjectStatusOptions,
 } from '@/api/modules/project.types';
 import queryKey from '@/constants/queryKey';
+import usePermission from '@/hooks/usePermission.ts';
 import Icons from '@/icons';
 import ProjectForm from './components/#ProjectForm';
 import ProjectListGrid from './components/#ProjectListGrid';
@@ -54,6 +56,14 @@ function RouteComponent() {
   const navigate = Route.useNavigate();
   const queryClient = useQueryClient();
   const modal = useKModal();
+  const { hasButtonPermission } = usePermission();
+  const canCreateProject = hasButtonPermission(
+    PERMISSION_RESOURCE.projectCreate,
+  );
+  const canEditProject = hasButtonPermission(PERMISSION_RESOURCE.projectEdit);
+  const canDeleteProject = hasButtonPermission(
+    PERMISSION_RESOURCE.projectDelete,
+  );
 
   const [pagination, setPagination] = useState({ current: 1, pageSize: 12 });
   const [keyword, setKeyword] = useState('');
@@ -225,13 +235,15 @@ function RouteComponent() {
             </PageDescription>
           </HeaderTextBlock>
 
-          <Button
-            type="primary"
-            icon={<Icons.Plus />}
-            onClick={handleCreateProject}
-          >
-            新建项目
-          </Button>
+          {canCreateProject ? (
+            <Button
+              type="primary"
+              icon={<Icons.Plus />}
+              onClick={handleCreateProject}
+            >
+              新建项目
+            </Button>
+          ) : null}
         </HeaderSection>
 
         <ToolbarCard>
@@ -329,6 +341,8 @@ function RouteComponent() {
         </SummaryRow>
 
         <ProjectListGrid
+          canDelete={canDeleteProject}
+          canEdit={canEditProject}
           loading={isLoading}
           items={projectItems}
           hasFilters={hasFilters}
