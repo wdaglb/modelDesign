@@ -43,13 +43,12 @@ public class AuthInterceptor implements HandlerInterceptor {
             throw new UnauthorizedException("未登录或登录已过期");
         }
         try {
-            Claims claims = tokenService.parseClaims(token);
+            Claims claims = tokenService.parseAccessClaims(token);
             String loginId = claims.get("loginId", String.class);
             CurrentAdmin currentAdmin = sessionRepository.get(loginId);
             if (currentAdmin == null) {
                 throw new UnauthorizedException("未登录或登录已过期");
             }
-            sessionRepository.refresh(loginId);
             AuthContext.set(currentAdmin);
             return true;
         } catch (UnauthorizedException exception) {

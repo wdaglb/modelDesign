@@ -16,7 +16,13 @@ import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail, TaskStatusCode } from '@/api/modules/project-task.types';
 import queryKey from '@/constants/queryKey';
 
-import { getBoardStatusText, getTaskAssigneeText } from './#helper';
+import {
+  getBoardStatusText,
+  getTaskAssigneeText,
+  buildAgileBoardTaskShareUrl,
+  copyTextToClipboard,
+  resolveTaskNumberText,
+} from './#helper';
 import TaskPreviewSection from './#TaskPreviewSection';
 
 interface TaskSubtaskPanelProps {
@@ -123,6 +129,36 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
     }
   };
 
+  /**
+   * 复制子任务编号，方便与敏捷面板卡片保持一致的分享动作。
+   *
+   * @param task 子任务详情
+   */
+  const handleCopyTaskNumber = async (task: ProjectTaskDetail) => {
+    try {
+      await copyTextToClipboard(resolveTaskNumberText(task));
+      message.success('任务编号已复制');
+    } catch {
+      message.error('任务编号复制失败，请稍后重试');
+    }
+  };
+
+  /**
+   * 复制子任务分享链接，便于直接打开任务详情抽屉。
+   *
+   * @param task 子任务详情
+   */
+  const handleCopyTaskLink = async (task: ProjectTaskDetail) => {
+    try {
+      await copyTextToClipboard(
+        buildAgileBoardTaskShareUrl(task, window.location.origin),
+      );
+      message.success('任务链接已复制');
+    } catch {
+      message.error('任务链接复制失败，请稍后重试');
+    }
+  };
+
   return (
     <Space
       orientation={'vertical'}
@@ -180,6 +216,7 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
 
           {!subtaskQuery.isLoading && !subtaskQuery.isError && subtaskQuery.data?.length
             ? subtaskQuery.data.map((item) => {
+                const taskNumberText = resolveTaskNumberText(item);
                 return (
                   <Card
                     key={item.id}
@@ -204,16 +241,41 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
                           gap: 12,
                         }}
                       >
-                        <Typography.Text strong>{item.title}</Typography.Text>
-                        <Button
-                          size={'small'}
-                          loading={editingTaskId === item.id}
-                          onClick={async () => {
-                            await handleEditSubtask(item.id);
-                          }}
-                        >
-                          补充详情
-                        </Button>
+                        <Space orientation={'vertical'} size={4} style={{ minWidth: 0 }}>
+                          <Typography.Link
+                            style={{
+                              fontSize: 12,
+                              fontFamily:
+                                "'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', monospace",
+                            }}
+                            onClick={async () => {
+                              await handleCopyTaskNumber(item);
+                            }}
+                          >
+                            {`# ${taskNumberText}`}
+                          </Typography.Link>
+                          <Typography.Text strong>{item.title}</Typography.Text>
+                        </Space>
+                        <Space size={0}>
+                          <Button
+                            type={'link'}
+                            size={'small'}
+                            onClick={async () => {
+                              await handleCopyTaskLink(item);
+                            }}
+                          >
+                            复制链接
+                          </Button>
+                          <Button
+                            size={'small'}
+                            loading={editingTaskId === item.id}
+                            onClick={async () => {
+                              await handleEditSubtask(item.id);
+                            }}
+                          >
+                            补充详情
+                          </Button>
+                        </Space>
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

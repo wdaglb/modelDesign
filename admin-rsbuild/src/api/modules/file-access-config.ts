@@ -1,5 +1,5 @@
 import { RequestError } from '@/api/types.ts';
-import request from '@/utils/request.ts';
+import request from '@/utils/request';
 
 /**
  * 文件访问配置。

@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
+import { message } from 'antd';
 
 import { ApiProjectTask } from '@/api';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
@@ -23,6 +24,7 @@ vi.mock('@/api', () => {
 const parentTask: ProjectTaskDetail = {
   id: 1001,
   projectId: 88,
+  projectCode: 'TASK',
   title: '父任务',
   status: 'inProgress',
   priority: 'high',
@@ -125,6 +127,7 @@ describe('TaskSubtaskPanel', () => {
       ...parentTask,
       id: 2001,
       parentTaskId: parentTask.id,
+      taskNo: 'TASK-2001',
       title: '子任务 C',
       status: 'doing',
       assignee: '小王',
@@ -157,6 +160,7 @@ describe('TaskSubtaskPanel', () => {
     );
 
     await screen.findByText('子任务 C');
+    expect(screen.getByText('# TASK-2001')).toBeDefined();
     await user.click(screen.getByRole('button', { name: '补充详情' }));
 
     await waitFor(() => {
@@ -184,6 +188,61 @@ describe('TaskSubtaskPanel', () => {
     expect(await screen.findByText('子任务列表')).toBeDefined();
     expect(await screen.findByText('已完成 0 / 0')).toBeDefined();
     expect(screen.queryByText('暂无子任务')).toBeNull();
+  });
+
+  it('子任务缺少独立编号时回退展示项目编号加任务 id', async () => {
+    vi.mocked(ApiProjectTask.getChildren).mockResolvedValue([
+      {
+        ...parentTask,
+        id: 2002,
+        parentTaskId: parentTask.id,
+        title: '子任务 D',
+      },
+    ]);
+
+    renderWithQuery(
+      <TaskSubtaskPanel
+        parentTask={parentTask}
+        statusConfigs={statusConfigs}
+        onRefresh={vi.fn()}
+        onEditTask={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('# TASK-2002')).toBeDefined();
+  });
+
+  it('点击复制链接会提示复制成功', async () => {
+    const user = userEvent.setup();
+    const successMock = vi
+      .spyOn(message, 'success')
+      .mockImplementation(() => undefined as never);
+
+    vi.mocked(ApiProjectTask.getChildren).mockResolvedValue([
+      {
+        ...parentTask,
+        id: 2003,
+        parentTaskId: parentTask.id,
+        taskNo: 'TASK-2003',
+        title: '子任务 E',
+      },
+    ]);
+
+    renderWithQuery(
+      <TaskSubtaskPanel
+        parentTask={parentTask}
+        statusConfigs={statusConfigs}
+        onRefresh={vi.fn()}
+        onEditTask={vi.fn()}
+      />,
+    );
+
+    await screen.findByText('子任务 E');
+    await user.click(screen.getByRole('button', { name: '复制链接' }));
+
+    await waitFor(() => {
+      expect(successMock).toHaveBeenCalledWith('任务链接已复制');
+    });
   });
 });
 

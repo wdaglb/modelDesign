@@ -79,6 +79,113 @@ export function isLikelyTaskCode(value: string) {
 }
 
 /**
+ * 规范化任务编号文本。
+ *
+ * @param value 原始编号值
+ * @returns 规范化后的编号；为空时返回 undefined
+ */
+function normalizeTaskNumberText(value?: string | null) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalizedValue = value.trim();
+  if (!normalizedValue) {
+    return undefined;
+  }
+
+  return normalizedValue;
+}
+
+/**
+ * 解析任务详情抽屉使用的任务编号。
+ *
+ * 说明：
+ * - 优先使用后端显式返回的任务编号字段；
+ * - 缺少独立编号时回退为“项目编号-任务 ID”；
+ * - 最后兜底使用任务 ID，确保详情区域始终有可读编号。
+ *
+ * @param task 任务详情
+ * @returns 任务编号文本
+ */
+export function resolveTaskNumberText(task: ProjectTaskDetail) {
+  const explicitTaskNumber = normalizeTaskNumberText(task.taskNo);
+  if (explicitTaskNumber) {
+    return explicitTaskNumber;
+  }
+
+  const taskCode = normalizeTaskNumberText(task.taskCode);
+  if (taskCode) {
+    return taskCode;
+  }
+
+  const commonCode = normalizeTaskNumberText(task.code);
+  if (commonCode) {
+    return commonCode;
+  }
+
+  if (task.serialNumber !== undefined && task.serialNumber !== null) {
+    const serialNumberText = String(task.serialNumber).trim();
+    if (serialNumberText) {
+      return serialNumberText;
+    }
+  }
+
+  const projectCode = normalizeTaskNumberText(task.projectCode);
+  if (projectCode) {
+    return `${projectCode}-${task.id}`;
+  }
+
+  return String(task.id);
+}
+
+/**
+ * 构建敏捷面板任务分享链接。
+ *
+ * 说明：
+ * - 使用 taskId 保证分享链接总能稳定定位；
+ * - 分享链接保持最小参数集合，避免无关查询参数污染地址。
+ *
+ * @param task 任务详情
+ * @param origin 链接来源域名
+ * @returns 任务分享链接
+ */
+export function buildAgileBoardTaskShareUrl(
+  task: ProjectTaskDetail,
+  origin: string,
+) {
+  const shareUrl = new URL('/agile-board/', origin);
+  shareUrl.searchParams.set('taskId', String(task.id));
+  return shareUrl.toString();
+}
+
+/**
+ * 复制文本到系统剪贴板。
+ *
+ * 说明：
+ * - 优先使用浏览器原生 clipboard API；
+ * - 不可用时回退为 textarea + execCommand，兼容旧环境与测试环境。
+ *
+ * @param text 待复制文本
+ */
+export async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'readonly');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+}
+
+/**
  * 敏捷面板搜索依赖。
  */
 export interface BoardTitleSearchDeps {

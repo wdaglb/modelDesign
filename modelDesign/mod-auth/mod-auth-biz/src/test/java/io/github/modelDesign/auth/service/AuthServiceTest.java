@@ -9,8 +9,10 @@ import io.github.modelDesign.auth.enums.LoginAuditStatusEnum;
 import io.github.modelDesign.auth.enums.LoginDeviceTypeEnum;
 import io.github.modelDesign.auth.enums.LoginFailureReasonEnum;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
+import io.github.modelDesign.auth.request.RefreshTokenRequest;
 import io.github.modelDesign.auth.request.RegisterRequest;
 import io.github.modelDesign.auth.response.UserLoginVo;
+import io.github.modelDesign.auth.session.AuthSession;
 import io.github.modelDesign.auth.session.CurrentAdmin;
 import io.github.modelDesign.auth.session.SessionRepository;
 import io.github.modelDesign.auth.session.TokenService;
@@ -20,8 +22,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.time.LocalDateTime;
 import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -104,8 +107,10 @@ class AuthServiceTest {
                 .osVersion("11")
                 .deviceType(LoginDeviceTypeEnum.DESKTOP)
                 .build();
-        tokenService.tokenToReturn = "token-123";
-        tokenService.expireTimeToReturn = 180000L;
+        tokenService.accessTokenToReturn = "token-123";
+        tokenService.accessExpireTimeToReturn = 180000L;
+        tokenService.refreshTokenToReturn = "refresh-123";
+        tokenService.refreshExpireTimeToReturn = 280000L;
         userService.userByUsername = buildEnabledUser();
 
         AuthService authService = new AuthService(
@@ -123,8 +128,10 @@ class AuthServiceTest {
 
         UserLoginVo loginVo = authService.passwordLogin(request, httpRequest);
 
-        assertEquals("token-123", loginVo.getToken());
-        assertEquals(180000L, loginVo.getExpireTime());
+        assertEquals("token-123", loginVo.getAccessToken());
+        assertEquals(180000L, loginVo.getAccessExpireTime());
+        assertEquals("refresh-123", loginVo.getRefreshToken());
+        assertEquals(280000L, loginVo.getRefreshExpireTime());
         assertNotNull(sessionRepository.savedAdmin);
         assertNotNull(sessionRepository.savedAdmin.getLoginId());
         assertFalse(sessionRepository.savedAdmin.getLoginId().isBlank());
@@ -172,8 +179,10 @@ class AuthServiceTest {
                 .osVersion("15")
                 .deviceType(LoginDeviceTypeEnum.DESKTOP)
                 .build();
-        tokenService.tokenToReturn = "register-token";
-        tokenService.expireTimeToReturn = 888L;
+        tokenService.accessTokenToReturn = "register-token";
+        tokenService.accessExpireTimeToReturn = 888L;
+        tokenService.refreshTokenToReturn = "register-refresh-token";
+        tokenService.refreshExpireTimeToReturn = 999L;
         tenantService.tenantById = buildEnabledTenant(3003L);
         MockHttpServletRequest httpRequest = new MockHttpServletRequest();
         httpRequest.setRemoteAddr("10.10.10.10");
@@ -193,8 +202,10 @@ class AuthServiceTest {
                 httpRequest
         );
 
-        assertEquals("register-token", loginVo.getToken());
-        assertEquals(888L, loginVo.getExpireTime());
+        assertEquals("register-token", loginVo.getAccessToken());
+        assertEquals(888L, loginVo.getAccessExpireTime());
+        assertEquals("register-refresh-token", loginVo.getRefreshToken());
+        assertEquals(999L, loginVo.getRefreshExpireTime());
         assertNotNull(userService.savedUser);
         assertEquals("新人", userService.savedUser.getNickname());
         assertEquals("new-user", userService.savedUser.getUsername());
@@ -208,6 +219,58 @@ class AuthServiceTest {
         assertNotNull(userLoginHistoryService.lastCommand);
         assertEquals(LoginAuditStatusEnum.SUCCESS,
                 userLoginHistoryService.lastCommand.getLoginStatus());
+    }
+
+    /**
+     * refresh token 匹配当前会话时，应返回新的双 token 并轮换 refresh token 标识。
+     */
+    @Test
+    void refreshTokenShouldRotateSessionWhenSessionMatches() {
+        FakeUserService userService = new FakeUserService();
+        FakeSessionRepository sessionRepository = new FakeSessionRepository();
+        FakeTenantService tenantService = new FakeTenantService();
+        TokenService tokenService = new TokenService(new AuthProperties());
+        FakeUserLoginHistoryService userLoginHistoryService =
+                new FakeUserLoginHistoryService();
+        FakeLoginClientInfoResolver clientInfoResolver =
+                new FakeLoginClientInfoResolver();
+        AuthService authService = new AuthService(
+                userService,
+                sessionRepository,
+                tenantService,
+                tokenService,
+                userLoginHistoryService,
+                clientInfoResolver
+        );
+        CurrentAdmin currentAdmin = CurrentAdmin.builder()
+                .userId(1001L)
+                .tenantId(2002L)
+                .username("alice")
+                .nickname("Alice")
+                .loginId("login-1")
+                .loginIp("127.0.0.1")
+                .tokenCreateTime(LocalDateTime.of(2026, 4, 12, 8, 0))
+                .build();
+        sessionRepository.save(currentAdmin, "refresh-id-1");
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken(
+                tokenService.createRefreshToken(currentAdmin, "refresh-id-1")
+        );
+
+        UserLoginVo loginVo = authService.refreshToken(request);
+
+        assertNotNull(loginVo.getAccessToken());
+        assertFalse(loginVo.getAccessToken().isBlank());
+        assertNotNull(loginVo.getRefreshToken());
+        assertFalse(loginVo.getRefreshToken().isBlank());
+        assertFalse(
+                Objects.equals("refresh-id-1", sessionRepository.savedRefreshTokenId)
+        );
+        assertEquals(
+                sessionRepository.savedRefreshTokenId,
+                tokenService.parseRefreshClaims(loginVo.getRefreshToken())
+                        .get("refreshTokenId", String.class)
+        );
     }
 
     /**
@@ -299,8 +362,10 @@ class AuthServiceTest {
         FakeLoginClientInfoResolver clientInfoResolver =
                 new FakeLoginClientInfoResolver();
         clientInfoResolver.nextClientInfo = LoginClientInfo.builder().build();
-        tokenService.tokenToReturn = "token-123";
-        tokenService.expireTimeToReturn = 180000L;
+        tokenService.accessTokenToReturn = "token-123";
+        tokenService.accessExpireTimeToReturn = 180000L;
+        tokenService.refreshTokenToReturn = "refresh-123";
+        tokenService.refreshExpireTimeToReturn = 280000L;
         userService.userByUsername = buildEnabledUser();
 
         AuthService authService = new AuthService(
@@ -363,8 +428,10 @@ class AuthServiceTest {
                 .osVersion("11")
                 .deviceType(LoginDeviceTypeEnum.DESKTOP)
                 .build();
-        tokenService.tokenToReturn = "token-success";
-        tokenService.expireTimeToReturn = 999L;
+        tokenService.accessTokenToReturn = "token-success";
+        tokenService.accessExpireTimeToReturn = 999L;
+        tokenService.refreshTokenToReturn = "refresh-success";
+        tokenService.refreshExpireTimeToReturn = 1999L;
         userService.userByUsername = buildEnabledUser();
         userLoginHistoryService.throwOnRecord = true;
 
@@ -383,8 +450,10 @@ class AuthServiceTest {
 
         UserLoginVo loginVo = authService.passwordLogin(request, httpRequest);
 
-        assertEquals("token-success", loginVo.getToken());
-        assertEquals(999L, loginVo.getExpireTime());
+        assertEquals("token-success", loginVo.getAccessToken());
+        assertEquals(999L, loginVo.getAccessExpireTime());
+        assertEquals("refresh-success", loginVo.getRefreshToken());
+        assertEquals(1999L, loginVo.getRefreshExpireTime());
     }
 
     /**
@@ -711,13 +780,71 @@ class AuthServiceTest {
          */
         private CurrentAdmin savedAdmin;
 
+        /**
+         * 最近一次保存的 refresh token 标识。
+         */
+        private String savedRefreshTokenId;
+
+        /**
+         * 当前会话聚合。
+         */
+        private AuthSession authSession;
+
         FakeSessionRepository() {
             super(null, new AuthProperties());
         }
 
         @Override
-        public void save(CurrentAdmin currentAdmin) {
+        public void save(CurrentAdmin currentAdmin, String refreshTokenId) {
             savedAdmin = currentAdmin;
+            savedRefreshTokenId = refreshTokenId;
+            authSession = AuthSession.builder()
+                    .currentAdmin(currentAdmin)
+                    .refreshTokenId(refreshTokenId)
+                    .build();
+        }
+
+        @Override
+        public CurrentAdmin get(String loginId) {
+            AuthSession currentSession = getSession(loginId);
+            if (currentSession == null) {
+                return null;
+            }
+            return currentSession.getCurrentAdmin();
+        }
+
+        @Override
+        public AuthSession getSession(String loginId) {
+            if (savedAdmin == null || authSession == null) {
+                return null;
+            }
+            if (!Objects.equals(savedAdmin.getLoginId(), loginId)) {
+                return null;
+            }
+            return authSession;
+        }
+
+        @Override
+        public void remove(String loginId) {
+            String currentLoginId = null;
+            if (savedAdmin != null) {
+                currentLoginId = savedAdmin.getLoginId();
+            }
+            if (!Objects.equals(currentLoginId, loginId)) {
+                return;
+            }
+            savedAdmin = null;
+            savedRefreshTokenId = null;
+            authSession = null;
+        }
+
+        @Override
+        public void updateCurrentAdmin(CurrentAdmin currentAdmin) {
+            if (authSession == null) {
+                return;
+            }
+            savedAdmin = currentAdmin;
+            authSession.setCurrentAdmin(currentAdmin);
         }
     }
 
@@ -769,27 +896,48 @@ class AuthServiceTest {
      */
     private static final class FakeTokenService extends TokenService {
         /**
-         * 固定返回的 token。
+         * 固定返回的 access token。
          */
-        private String tokenToReturn = "token";
+        private String accessTokenToReturn = "token";
 
         /**
-         * 固定返回的过期时间。
+         * 固定返回的 refresh token。
          */
-        private long expireTimeToReturn = 1L;
+        private String refreshTokenToReturn = "refresh-token";
+
+        /**
+         * 固定返回的 access token 过期时间。
+         */
+        private long accessExpireTimeToReturn = 1L;
+
+        /**
+         * 固定返回的 refresh token 过期时间。
+         */
+        private long refreshExpireTimeToReturn = 2L;
 
         FakeTokenService() {
             super(new AuthProperties());
         }
 
         @Override
-        public String createToken(CurrentAdmin currentAdmin) {
-            return tokenToReturn;
+        public String createAccessToken(CurrentAdmin currentAdmin) {
+            return accessTokenToReturn;
         }
 
         @Override
-        public long getExpireTime() {
-            return expireTimeToReturn;
+        public String createRefreshToken(CurrentAdmin currentAdmin,
+                                         String refreshTokenId) {
+            return refreshTokenToReturn;
+        }
+
+        @Override
+        public long getAccessExpireTime() {
+            return accessExpireTimeToReturn;
+        }
+
+        @Override
+        public long getRefreshExpireTime() {
+            return refreshExpireTimeToReturn;
         }
     }
 

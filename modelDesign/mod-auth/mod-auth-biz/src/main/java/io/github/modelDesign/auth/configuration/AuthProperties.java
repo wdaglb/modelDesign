@@ -12,9 +12,16 @@ public class AuthProperties {
     private String jwtSecret = "change-this-jwt-secret-change-this-jwt-secret";
 
     /**
-     * token 有效期，单位秒。
+     * access token 有效期，单位秒。
      */
-    private long tokenExpireSeconds = 7200;
+    private long accessTokenExpireSeconds = 7200;
+
+    /**
+     * refresh token 有效期，单位秒。
+     *
+     * Note: 该值承载“长期登录”能力，默认按 30 天配置。
+     */
+    private long refreshTokenExpireSeconds = 30L * 24 * 60 * 60;
 
     /**
      * session 前缀。

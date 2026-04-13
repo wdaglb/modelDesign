@@ -2,6 +2,7 @@ package io.github.modelDesign.project.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import io.github.modelDesign.auth.api.AuthCurrentUserApi;
 import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
 import io.github.modelDesign.common.exception.BusinessException;
@@ -211,6 +212,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         projectTaskDependencyService.saveDependencies(task.getId(), task.getProjectId(), predecessorTaskIds);
         projectTaskTagBindingService.saveBindings(task.getId(), project.getTenantId(), tagIds);
         projectTaskChangeLogService.logCreate(task);
+        projectTaskLifecycleService.handleTaskAssigneeChanged(null, task);
         return projectTaskViewAssembler.toTaskVo(task);
     }
 
@@ -246,6 +248,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         List<Long> targetTagIds = resolveEditRelationIds(beforeTagIds, request.getTagIds());
         applyTaskUpdate(task, request, status, targetParentTaskId);
         updateById(task);
+        syncNullableAssigneeFields(task);
 
         projectTaskGuardService.ensureAssigneeMember(task);
         projectTaskDependencyService.saveDependencies(task.getId(), task.getProjectId(), targetPredecessorTaskIds);
@@ -257,6 +260,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         projectTaskChangeLogService.logRelationUpdate(task.getId(), beforeTask.getParentTaskId(), task.getParentTaskId(), beforePredecessorTaskIds, afterPredecessorTaskIds);
         projectTaskChangeLogService.logTagBindingUpdate(task.getId(), beforeTagIds, afterTagIds);
 
+        projectTaskLifecycleService.handleTaskAssigneeChanged(beforeTask, task);
         projectTaskLifecycleService.handleTaskCompleted(task, beforeTask.getStatus());
         return projectTaskViewAssembler.toTaskVo(task);
     }
@@ -354,6 +358,26 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setAssigneeId(request.getAssigneeId());
         task.setStartTime(request.getStartTime());
         task.setDueTime(request.getDueTime());
+    }
+
+    /**
+     * 显式同步可空负责人字段。
+     *
+     * MyBatis-Plus 默认不会通过 updateById 把 null 字段写回数据库，
+     * 因此“撤销指派”场景需要额外补一次 set null，确保负责人和指派时间都被真正清空。
+     *
+     * @param task 已完成字段归一化的任务实体
+     */
+    private void syncNullableAssigneeFields(ProjectTask task) {
+        if (task.getAssigneeId() != null) {
+            return;
+        }
+
+        LambdaUpdateChainWrapper<ProjectTask> updateChain = lambdaUpdate();
+        updateChain.eq(ProjectTask::getId, task.getId())
+                .set(ProjectTask::getAssigneeId, null)
+                .set(ProjectTask::getAssigneeAssignedAt, null)
+                .update();
     }
 
     private ProjectTask copyTask(ProjectTask source) {

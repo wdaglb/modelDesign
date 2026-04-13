@@ -6,6 +6,8 @@ interface TaskPreviewSummaryProps {
   canApplyStatus: boolean;
   onApplyStatus: () => Promise<void>;
   onClose: () => void;
+  onCopyTaskLink: () => Promise<void>;
+  onCopyTaskNumber: () => Promise<void>;
   onEdit: () => Promise<void>;
   onStatusChange: (value: TaskStatusCode) => void;
   priorityColor: string;
@@ -15,6 +17,7 @@ interface TaskPreviewSummaryProps {
   statusOptions: Array<{ label: string; value: string }>;
   statusTagColor: string;
   statusText: string;
+  taskNumberText: string;
   title: string;
   updatingStatus: boolean;
 }
@@ -51,6 +54,29 @@ const TaskPreviewSummary = (props: TaskPreviewSummaryProps) => {
           >
             {props.projectText}
           </Typography.Text>
+          <Space wrap size={12}>
+            <Typography.Link
+              style={{
+                fontSize: 12,
+                letterSpacing: 0.3,
+                fontFamily:
+                  "'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', monospace",
+              }}
+              onClick={() => {
+                void props.onCopyTaskNumber();
+              }}
+            >
+              {`# ${props.taskNumberText}`}
+            </Typography.Link>
+            <Typography.Link
+              style={{ fontSize: 12, letterSpacing: 0.3 }}
+              onClick={() => {
+                void props.onCopyTaskLink();
+              }}
+            >
+              复制任务链接
+            </Typography.Link>
+          </Space>
           <Typography.Title
             level={4}
             style={{

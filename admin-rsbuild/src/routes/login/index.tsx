@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from 'antd';
 import { z } from 'zod';
 
 import { ApiPassport } from '@/api';
+import { requestBrowserNotificationPermissionIfSupported } from '@/service/browserNotificationService.ts';
+import { normalizeLoginRedirect } from '@/service/loginRedirect.ts';
 import useAuthStore from '@/store/auth.ts';
 
 import LoginPage, {
@@ -23,6 +25,18 @@ export type PanelType = 'password' | 'qrScan' | 'skeleton';
 export type TransitionState = 'idle' | 'exiting' | 'entering';
 
 export const Route = createFileRoute('/login/')({
+  beforeLoad: ({ search }) => {
+    const authState = useAuthStore.getState();
+
+    if (!authState.token) {
+      return;
+    }
+
+    throw redirect({
+      to: normalizeLoginRedirect(search.redirect),
+      replace: true,
+    });
+  },
   component: RouteComponent,
   validateSearch: searchSchema,
   context: () => {
@@ -33,7 +47,8 @@ export const Route = createFileRoute('/login/')({
 function RouteComponent() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
-  const setToken = useAuthStore((state) => state.setToken);
+  const setTokens = useAuthStore((state) => state.setTokens);
+  const redirectTarget = normalizeLoginRedirect(search.redirect);
 
   /** 当前激活的面板 */
   const [activePanel, setActivePanel] = useState<PanelType>('skeleton');
@@ -48,8 +63,8 @@ function RouteComponent() {
   const mutation = useMutation({
     mutationFn: ApiPassport.passwordLogin,
     onSuccess: (data) => {
-      setToken(data.token);
-      navigate({ to: search.redirect, replace: true });
+      setTokens(data.accessToken, data.refreshToken);
+      navigate({ to: redirectTarget, replace: true });
     },
     onError: (error) => {
       Modal.error({
@@ -62,8 +77,8 @@ function RouteComponent() {
   const registerMutation = useMutation({
     mutationFn: ApiPassport.register,
     onSuccess: (data) => {
-      setToken(data.token);
-      navigate({ to: search.redirect, replace: true });
+      setTokens(data.accessToken, data.refreshToken);
+      navigate({ to: redirectTarget, replace: true });
     },
   });
 
@@ -111,10 +126,16 @@ function RouteComponent() {
       loading={mutation.isPending}
       registerLoading={registerMutation.isPending}
       errorMessage={errorMessage}
-      onSubmit={(values: LoginFormValues) => {
+      onSubmit={async (values: LoginFormValues) => {
+        /**
+         * 浏览器权限申请尽量放在用户主动点击登录的手势链路里，
+         * 避免某些浏览器把异步登录成功回调视为“非用户触发”而直接拦截。
+         */
+        await requestBrowserNotificationPermissionIfSupported();
         return mutation.mutateAsync(values);
       }}
-      onRegisterSubmit={(values: RegisterSubmitValues) => {
+      onRegisterSubmit={async (values: RegisterSubmitValues) => {
+        await requestBrowserNotificationPermissionIfSupported();
         return registerMutation.mutateAsync(values);
       }}
       onSwitchPanel={switchPanel}

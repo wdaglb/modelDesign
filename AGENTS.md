@@ -71,3 +71,23 @@
 - modelDesign/
 - 数据库postgresql+redis
 - 接口需要增加swagger的注解
+
+## 单元测试命令经验
+
+### 前端测试
+
+- 前端单测在 `admin-rsbuild/` 目录执行。
+- 优先使用 `npm run test:run -- <具体测试文件>` 按文件精确运行，避免全量测试影响效率。
+- 示例：
+  - `npm run test:run -- src/__tests__/initialState.test.ts`
+  - `npm run test:run -- src/store/__tests__/auth.test.ts`
+
+### 后端测试
+
+- 后端单测统一以 `modelDesign/boot` 作为入口模块执行，不要直接在业务子模块上单独跑 `mvn test`。
+- 推荐命令：
+  - `./mvnw -pl boot -am -Dtest=AuthServiceTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- 经验说明：
+  - `-pl boot -am` 可以把 `boot` 依赖的上游模块一起编译，避免单独跑 `mod-auth-biz` 时出现依赖模块未参与编译的问题。
+  - `-Dsurefire.failIfNoSpecifiedTests=false` 可以避免聚合链路里某些无匹配测试模块直接失败。
+  - 如果目标测试已经通过，但 reactor 后续在其他模块测试编译阶段失败，应区分“本次目标模块验证通过”和“仓库其他模块已有问题”，不要误判为当前改动直接导致。

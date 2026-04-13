@@ -36,7 +36,8 @@ class ProjectTaskServiceTest {
                 mock(ProjectTaskDependencyService.class),
                 mock(ProjectTaskTagBindingService.class),
                 mock(ProjectTaskViewAssembler.class),
-                mock(ProjectTaskChangeLogService.class)
+                mock(ProjectTaskChangeLogService.class),
+                mock(ProjectTaskTimeMetricsSupport.class)
         ));
 
         ProjectTask parentTaskFirst = new ProjectTask();
@@ -77,7 +78,8 @@ class ProjectTaskServiceTest {
                 mock(ProjectTaskDependencyService.class),
                 mock(ProjectTaskTagBindingService.class),
                 mock(ProjectTaskViewAssembler.class),
-                mock(ProjectTaskChangeLogService.class)
+                mock(ProjectTaskChangeLogService.class),
+                mock(ProjectTaskTimeMetricsSupport.class)
         );
 
         ProjectTaskDetailVo expected = ProjectTaskDetailVo.builder().id(200L).build();

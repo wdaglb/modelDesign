@@ -22,8 +22,12 @@ export default defineConfig({
   },
 
   performance: {
-    // inlineStyles: true,
-    preload: true,
+    /**
+     * 关闭全量 preload，避免构建产物把按路由拆分的异步脚本全部注入首屏。
+     * 这些脚本在页面加载后的短时间内不会立即执行，浏览器会持续打印
+     * “preloaded but not used” 提示，反而干扰真实问题排查。
+     */
+    preload: false,
   },
 
   output: {

@@ -5,7 +5,9 @@ export { default as KModal } from './KModal/index';
 export { default as KDrawer } from './KDrawer/index';
 export {
   default as KMarkdownEditor,
+  KMarkdownPreview,
   type KMarkdownEditorProps,
+  type KMarkdownPreviewProps,
   type MarkdownImageUploadResult,
 } from './KMarkdownEditor/index';
 export { default as KUpload, KFileUpload, KImageUpload } from './business/KUpload/index';

@@ -14,7 +14,9 @@ import {
   MessageNotificationButton,
 } from '@/components';
 import queryKey from '@/constants/queryKey';
+import useSystemMessageBrowserNotification from '@/hooks/useSystemMessageBrowserNotification.ts';
 import useFileUrl from '@/hooks/useFileUrl.ts';
+import { SYSTEM_MESSAGE_POLL_INTERVAL } from '@/service/browserNotificationService.ts';
 import { logout } from '@/service/loginService.ts';
 import useAuthStore from '@/store/auth.ts';
 
@@ -47,6 +49,14 @@ const Side = () => {
     queryKey: queryKey.systemMessage.unreadCount(),
     queryFn: () => ApiSystemMessage.getUnreadCount(),
     enabled: Boolean(currentInfo?.userId),
+    staleTime: 0,
+    refetchInterval: SYSTEM_MESSAGE_POLL_INTERVAL,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  });
+
+  useSystemMessageBrowserNotification({
+    userId: currentInfo?.userId,
   });
 
   const { menuData, parentKeys } = useMemo(() => {

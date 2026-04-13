@@ -1,11 +1,12 @@
-import React, { useId, useState } from 'react';
+import React, { useState } from 'react';
 import { Space, Spin, Typography, message } from 'antd';
-import { MdEditor, MdPreview } from 'md-editor-rt';
+import { MdEditor } from 'md-editor-rt';
 import type { ToolbarNames } from 'md-editor-rt';
 import 'md-editor-rt/lib/style.css';
 
 import { ApiFile } from '@/api';
 
+import KMarkdownPreview from './Preview';
 import {
   buildMarkdownImageText,
   getPastedImageFiles,
@@ -15,6 +16,7 @@ import {
 } from './helpers';
 import type {
   KMarkdownEditorProps,
+  KMarkdownPreviewProps,
   MarkdownImageUploadResult,
 } from './types';
 
@@ -48,7 +50,6 @@ const COMPACT_TOOLBARS: ToolbarNames[] = [
  * - 粘贴图片自动上传
  */
 const KMarkdownEditor = (props: KMarkdownEditorProps) => {
-  const editorId = useId().replace(/:/g, '');
   const [uploading, setUploading] = useState(false);
 
   const value = normalizeMarkdownValue(props.value);
@@ -177,7 +178,6 @@ const KMarkdownEditor = (props: KMarkdownEditorProps) => {
       >
         <Spin spinning={uploading}>
           {renderEditorContent({
-            editorId,
             emitChange,
             handleToolbarUpload,
             height,
@@ -195,7 +195,6 @@ const KMarkdownEditor = (props: KMarkdownEditorProps) => {
 
 interface RenderEditorContentProps {
   disabled?: boolean;
-  editorId: string;
   emitChange: (nextValue?: string) => void;
   handleToolbarUpload: (
     files: File[],
@@ -210,24 +209,7 @@ interface RenderEditorContentProps {
 
 function renderEditorContent(props: RenderEditorContentProps) {
   if (props.disabled) {
-    return (
-      <div
-        style={{
-          height: props.height,
-          overflow: 'auto',
-          border: '1px solid var(--ant-colorBorder)',
-          borderRadius: 8,
-          padding: 16,
-          backgroundColor: 'var(--ant-colorBgContainer)',
-        }}
-      >
-        <MdPreview
-          id={props.editorId}
-          modelValue={props.value}
-          previewTheme="github"
-        />
-      </div>
-    );
+    return <KMarkdownPreview height={props.height} value={props.value} />;
   }
 
   return (
@@ -276,7 +258,9 @@ function handleUploadError(error: unknown) {
 
 export type {
   KMarkdownEditorProps,
+  KMarkdownPreviewProps,
   MarkdownImageUploadResult,
 } from './types';
 
 export default KMarkdownEditor;
+export { default as KMarkdownPreview } from './Preview';

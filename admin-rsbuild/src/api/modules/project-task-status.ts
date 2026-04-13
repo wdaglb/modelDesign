@@ -1,4 +1,4 @@
-import request from '@/utils/request.ts';
+import request from '@/utils/request';
 
 /**
  * 任务状态配置。

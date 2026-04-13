@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -11,6 +11,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { message } from 'antd';
+import { z } from 'zod';
 import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
 import {
   TaskPriority,
@@ -46,7 +47,12 @@ import {
   BoardToolbarCard,
 } from './styles/board.styled';
 
+const searchSchema = z.object({
+  taskId: z.coerce.number().optional(),
+});
+
 export const Route = createFileRoute('/agile-board/')({
+  validateSearch: searchSchema,
   component: RouteComponent,
 });
 
@@ -56,6 +62,8 @@ export const Route = createFileRoute('/agile-board/')({
 function RouteComponent() {
   const drawer = useKDrawer();
   const modal = useKModal();
+  const navigate = Route.useNavigate();
+  const search = Route.useSearch();
   const queryClient = useQueryClient();
   const [activeTaskDragId, setActiveTaskDragId] = useState<string>();
   const [filters, setFilters] = useState<AgileBoardFilterState>({
@@ -183,6 +191,25 @@ function RouteComponent() {
       }),
     ]);
   };
+  const clearPreviewSearch = useCallback(async () => {
+    await navigate({
+      to: '/agile-board/',
+      search: {},
+      replace: true,
+    });
+  }, [navigate]);
+  const syncPreviewSearch = useCallback(
+    async (task: ProjectTaskDetail) => {
+      await navigate({
+        to: '/agile-board/',
+        search: {
+          taskId: task.id,
+        },
+        replace: true,
+      });
+    },
+    [navigate],
+  );
   const openTaskForm = async (task?: ProjectTaskDetail) => {
     setIsTaskFormOpen(true);
 
@@ -201,30 +228,105 @@ function RouteComponent() {
       setIsTaskFormOpen(false);
     }
   };
-  const openTaskPreview = async (task: ProjectTaskDetail) => {
+  const openTaskPreview = useCallback(
+    async (
+      task: ProjectTaskDetail,
+      options?: {
+        syncSearchOnOpen?: boolean;
+      },
+    ) => {
+      if (previewTaskId !== undefined) {
+        return;
+      }
+
+      let syncSearchOnOpen = true;
+      if (options && options.syncSearchOnOpen === false) {
+        syncSearchOnOpen = false;
+      }
+
+      setPreviewTaskId(task.id);
+
+      try {
+        if (syncSearchOnOpen) {
+          await syncPreviewSearch(task);
+        }
+
+        await openTaskPreviewDrawer(drawer, {
+          taskId: task.id,
+          statusConfigs,
+          onTaskUpdated: invalidateBoardQueries,
+          onEdit: async (detailTask) => {
+            await openTaskForm(detailTask);
+          },
+        });
+      } catch (error) {
+        if (error !== 'KDrawer cancel') {
+          throw error;
+        }
+      } finally {
+        await clearPreviewSearch();
+        setPreviewTaskId(undefined);
+      }
+    },
+    [
+      clearPreviewSearch,
+      drawer,
+      invalidateBoardQueries,
+      openTaskForm,
+      previewTaskId,
+      statusConfigs,
+      syncPreviewSearch,
+    ],
+  );
+  useEffect(() => {
     if (previewTaskId !== undefined) {
       return;
     }
 
-    setPreviewTaskId(task.id);
-
-    try {
-      await openTaskPreviewDrawer(drawer, {
-        taskId: task.id,
-        statusConfigs,
-        onTaskUpdated: invalidateBoardQueries,
-        onEdit: async (detailTask) => {
-          await openTaskForm(detailTask);
-        },
-      });
-    } catch (error) {
-      if (error !== 'KDrawer cancel') {
-        throw error;
-      }
-    } finally {
-      setPreviewTaskId(undefined);
+    if (search.taskId === undefined) {
+      return;
     }
-  };
+
+    let cancelled = false;
+
+    const openSharedTask = async () => {
+      try {
+        const sharedTask = await ApiProjectTask.getDetail(search.taskId);
+
+        if (cancelled) {
+          return;
+        }
+
+        await openTaskPreview(sharedTask, {
+          syncSearchOnOpen: false,
+        });
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        await clearPreviewSearch();
+
+        if (error instanceof RequestError && error.code === 404) {
+          message.error('分享任务不存在或已删除');
+          return;
+        }
+
+        message.error('分享任务打开失败，请稍后重试');
+      }
+    };
+
+    void openSharedTask();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    clearPreviewSearch,
+    openTaskPreview,
+    previewTaskId,
+    search.taskId,
+  ]);
   const handleDragStart = (event: DragStartEvent) => {
     if (updatingTaskId !== undefined) {
       return;

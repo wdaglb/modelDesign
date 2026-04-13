@@ -1,6 +1,7 @@
 import type { TaskCardTask } from '@/components';
 
 import type { AgileBoardTask } from './#types';
+import { resolveTaskNumberText } from './#helper';
 
 /**
  * 规范化任务字段，空字符串会回退为 undefined。
@@ -8,6 +9,9 @@ import type { AgileBoardTask } from './#types';
  * 约束：
  * - 统一卡片组件会基于 undefined 展示默认文案；
  * - 这里不直接写入兜底文案，避免与通用组件文案重复定义。
+ *
+ * @param value 原始值
+ * @returns 规范化结果
  */
 function normalizeTaskText(value: string | null | undefined) {
   if (typeof value !== 'string') {
@@ -20,41 +24,6 @@ function normalizeTaskText(value: string | null | undefined) {
   }
 
   return normalizedValue;
-}
-
-/**
- * 解析敏捷面板卡片使用的任务编号。
- *
- * 兼容未来后端可能补充的独立编号字段；如果当前只有任务 ID，
- * 也能先满足面板展示与复制的交付要求。
- */
-function resolveTaskNumber(task: AgileBoardTask) {
-  const taskRecord = task as AgileBoardTask & {
-    code?: string | null;
-    projectCode?: string | null;
-    taskCode?: string | null;
-    taskNo?: string | null;
-    serialNumber?: string | number | null;
-  };
-
-  const explicitTaskNumber =
-    normalizeTaskText(taskRecord.taskNo) ??
-    normalizeTaskText(taskRecord.taskCode) ??
-    normalizeTaskText(taskRecord.code) ??
-    (taskRecord.serialNumber !== undefined && taskRecord.serialNumber !== null
-      ? String(taskRecord.serialNumber)
-      : undefined);
-
-  if (explicitTaskNumber) {
-    return explicitTaskNumber;
-  }
-
-  const projectCode = normalizeTaskText(taskRecord.projectCode);
-  if (projectCode) {
-    return `${projectCode}-${task.id}`;
-  }
-
-  return String(task.id);
 }
 
 /**
@@ -74,7 +43,7 @@ export function mapAgileBoardTaskToTaskCardTask(
 ): TaskCardTask {
   return {
     id: task.id,
-    taskNumber: resolveTaskNumber(task),
+    taskNumber: resolveTaskNumberText(task),
     projectName: normalizeTaskText(task.projectName),
     title: task.title,
     priority: task.priority,
