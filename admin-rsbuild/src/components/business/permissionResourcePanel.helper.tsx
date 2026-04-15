@@ -1,4 +1,5 @@
 import React from 'react';
+import { Badge, Flex } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 
 import type { Menu } from '@/api/modules/menu.types.ts';
@@ -12,13 +13,13 @@ import type { Menu } from '@/api/modules/menu.types.ts';
 export function splitPermissionResources(
   value: string[],
   menus: Menu[],
-  menuNameSet: Set<string>,
+  selectableResourceNameSet: Set<string>,
 ) {
   const checkedKeys: string[] = [];
   const extraResources: string[] = [];
 
   for (const resource of value) {
-    if (menuNameSet.has(resource)) {
+    if (selectableResourceNameSet.has(resource)) {
       checkedKeys.push(resource);
       continue;
     }
@@ -163,14 +164,18 @@ export function collectRootKeys(menus: Menu[]) {
 /**
  * 将扁平菜单列表转成 Tree 节点。
  */
-export function buildTreeNodes(menus: Menu[], keyword: string): DataNode[] {
+export function buildTreeNodes(
+  menus: Menu[],
+  keyword: string,
+  menuApiUsageCountMap?: Record<string, number>,
+): DataNode[] {
   const nodeMap = new Map<number, DataNode>();
   const rootNodes: DataNode[] = [];
 
   for (const menu of menus) {
-    let title: React.ReactNode = menu.title;
+    let titleContent: React.ReactNode = menu.title;
     if (keyword && menu.title.includes(keyword)) {
-      title = (
+      titleContent = (
         <span>
           {menu.title.split(keyword).map((part, index) => {
             if (index === 0) {
@@ -189,6 +194,19 @@ export function buildTreeNodes(menus: Menu[], keyword: string): DataNode[] {
         </span>
       );
     }
+
+    const apiUsageCount = menuApiUsageCountMap?.[menu.name] ?? 0;
+    const title = (
+      <Flex align={'center'} gap={8} wrap={false}>
+        <span>{titleContent}</span>
+        <Badge
+          count={apiUsageCount}
+          color={'#1677ff'}
+          showZero
+          style={{ boxShadow: 'none' }}
+        />
+      </Flex>
+    );
 
     nodeMap.set(menu.id, {
       key: menu.name,

@@ -15,16 +15,16 @@ import {
  */
 const usePermission = () => {
   const menus = useAuthStore((state) => state.menus);
-  const buttons = useAuthStore((state) => state.buttons);
+  const permissions = useAuthStore((state) => state.permissions);
 
   return useMemo(() => {
     return {
       canAccessPath: (pathname: string) => canAccessPath(menus, pathname),
       getFirstAccessiblePath: () => getFirstAccessiblePath(menus),
       hasButtonPermission: (permissionCode?: string) =>
-        hasButtonPermission(buttons, permissionCode),
+        hasButtonPermission(permissions, permissionCode),
     };
-  }, [buttons, menus]);
+  }, [menus, permissions]);
 };
 
 export default usePermission;

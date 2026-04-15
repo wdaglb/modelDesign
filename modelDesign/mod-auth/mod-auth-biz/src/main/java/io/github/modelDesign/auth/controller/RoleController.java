@@ -1,7 +1,5 @@
 package io.github.modelDesign.auth.controller;
 
-import io.github.modelDesign.auth.annotation.RequirePermission;
-import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.request.RoleAddRequest;
 import io.github.modelDesign.auth.request.RoleBatchUpdateStatusRequest;
 import io.github.modelDesign.auth.request.RoleListRequest;
@@ -62,10 +60,6 @@ public class RoleController {
      * @return 分页结果
      */
     @Operation(summary = "获取角色列表")
-    @RequirePermission(anyOf = {
-            PermissionResource.SYSTEM_ROLE,
-            PermissionResource.SYSTEM_USER_BIND_ROLE
-    })
     @GetMapping("/list")
     public PageResponse<RoleListItemVo> list(@Valid RoleListRequest request) {
         return roleService.getList(request);
@@ -80,7 +74,6 @@ public class RoleController {
      * @return 角色信息
      */
     @Operation(summary = "新增角色")
-    @RequirePermission(PermissionResource.SYSTEM_ROLE_CREATE)
     @PostMapping("/add")
     public RoleListItemVo add(@Valid @RequestBody RoleAddRequest request) {
         return roleService.add(request);
@@ -96,7 +89,6 @@ public class RoleController {
      * @return 角色信息
      */
     @Operation(summary = "编辑角色")
-    @RequirePermission(PermissionResource.SYSTEM_ROLE_EDIT)
     @PostMapping("/update")
     public RoleListItemVo update(@Parameter(description = "角色 ID", required = true) @RequestParam @NotNull(message = "角色 ID 不能为空") Long id,
                                  @Valid @RequestBody RoleUpdateRequest request) {
@@ -111,7 +103,6 @@ public class RoleController {
      * @param request 状态请求
      */
     @Operation(summary = "修改单个角色状态")
-    @RequirePermission(PermissionResource.SYSTEM_ROLE_CHANGE_STATUS)
     @PostMapping("/update_status")
     public void updateStatus(@Valid @RequestBody RoleUpdateStatusRequest request) {
         roleService.updateStatus(request);
@@ -125,7 +116,6 @@ public class RoleController {
      * @param request 批量状态请求
      */
     @Operation(summary = "批量修改角色状态")
-    @RequirePermission(PermissionResource.SYSTEM_ROLE_BATCH_CHANGE_STATUS)
     @PostMapping("/batch_update_status")
     public void batchUpdateStatus(@Valid @RequestBody RoleBatchUpdateStatusRequest request) {
         roleService.batchUpdateStatus(request);
@@ -138,7 +128,6 @@ public class RoleController {
      * @return 角色权限信息
      */
     @Operation(summary = "查询角色权限配置")
-    @RequirePermission(PermissionResource.SYSTEM_ROLE_PERMISSION)
     @GetMapping("/permission")
     public RolePermissionVo getPermission(
             @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode) {
@@ -152,14 +141,14 @@ public class RoleController {
      * @param request  权限更新请求
      */
     @Operation(summary = "更新角色权限配置")
-    @RequirePermission(PermissionResource.SYSTEM_ROLE_PERMISSION)
     @PostMapping("/permission/update")
     public void updatePermission(
             @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode,
             @Valid @RequestBody RolePermissionUpdateRequest request) {
         permissionService.updateRolePermissions(
                 roleCode,
-                request.getResources(),
+                request.getMenuResources(),
+                request.getApiResources(),
                 request.getResourceGroupCodes()
         );
     }
@@ -171,7 +160,6 @@ public class RoleController {
      * @return 用户 ID 列表
      */
     @Operation(summary = "获取角色已绑定用户")
-    @RequirePermission(PermissionResource.SYSTEM_ROLE_BIND_USER)
     @GetMapping("/users")
     public List<Long> getRoleUsers(
             @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode) {
@@ -188,7 +176,6 @@ public class RoleController {
      * @param request  用户 ID 列表
      */
     @Operation(summary = "更新角色绑定用户")
-    @RequirePermission(PermissionResource.SYSTEM_ROLE_BIND_USER)
     @PostMapping("/users/update")
     public void updateRoleUsers(
             @Parameter(description = "角色编码", required = true) @RequestParam @NotBlank(message = "角色编码不能为空") String roleCode,

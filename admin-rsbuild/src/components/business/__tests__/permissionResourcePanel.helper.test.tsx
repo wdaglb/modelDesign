@@ -1,3 +1,4 @@
+import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import type { Menu } from '@/api/modules/menu.types.ts';
@@ -5,12 +6,40 @@ import type { Menu } from '@/api/modules/menu.types.ts';
 import {
   addNodeAndDescendants,
   buildPermissionResourceValue,
+  buildTreeNodes,
   collectDirectCheckedKeys,
   collectRootKeys,
   removeNodeAndDescendants,
   resolveTreeCheckAction,
   splitPermissionResources,
 } from '../permissionResourcePanel.helper.tsx';
+
+function findNodeTitleByKey(nodes: Array<{ key?: string; title?: React.ReactNode; children?: unknown }>, key: string) {
+  for (const node of nodes) {
+    if (node.key === key) {
+      return node.title;
+    }
+    if (Array.isArray(node.children)) {
+      const childTitle = findNodeTitleByKey(
+        node.children as Array<{ key?: string; title?: React.ReactNode; children?: unknown }>,
+        key,
+      );
+      if (childTitle) {
+        return childTitle;
+      }
+    }
+  }
+  return undefined;
+}
+
+function renderTitleText(title: React.ReactNode) {
+  const view = render(<>{title}</>);
+  return view.container.textContent;
+}
+
+function cleanupTitle(viewTitle: string | null) {
+  return viewTitle?.replace(/\s+/g, '') ?? '';
+}
 
 const menus: Menu[] = [
   {
@@ -57,14 +86,25 @@ const menus: Menu[] = [
 
 describe('permissionResourcePanel helper', () => {
   it('should keep menu resources in checked keys and wildcard resources in text area', () => {
-    const menuNameSet = new Set(menus.map((item) => item.name));
+    const selectableResourceNameSet = new Set([
+      ...menus.map((item) => item.name),
+      '/permission-group/delete',
+    ]);
     const result = splitPermissionResources(
-      ['/system', '/project/**', '/system/role/permission'],
+      [
+        '/system',
+        '/project/**',
+        '/system/role/permission',
+        '/permission-group/delete',
+      ],
       menus,
-      menuNameSet,
+      selectableResourceNameSet,
     );
 
-    expect(result.directCheckedKeys).toEqual(['/system/role/permission']);
+    expect(result.directCheckedKeys).toEqual([
+      '/system/role/permission',
+      '/permission-group/delete',
+    ]);
     expect(result.extraText).toBe('/project/**');
   });
 
@@ -127,5 +167,14 @@ describe('permissionResourcePanel helper', () => {
         menus,
       ),
     ).toEqual(['/system/role/permission']);
+  });
+
+  it('should render api usage badge in tree title', () => {
+    const treeNodes = buildTreeNodes(menus, '', {
+      '/system/role/permission': 5,
+    });
+    const title = findNodeTitleByKey(treeNodes, '/system/role/permission');
+
+    expect(cleanupTitle(renderTitleText(title))).toContain('权限配置5');
   });
 });

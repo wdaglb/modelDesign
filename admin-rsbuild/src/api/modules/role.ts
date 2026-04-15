@@ -211,9 +211,14 @@ export const batchUpdateStatus = (data: RoleBatchUpdateStatusParams) => {
  */
 export interface RolePermissionVo {
   /**
-   * 直接绑定的资源路径列表。
+   * 直接绑定的菜单资源列表。
    */
-  resources: string[];
+  menuResources: string[];
+
+  /**
+   * 直接绑定的接口资源列表。
+   */
+  apiResources: string[];
 
   /**
    * 直接绑定的资源组编码列表。
@@ -235,7 +240,11 @@ export const getPermission = (roleCode: string) => {
  */
 export const updatePermission = (
   roleCode: string,
-  data: { resources: string[]; resourceGroupCodes: string[] },
+  data: {
+    menuResources: string[];
+    apiResources: string[];
+    resourceGroupCodes: string[];
+  },
 ) => {
   return request('/role/permission/update', {
     method: 'post',

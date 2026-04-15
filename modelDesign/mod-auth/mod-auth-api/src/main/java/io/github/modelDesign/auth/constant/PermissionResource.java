@@ -225,6 +225,11 @@ public final class PermissionResource {
     public static final String SYSTEM_PERMISSION_GROUP_CHANGE_STATUS = "/permission-group/update_status";
 
     /**
+     * 权限资源组删除。
+     */
+    public static final String SYSTEM_PERMISSION_GROUP_DELETE = "/permission-group/delete";
+
+    /**
      * 权限资源组资源配置。
      */
     public static final String SYSTEM_PERMISSION_GROUP_RESOURCE = "/permission-group/resources/update";

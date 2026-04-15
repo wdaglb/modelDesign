@@ -2,6 +2,7 @@ import { ParsedLocation } from '@tanstack/react-router';
 import { clearCurrentConfigCache } from '@/api/modules/file-access-config';
 import { ApiPassport } from '@/api';
 import { RequestError } from '@/api/types.ts';
+import { clearBrowserNotificationPermissionPromptState } from '@/service/browserNotificationPermissionPrompt.ts';
 import {
   CurrentInfoVo,
   PassportCurrentPermissionMenu,
@@ -59,7 +60,7 @@ interface AuthStore {
   refreshToken: string;
   currentInfo?: CurrentInfoVo;
   menus: PassportCurrentPermissionMenu[];
-  buttons: string[];
+  permissions: string[];
 
   /**
    * 初始化状态，0=未初始化，1=初始化中，2=初始化完成
@@ -77,7 +78,7 @@ const useAuthStore = create<AuthStore>((set, get) => {
     token: readStorageToken(TOKEN_STORAGE_KEY),
     refreshToken: readStorageToken(REFRESH_TOKEN_STORAGE_KEY),
     menus: [],
-    buttons: [],
+    permissions: [],
 
     loadState: 0,
     async initState(location) {
@@ -121,12 +122,12 @@ const useAuthStore = create<AuthStore>((set, get) => {
             ApiPassport.getCurrentUser(),
             ApiPassport.getCurrentPermission(),
           ]);
-          const nextButtons = permission.buttons || [];
+          const nextPermissions = permission.permissions || [];
 
           set({
             currentInfo,
             menus: permission.menus,
-            buttons: nextButtons,
+            permissions: nextPermissions,
             loadState: 2,
           });
           return 'authenticated';
@@ -168,13 +169,14 @@ const useAuthStore = create<AuthStore>((set, get) => {
       authInitPromise = null;
       localStorage.removeItem(TOKEN_STORAGE_KEY);
       localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+      clearBrowserNotificationPermissionPromptState();
       clearCurrentConfigCache();
       set({
         token: '',
         refreshToken: '',
         currentInfo: undefined,
         menus: [],
-        buttons: [],
+        permissions: [],
         loadState: 0,
       });
     },

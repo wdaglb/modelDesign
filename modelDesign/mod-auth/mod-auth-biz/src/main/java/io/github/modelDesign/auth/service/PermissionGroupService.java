@@ -5,9 +5,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.domain.PermissionGroup;
 import io.github.modelDesign.auth.domain.PermissionGroupResource;
+import io.github.modelDesign.auth.domain.RolePermissionGroup;
 import io.github.modelDesign.auth.mapper.PermissionGroupMapper;
 import io.github.modelDesign.auth.mapper.PermissionGroupResourceMapper;
+import io.github.modelDesign.auth.mapper.RolePermissionGroupMapper;
 import io.github.modelDesign.auth.request.PermissionGroupAddRequest;
+import io.github.modelDesign.auth.request.PermissionGroupDeleteRequest;
 import io.github.modelDesign.auth.request.PermissionGroupListRequest;
 import io.github.modelDesign.auth.request.PermissionGroupUpdateRequest;
 import io.github.modelDesign.auth.request.PermissionGroupUpdateStatusRequest;
@@ -42,13 +45,20 @@ public class PermissionGroupService extends ServiceImpl<PermissionGroupMapper, P
     private final PermissionGroupResourceMapper permissionGroupResourceMapper;
 
     /**
+     * 角色-资源组关系 Mapper。
+     */
+    private final RolePermissionGroupMapper rolePermissionGroupMapper;
+
+    /**
      * 权限资源校验器。
      */
     private final PermissionResourceValidator permissionResourceValidator;
 
     public PermissionGroupService(PermissionGroupResourceMapper permissionGroupResourceMapper,
+                                  RolePermissionGroupMapper rolePermissionGroupMapper,
                                   PermissionResourceValidator permissionResourceValidator) {
         this.permissionGroupResourceMapper = permissionGroupResourceMapper;
+        this.rolePermissionGroupMapper = rolePermissionGroupMapper;
         this.permissionResourceValidator = permissionResourceValidator;
     }
 
@@ -57,6 +67,7 @@ public class PermissionGroupService extends ServiceImpl<PermissionGroupMapper, P
      */
     protected PermissionGroupService() {
         this.permissionGroupResourceMapper = null;
+        this.rolePermissionGroupMapper = null;
         this.permissionResourceValidator = null;
     }
 
@@ -144,9 +155,14 @@ public class PermissionGroupService extends ServiceImpl<PermissionGroupMapper, P
      */
     public PermissionGroupResourceVo getResources(String groupCode) {
         PermissionGroup group = requireGroupByCode(groupCode);
+        PermissionResourceValidator.PermissionResourceBuckets resourceBuckets =
+                permissionResourceValidator.splitResourcesByType(
+                        loadResourcesByGroupCode(group.getCode())
+                );
         return PermissionGroupResourceVo.builder()
                 .groupCode(group.getCode())
-                .resources(loadResourcesByGroupCode(group.getCode()))
+                .menuResources(resourceBuckets.getMenuResources())
+                .apiResources(resourceBuckets.getApiResources())
                 .build();
     }
 
@@ -154,13 +170,20 @@ public class PermissionGroupService extends ServiceImpl<PermissionGroupMapper, P
      * 更新资源组资源集合。
      *
      * @param groupCode 资源组编码
-     * @param resources 资源集合
+     * @param menuResources 菜单资源集合
+     * @param apiResources 接口资源集合
      */
     @Transactional
-    public void updateResources(String groupCode, List<String> resources) {
+    public void updateResources(String groupCode,
+                                List<String> menuResources,
+                                List<String> apiResources) {
         PermissionGroup group = requireGroupByCode(groupCode);
-        List<String> normalizedResources = permissionResourceValidator.normalizeResourceNames(
-                resources,
+        List<String> normalizedMenuResources = permissionResourceValidator.normalizeMenuResourceNames(
+                menuResources,
+                PermissionResource.PLATFORM_TENANT_ID
+        );
+        List<String> normalizedApiResources = permissionResourceValidator.normalizeApiResourceNames(
+                apiResources,
                 PermissionResource.PLATFORM_TENANT_ID
         );
 
@@ -168,6 +191,11 @@ public class PermissionGroupService extends ServiceImpl<PermissionGroupMapper, P
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.lambdaQuery(PermissionGroupResource.class)
                         .eq(PermissionGroupResource::getGroupId, group.getId())
         );
+        List<String> normalizedResources = new ArrayList<>(
+                normalizedMenuResources.size() + normalizedApiResources.size()
+        );
+        normalizedResources.addAll(normalizedMenuResources);
+        normalizedResources.addAll(normalizedApiResources);
         if (normalizedResources.isEmpty()) {
             return;
         }
@@ -180,6 +208,32 @@ public class PermissionGroupService extends ServiceImpl<PermissionGroupMapper, P
             entities.add(entity);
         }
         saveGroupResources(entities);
+    }
+
+    /**
+     * 删除资源组。
+     *
+     * 当前不允许删除已被角色引用的资源组，
+     * 目的是避免隐式解绑后造成角色权限突变。
+     *
+     * @param request 删除请求
+     */
+    @Transactional
+    public void delete(PermissionGroupDeleteRequest request) {
+        PermissionGroup group = requireGroup(request.getId());
+        long relationCount = rolePermissionGroupMapper.selectCount(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.lambdaQuery(RolePermissionGroup.class)
+                        .eq(RolePermissionGroup::getGroupCode, group.getCode())
+        );
+        if (relationCount > 0) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "资源组已绑定角色，禁止删除");
+        }
+
+        permissionGroupResourceMapper.delete(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.lambdaQuery(PermissionGroupResource.class)
+                        .eq(PermissionGroupResource::getGroupId, group.getId())
+        );
+        removeById(group.getId());
     }
 
     /**

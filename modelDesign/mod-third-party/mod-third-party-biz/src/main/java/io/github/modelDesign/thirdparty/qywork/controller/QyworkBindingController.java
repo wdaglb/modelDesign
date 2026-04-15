@@ -1,5 +1,6 @@
 package io.github.modelDesign.thirdparty.qywork.controller;
 
+import io.github.modelDesign.auth.annotation.IgnorePermission;
 import io.github.modelDesign.thirdparty.qywork.request.CreateOauthBindingSessionRequest;
 import io.github.modelDesign.thirdparty.qywork.response.OauthBindingSessionCreatedVo;
 import io.github.modelDesign.thirdparty.qywork.response.OauthBindingSessionStatusVo;
@@ -30,18 +31,21 @@ public class QyworkBindingController {
 
     @Operation(summary = "获取当前用户企业微信绑定状态")
     @GetMapping("/current")
+    @IgnorePermission
     public UserOauthBindingStatusVo current() {
         return qyworkOauthService.getCurrentBindingStatus();
     }
 
     @Operation(summary = "创建企业微信绑定会话")
     @PostMapping("/session")
+    @IgnorePermission
     public OauthBindingSessionCreatedVo createSession(@Valid @RequestBody CreateOauthBindingSessionRequest request) {
         return qyworkOauthService.createBindingSession(request);
     }
 
     @Operation(summary = "查询企业微信绑定会话状态")
     @GetMapping("/session/{sessionId}")
+    @IgnorePermission
     public OauthBindingSessionStatusVo session(@PathVariable("sessionId") String sessionId) {
         return qyworkOauthService.getBindingSessionStatus(sessionId);
     }

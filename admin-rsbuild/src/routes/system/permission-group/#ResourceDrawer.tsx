@@ -2,9 +2,10 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Button, Flex, message } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { ApiMenu, ApiPermissionGroup } from '@/api';
+import { ApiMenu, ApiPermissionGroup, ApiPermissionResource } from '@/api';
 import type { Menu } from '@/api/modules/menu.types.ts';
 import type { PermissionGroup } from '@/api/modules/permission-group';
+import type { PermissionResourceCatalogItem } from '@/api/modules/permission-resource';
 import PermissionResourcePanel from '@/components/business/PermissionResourcePanel';
 import { modalContext } from '@/components/KModal/Modal.tsx';
 import queryKey from '@/constants/queryKey';
@@ -21,12 +22,18 @@ const ResourceDrawer = ({ group }: Props) => {
   const ctx = useContext(modalContext);
   const queryClient = useQueryClient();
   const currentInfo = useAuthStore((state) => state.currentInfo);
-  const [resources, setResources] = useState<string[]>([]);
+  const [menuResources, setMenuResources] = useState<string[]>([]);
+  const [apiResourcesValue, setApiResourcesValue] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const { data: menuList = [], isLoading: menuLoading } = useQuery({
     queryKey: ['permissionGroupMenuList'],
     queryFn: () => ApiMenu.getList(),
+  });
+
+  const { data: apiResources = [], isLoading: apiResourceLoading } = useQuery({
+    queryKey: ['permissionResourceCatalog'],
+    queryFn: () => ApiPermissionResource.getCatalog(),
   });
 
   const { data: groupResources, isLoading: groupLoading } = useQuery({
@@ -39,18 +46,26 @@ const ResourceDrawer = ({ group }: Props) => {
     if (!groupResources) {
       return;
     }
-    setResources(groupResources.resources || []);
+    setMenuResources(groupResources.menuResources || []);
+    setApiResourcesValue(groupResources.apiResources || []);
   }, [groupResources]);
 
   return (
     <Flex vertical gap={16}>
       <PermissionResourcePanel
         menuList={menuList as Menu[]}
-        value={resources}
+        apiResources={apiResources as PermissionResourceCatalogItem[]}
+        value={{
+          menuResources,
+          apiResources: apiResourcesValue,
+        }}
         tenantId={currentInfo?.tenantId}
         userId={currentInfo?.userId}
-        loading={menuLoading || groupLoading}
-        onChange={setResources}
+        loading={menuLoading || groupLoading || apiResourceLoading}
+        onChange={(value) => {
+          setMenuResources(value.menuResources);
+          setApiResourcesValue(value.apiResources);
+        }}
       />
 
       <Flex justify={'flex-end'} gap={8}>
@@ -61,7 +76,10 @@ const ResourceDrawer = ({ group }: Props) => {
           onClick={async () => {
             setSubmitting(true);
             try {
-              await ApiPermissionGroup.updateResources(group.code, resources);
+              await ApiPermissionGroup.updateResources(group.code, {
+                menuResources,
+                apiResources: apiResourcesValue,
+              });
               await queryClient.invalidateQueries({
                 queryKey: queryKey.permissionGroup.resources(group.code),
               });

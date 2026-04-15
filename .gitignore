@@ -10,3 +10,4 @@ storage
 .omx/
 docker-data/
 .env.docker
+.gitnexus

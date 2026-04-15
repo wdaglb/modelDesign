@@ -13,12 +13,17 @@ import java.util.List;
 @Builder
 @Schema(description = "角色权限信息")
 public class RolePermissionVo {
+    /**
+     * 直接绑定的菜单资源列表。
+     */
+    @Schema(description = "直接绑定的菜单资源列表")
+    private List<String> menuResources;
 
     /**
-     * 直接绑定的资源路径列表。
+     * 直接绑定的接口资源列表。
      */
-    @Schema(description = "直接绑定的资源路径列表")
-    private List<String> resources;
+    @Schema(description = "直接绑定的接口资源列表")
+    private List<String> apiResources;
 
     /**
      * 直接绑定的资源组编码列表。

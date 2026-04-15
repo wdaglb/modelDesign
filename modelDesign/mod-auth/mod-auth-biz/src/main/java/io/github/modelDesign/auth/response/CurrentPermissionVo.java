@@ -24,10 +24,13 @@ public class CurrentPermissionVo {
     private List<MenuItemVo> menus;
 
     /**
-     * 当前用户可用按钮资源列表。
+     * 当前用户可用权限集合。
+     *
+     * 这里只返回按钮资源与接口资源，
+     * 菜单资源由 `menus` 单独承载，避免前端做菜单/按钮双重过滤。
      */
-    @Schema(description = "当前用户可用按钮资源列表")
-    private List<String> buttons;
+    @Schema(description = "当前用户可用权限集合")
+    private List<String> permissions;
 
     /**
      * 菜单项。

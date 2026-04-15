@@ -1,12 +1,18 @@
 import { useRef, useState } from 'react';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import {
+  createFileRoute,
+  redirect,
+} from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import { Modal } from 'antd';
 import { z } from 'zod';
 
 import { ApiPassport } from '@/api';
-import { requestBrowserNotificationPermissionIfSupported } from '@/service/browserNotificationService.ts';
-import { normalizeLoginRedirect } from '@/service/loginRedirect.ts';
+import { runAuthGuard } from '@/initialState.ts';
+import {
+  normalizeLoginRedirect,
+  resolveLoginRouteRedirect,
+} from '@/service/loginRedirect.ts';
 import useAuthStore from '@/store/auth.ts';
 
 import LoginPage, {
@@ -25,15 +31,24 @@ export type PanelType = 'password' | 'qrScan' | 'skeleton';
 export type TransitionState = 'idle' | 'exiting' | 'entering';
 
 export const Route = createFileRoute('/login/')({
-  beforeLoad: ({ search }) => {
+  beforeLoad: async ({ search }) => {
     const authState = useAuthStore.getState();
 
     if (!authState.token) {
       return;
     }
 
+    const redirectTarget = await resolveLoginRouteRedirect(
+      search.redirect,
+      runAuthGuard,
+    );
+
+    if (!redirectTarget) {
+      return;
+    }
+
     throw redirect({
-      to: normalizeLoginRedirect(search.redirect),
+      to: redirectTarget,
       replace: true,
     });
   },
@@ -127,15 +142,9 @@ function RouteComponent() {
       registerLoading={registerMutation.isPending}
       errorMessage={errorMessage}
       onSubmit={async (values: LoginFormValues) => {
-        /**
-         * 浏览器权限申请尽量放在用户主动点击登录的手势链路里，
-         * 避免某些浏览器把异步登录成功回调视为“非用户触发”而直接拦截。
-         */
-        await requestBrowserNotificationPermissionIfSupported();
         return mutation.mutateAsync(values);
       }}
       onRegisterSubmit={async (values: RegisterSubmitValues) => {
-        await requestBrowserNotificationPermissionIfSupported();
         return registerMutation.mutateAsync(values);
       }}
       onSwitchPanel={switchPanel}

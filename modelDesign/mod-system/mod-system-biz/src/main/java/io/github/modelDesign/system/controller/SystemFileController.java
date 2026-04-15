@@ -1,5 +1,6 @@
 package io.github.modelDesign.system.controller;
 
+import io.github.modelDesign.auth.annotation.IgnorePermission;
 import io.github.modelDesign.system.request.FileDeleteRequest;
 import io.github.modelDesign.system.request.FileUploadRequestDoc;
 import io.github.modelDesign.system.request.FileListRequest;
@@ -63,6 +64,7 @@ public class SystemFileController {
             )
     )
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @IgnorePermission
     public FileDetailVo upload(
             @Parameter(hidden = true)
             @RequestPart("file") MultipartFile file) {
@@ -86,6 +88,7 @@ public class SystemFileController {
             )
     )
     @PostMapping(value = "/image/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @IgnorePermission
     public FileDetailVo uploadImage(
             @Parameter(hidden = true)
             @RequestPart("file") MultipartFile file) {
@@ -101,6 +104,7 @@ public class SystemFileController {
      */
     @Operation(summary = "获取文件详情")
     @GetMapping("/get")
+    @IgnorePermission
     public FileDetailVo get(
             @Parameter(description = "文件 ID")
             @RequestParam(name = "id", required = false) String id,
@@ -117,6 +121,7 @@ public class SystemFileController {
      */
     @Operation(summary = "获取文件列表")
     @GetMapping("/list")
+    @IgnorePermission
     public PageResponse<FileListItemVo> list(@Valid FileListRequest request) {
         return systemFileService.getList(request);
     }
@@ -140,6 +145,7 @@ public class SystemFileController {
      * @return 图片内容
      */
     @Operation(summary = "获取图片原图")
+    @IgnorePermission
     @GetMapping("/image/content/{id}")
     public ResponseEntity<byte[]> imageContent(
             @Parameter(description = "文件 ID", required = true)
@@ -154,6 +160,7 @@ public class SystemFileController {
      * @return 缩略图内容
      */
     @Operation(summary = "获取图片缩略图")
+    @IgnorePermission
     @GetMapping("/image/thumbnail/{id}")
     public ResponseEntity<byte[]> imageThumbnail(
             @Parameter(description = "文件 ID", required = true)
@@ -169,6 +176,7 @@ public class SystemFileController {
      */
     @Operation(summary = "下载文件")
     @GetMapping("/download/{id}")
+    @IgnorePermission
     public ResponseEntity<byte[]> download(
             @Parameter(description = "文件 ID", required = true)
             @PathVariable("id") String id) {

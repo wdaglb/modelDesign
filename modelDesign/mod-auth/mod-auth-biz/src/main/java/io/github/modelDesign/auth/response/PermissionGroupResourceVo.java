@@ -20,8 +20,14 @@ public class PermissionGroupResourceVo {
     private String groupCode;
 
     /**
-     * 资源路径列表。
+     * 菜单资源列表。
      */
-    @Schema(description = "资源路径列表")
-    private List<String> resources;
+    @Schema(description = "菜单资源列表")
+    private List<String> menuResources;
+
+    /**
+     * 接口资源列表。
+     */
+    @Schema(description = "接口资源列表")
+    private List<String> apiResources;
 }

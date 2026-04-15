@@ -1,6 +1,7 @@
 package io.github.modelDesign.auth.service;
 
 import io.github.modelDesign.auth.constant.PermissionResource;
+import io.github.modelDesign.auth.constant.PermissionType;
 import io.github.modelDesign.auth.domain.Menu;
 import io.github.modelDesign.auth.domain.Role;
 import io.github.modelDesign.auth.enums.MenuNodeTypeEnum;
@@ -31,15 +32,17 @@ class PermissionServiceTenantScopeTest {
     @Test
     void getCurrentPermissionShouldFilterPlatformResourcesOutsidePlatformTenant() {
         Enforcer enforcer = createEnforcer();
-        enforcer.addRoleForUserInDomain("101", "tenant-admin", "2002");
-        enforcer.addPolicy("tenant-admin", "2002", "menu", PermissionResource.SYSTEM_USER);
+        enforcer.addRoleForUserInDomain("user:101", "role:tenant-admin", "2002");
+        enforcer.addPolicy("role:tenant-admin", "2002", "menu", PermissionResource.SYSTEM_USER);
         enforcer.addPolicy(
-                "tenant-admin",
+                "role:tenant-admin",
                 "2002",
                 "menu",
                 PermissionResource.SYSTEM_USER_CREATE
         );
-        enforcer.addPolicy("tenant-admin", "2002", "menu", PermissionResource.SYSTEM_TENANT);
+        enforcer.addPolicy("role:tenant-admin", "2002", "menu", PermissionResource.SYSTEM_TENANT);
+        enforcer.addPolicy("role:tenant-admin", "2002", "api", "/user/list");
+        enforcer.addPolicy("user:101", "2002", "api", "/user/direct");
 
         MenuService menuService = new StubMenuService(List.of(
                 buildMenu(10L, 0L, PermissionResource.SYSTEM_USER, MenuNodeTypeEnum.MENU),
@@ -55,6 +58,7 @@ class PermissionServiceTenantScopeTest {
                 enforcer,
                 new StubPermissionGroupService(),
                 null,
+                new StubPermissionResourceValidator(menuService),
                 null
         );
 
@@ -62,7 +66,44 @@ class PermissionServiceTenantScopeTest {
 
         assertEquals(1, permissionVo.getMenus().size());
         assertEquals(PermissionResource.SYSTEM_USER, permissionVo.getMenus().get(0).getName());
-        assertEquals(List.of(PermissionResource.SYSTEM_USER_CREATE), permissionVo.getButtons());
+        assertEquals(
+                List.of(
+                        PermissionResource.SYSTEM_USER_CREATE,
+                        "/user/direct",
+                        "/user/list"
+                ),
+                permissionVo.getPermissions()
+        );
+    }
+
+    /**
+     * 当前权限查询应保留角色资源组展开得到的资源。
+     */
+    @Test
+    void getCurrentPermissionShouldKeepResourcesExpandedFromGroups() {
+        Enforcer enforcer = createEnforcer();
+        enforcer.addRoleForUserInDomain("user:101", "role:tenant-admin", "2002");
+
+        MenuService menuService = new StubMenuService(List.of(
+                buildMenu(10L, 0L, PermissionResource.SYSTEM_USER, MenuNodeTypeEnum.MENU),
+                buildMenu(11L, 10L, PermissionResource.SYSTEM_USER_CREATE, MenuNodeTypeEnum.BUTTON)
+        ));
+
+        PermissionService permissionService = new PermissionService(
+                menuService,
+                new StubRoleService(),
+                null,
+                new StubCurrentAdminAccessor(101L, 2002L),
+                enforcer,
+                new StubPermissionGroupService(List.of(PermissionResource.SYSTEM_USER_CREATE)),
+                null,
+                new StubPermissionResourceValidator(menuService),
+                null
+        );
+
+        CurrentPermissionVo permissionVo = permissionService.getCurrentPermission();
+
+        assertEquals(List.of(PermissionResource.SYSTEM_USER_CREATE), permissionVo.getPermissions());
     }
 
     /**
@@ -78,6 +119,7 @@ class PermissionServiceTenantScopeTest {
                 createEnforcer(),
                 new StubPermissionGroupService(),
                 null,
+                new StubPermissionResourceValidator(new StubMenuService(List.of())),
                 null
         );
 
@@ -86,11 +128,45 @@ class PermissionServiceTenantScopeTest {
                 () -> permissionService.updateRolePermissions(
                         "tenant-admin",
                         List.of(PermissionResource.SYSTEM_TENANT),
+                        List.of(),
                         List.of()
                 )
         );
 
         assertEquals("当前租户不能分配平台级权限", exception.getMessage());
+    }
+
+    /**
+     * 超级管理员应同时拿到菜单资源与接口资源。
+     */
+    @Test
+    void superAdminShouldIncludeApiResourcesInCurrentPermission() {
+        MenuService menuService = new StubMenuService(List.of(
+                buildMenu(10L, 0L, PermissionResource.SYSTEM_USER, MenuNodeTypeEnum.MENU),
+                buildMenu(11L, 10L, PermissionResource.SYSTEM_USER_CREATE, MenuNodeTypeEnum.BUTTON)
+        ));
+
+        PermissionService permissionService = new PermissionService(
+                menuService,
+                new StubRoleService(),
+                null,
+                new StubSuperAdminAccessor(1L, 1L),
+                createEnforcer(),
+                new StubPermissionGroupService(),
+                null,
+                new StubPermissionResourceValidator(menuService),
+                new StubPermissionResourceCatalogService(Set.of("/user/list"))
+        );
+
+        CurrentPermissionVo permissionVo = permissionService.getCurrentPermission();
+
+        assertEquals(
+                List.of(
+                        PermissionResource.SYSTEM_USER_CREATE,
+                        "/user/list"
+                ),
+                permissionVo.getPermissions()
+        );
     }
 
     /**
@@ -155,7 +231,7 @@ class PermissionServiceTenantScopeTest {
     /**
      * 当前登录上下文测试替身。
      */
-    private static final class StubCurrentAdminAccessor extends CurrentAdminAccessor {
+    private static class StubCurrentAdminAccessor extends CurrentAdminAccessor {
         private final Long userId;
         private final Long tenantId;
 
@@ -176,6 +252,20 @@ class PermissionServiceTenantScopeTest {
     }
 
     /**
+     * 超级管理员上下文测试替身。
+     */
+    private static final class StubSuperAdminAccessor extends StubCurrentAdminAccessor {
+        private StubSuperAdminAccessor(Long userId, Long tenantId) {
+            super(userId, tenantId);
+        }
+
+        @Override
+        public boolean isSuperAdmin() {
+            return true;
+        }
+    }
+
+    /**
      * 菜单服务测试替身。
      */
     private static final class StubMenuService extends MenuService {
@@ -183,6 +273,11 @@ class PermissionServiceTenantScopeTest {
 
         private StubMenuService(List<Menu> menus) {
             this.menus = menus;
+        }
+
+        @Override
+        public List<Menu> listEnabledNodes() {
+            return menus;
         }
 
         @Override
@@ -221,5 +316,92 @@ class PermissionServiceTenantScopeTest {
      * 资源组服务测试替身。
      */
     private static final class StubPermissionGroupService extends PermissionGroupService {
+        private final Set<String> resources;
+
+        private StubPermissionGroupService() {
+            this(Set.of());
+        }
+
+        private StubPermissionGroupService(Collection<String> resources) {
+            super();
+            this.resources = new LinkedHashSet<>(resources);
+        }
+
+        @Override
+        public Set<String> collectResourcesByGroupCodes(Collection<String> groupCodes) {
+            return resources;
+        }
+    }
+
+    /**
+     * 权限资源目录测试替身。
+     */
+    private static final class StubPermissionResourceCatalogService
+            extends PermissionResourceCatalogService {
+        private final Set<String> apiResourceNameSet;
+
+        private StubPermissionResourceCatalogService(Set<String> apiResourceNameSet) {
+            super(null);
+            this.apiResourceNameSet = apiResourceNameSet;
+        }
+
+        @Override
+        public Set<String> getApiResourceNameSet() {
+            return apiResourceNameSet;
+        }
+    }
+
+    /**
+     * 资源校验器测试替身。
+     */
+    private static final class StubPermissionResourceValidator extends PermissionResourceValidator {
+        private StubPermissionResourceValidator(MenuService menuService) {
+            super(menuService, new StubPermissionResourceCatalogService(Set.of("/user/list")));
+        }
+
+        @Override
+        public List<String> normalizeResourceNames(List<String> resourceNames,
+                                                   Long tenantId,
+                                                   String expectedType) {
+            List<String> normalized = new java.util.ArrayList<>();
+            if (resourceNames == null) {
+                return normalized;
+            }
+            for (String resourceName : resourceNames) {
+                if (!PermissionResource.isResourceAssignable(tenantId, resourceName)) {
+                    throw new BusinessException(
+                            org.springframework.http.HttpStatus.BAD_REQUEST.value(),
+                            "当前租户不能分配平台级权限"
+                    );
+                }
+                if (PermissionType.API.equals(expectedType)
+                        && !resourceName.startsWith("/user/")) {
+                    throw new BusinessException(
+                            org.springframework.http.HttpStatus.BAD_REQUEST.value(),
+                            "权限资源类型不匹配"
+                    );
+                }
+                if (PermissionType.MENU.equals(expectedType)
+                        && resourceName.startsWith("/user/")) {
+                    throw new BusinessException(
+                            org.springframework.http.HttpStatus.BAD_REQUEST.value(),
+                            "权限资源类型不匹配"
+                    );
+                }
+                normalized.add(resourceName);
+            }
+            return normalized;
+        }
+
+        @Override
+        public boolean matchesResourceType(String resourceName, String expectedType) {
+            if (PermissionType.API.equals(expectedType)) {
+                return resourceName.startsWith("/user/");
+            }
+            if (PermissionType.MENU.equals(expectedType)) {
+                return !resourceName.startsWith("/user/");
+            }
+            return false;
+        }
     }
 }

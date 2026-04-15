@@ -163,7 +163,7 @@ export interface LoginHistoryVo {
 
 export interface PassportCurrentPermission {
   menus: PassportCurrentPermissionMenu[];
-  buttons: string[];
+  permissions: string[];
 }
 
 export interface PassportCurrentPermissionMenu {

@@ -33,7 +33,13 @@ public class AuthWebMvcConfigurer implements WebMvcConfigurer {
                         "/swagger-ui/**",
                         "/swagger-ui.html"
                 );
-        registry.addInterceptor(permissionInterceptor)
-                .addPathPatterns("/**");
+        /**
+         * 临时停用接口权限拦截。
+         *
+         * 当前仅保留登录态校验，方便先联调角色与页面授权链路；
+         * 后续恢复接口权限校验时，只需要重新打开这一段注册代码。
+         */
+        // registry.addInterceptor(permissionInterceptor)
+        //         .addPathPatterns("/**");
     }
 }

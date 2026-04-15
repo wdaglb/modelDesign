@@ -1,5 +1,5 @@
 import { memo, ReactNode, useEffect, useMemo, useState } from 'react';
-import { Avatar, Dropdown, Layout, Menu } from 'antd';
+import { Avatar, Dropdown, Layout, Menu, Modal } from 'antd';
 import { ItemType } from 'antd/es/menu/interface';
 import { Icon } from '@iconify/react';
 import { useQuery } from '@tanstack/react-query';
@@ -16,7 +16,14 @@ import {
 import queryKey from '@/constants/queryKey';
 import useSystemMessageBrowserNotification from '@/hooks/useSystemMessageBrowserNotification.ts';
 import useFileUrl from '@/hooks/useFileUrl.ts';
-import { SYSTEM_MESSAGE_POLL_INTERVAL } from '@/service/browserNotificationService.ts';
+import {
+  requestBrowserNotificationPermissionIfSupported,
+  SYSTEM_MESSAGE_POLL_INTERVAL,
+} from '@/service/browserNotificationService.ts';
+import {
+  markBrowserNotificationPermissionPrompted,
+  shouldPromptBrowserNotificationPermission,
+} from '@/service/browserNotificationPermissionPrompt.ts';
 import { logout } from '@/service/loginService.ts';
 import useAuthStore from '@/store/auth.ts';
 
@@ -58,6 +65,30 @@ const Side = () => {
   useSystemMessageBrowserNotification({
     userId: currentInfo?.userId,
   });
+
+  useEffect(() => {
+    const userId = currentInfo?.userId;
+    if (!shouldPromptBrowserNotificationPermission(userId)) {
+      return;
+    }
+
+    /**
+     * 进入系统后的首次提示只负责征求用户同意，
+     * 真正的浏览器授权请求放到确认按钮点击链路里，兼容浏览器的手势限制。
+     */
+    markBrowserNotificationPermissionPrompted(userId);
+    Modal.confirm({
+      title: '开启消息通知',
+      content:
+        '开启后可在系统消息到达时接收浏览器提醒，避免错过任务分配和状态变更。',
+      okText: '去授权',
+      cancelText: '暂不需要',
+      centered: true,
+      onOk: async () => {
+        await requestBrowserNotificationPermissionIfSupported();
+      },
+    });
+  }, [currentInfo?.userId]);
 
   const { menuData, parentKeys } = useMemo(() => {
     const result: MenuItem[] = [];

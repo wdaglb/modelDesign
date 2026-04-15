@@ -91,13 +91,8 @@
             </dependency>
             <dependency>
                 <groupId>org.casbin</groupId>
-                <artifactId>jcasbin</artifactId>
-                <version>1.32.1</version>
-            </dependency>
-            <dependency>
-                <groupId>org.casbin</groupId>
-                <artifactId>jdbc-adapter</artifactId>
-                <version>2.13.0</version>
+                <artifactId>casbin-spring-boot-starter</artifactId>
+                <version>1.2.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

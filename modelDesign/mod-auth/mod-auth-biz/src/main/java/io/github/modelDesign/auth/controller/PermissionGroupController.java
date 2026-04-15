@@ -1,8 +1,7 @@
 package io.github.modelDesign.auth.controller;
 
-import io.github.modelDesign.auth.annotation.RequirePermission;
-import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.request.PermissionGroupAddRequest;
+import io.github.modelDesign.auth.request.PermissionGroupDeleteRequest;
 import io.github.modelDesign.auth.request.PermissionGroupListRequest;
 import io.github.modelDesign.auth.request.PermissionGroupResourceUpdateRequest;
 import io.github.modelDesign.auth.request.PermissionGroupUpdateRequest;
@@ -44,7 +43,6 @@ public class PermissionGroupController {
      * 获取资源组列表。
      */
     @Operation(summary = "获取资源组列表")
-    @RequirePermission(PermissionResource.SYSTEM_PERMISSION_GROUP)
     @GetMapping("/list")
     public PageResponse<PermissionGroupListItemVo> list(@Valid PermissionGroupListRequest request) {
         return permissionGroupService.getList(request);
@@ -86,7 +84,6 @@ public class PermissionGroupController {
      * 获取资源组资源列表。
      */
     @Operation(summary = "获取资源组资源列表")
-    @RequirePermission(PermissionResource.SYSTEM_PERMISSION_GROUP_RESOURCE)
     @GetMapping("/resources")
     public PermissionGroupResourceVo getResources(
             @Parameter(description = "资源组编码", required = true)
@@ -107,6 +104,19 @@ public class PermissionGroupController {
             @NotBlank(message = "资源组编码不能为空")
             String groupCode,
             @Valid @RequestBody PermissionGroupResourceUpdateRequest request) {
-        permissionGroupService.updateResources(groupCode, request.getResources());
+        permissionGroupService.updateResources(
+                groupCode,
+                request.getMenuResources(),
+                request.getApiResources()
+        );
+    }
+
+    /**
+     * 删除资源组。
+     */
+    @Operation(summary = "删除资源组")
+    @PostMapping("/delete")
+    public void delete(@Valid @RequestBody PermissionGroupDeleteRequest request) {
+        permissionGroupService.delete(request);
     }
 }

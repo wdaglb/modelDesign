@@ -143,6 +143,20 @@ const PermissionGroupTable = () => {
             >
               {confirmText}
             </KTable.ConfirmButton>
+
+            <KTable.ConfirmButton
+              size={'small'}
+              color={'danger'}
+              variant={'filled'}
+              permissionCode={PERMISSION_RESOURCE.systemPermissionGroupDelete}
+              confirmText={'删除后不可恢复，且已绑定角色的资源组不允许删除，是否继续？'}
+              onConfirm={async () => {
+                await ApiPermissionGroup.deleteGroup(record.id);
+              }}
+              successText={'资源组删除成功'}
+            >
+              删除
+            </KTable.ConfirmButton>
           </Space>
         );
       },

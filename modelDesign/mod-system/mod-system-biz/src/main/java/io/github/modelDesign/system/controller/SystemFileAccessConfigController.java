@@ -1,7 +1,5 @@
 package io.github.modelDesign.system.controller;
 
-import io.github.modelDesign.auth.annotation.RequirePermission;
-import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.system.request.SystemFileAccessConfigSaveRequest;
 import io.github.modelDesign.system.response.SystemFileAccessConfigVo;
 import io.github.modelDesign.system.service.SystemFileAccessConfigService;
@@ -36,7 +34,6 @@ public class SystemFileAccessConfigController {
      * @return 当前租户文件访问配置
      */
     @Operation(summary = "获取当前租户文件访问配置")
-    @RequirePermission(PermissionResource.SYSTEM_FILE_CONFIG)
     @GetMapping("/current")
     public SystemFileAccessConfigVo current() {
         return systemFileAccessConfigService.getCurrentConfig();

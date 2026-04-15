@@ -46,6 +46,7 @@ export const PERMISSION_RESOURCE = {
   systemPermissionGroupCreate: '/permission-group/add',
   systemPermissionGroupEdit: '/permission-group/update',
   systemPermissionGroupChangeStatus: '/permission-group/update_status',
+  systemPermissionGroupDelete: '/permission-group/delete',
   systemPermissionGroupResource: '/permission-group/resources/update',
   systemQyworkSave: '/system/third-party/qywork/save',
   projectCreate: '/project/create',

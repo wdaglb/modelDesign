@@ -1,7 +1,6 @@
 package io.github.modelDesign.thirdparty.qywork.controller;
 
-import io.github.modelDesign.auth.annotation.RequirePermission;
-import io.github.modelDesign.auth.constant.PermissionResource;
+import io.github.modelDesign.auth.annotation.IgnorePermission;
 import io.github.modelDesign.thirdparty.qywork.request.QyworkConfigSaveRequest;
 import io.github.modelDesign.thirdparty.qywork.response.QyworkConfigVo;
 import io.github.modelDesign.thirdparty.qywork.service.QyworkCorpConfigService;
@@ -36,8 +35,8 @@ public class QyworkConfigController {
      * @return 企业微信配置
      */
     @Operation(summary = "获取当前租户企业微信配置")
-    @RequirePermission(PermissionResource.SYSTEM_QYWORK)
     @GetMapping("/current")
+    @IgnorePermission
     public QyworkConfigVo current() {
         return qyworkCorpConfigService.getCurrentConfig();
     }
@@ -49,7 +48,6 @@ public class QyworkConfigController {
      * @return 保存后的企业微信配置
      */
     @Operation(summary = "保存当前租户企业微信配置")
-    @RequirePermission(PermissionResource.SYSTEM_QYWORK_SAVE)
     @PostMapping("/save")
     public QyworkConfigVo save(@Valid @RequestBody QyworkConfigSaveRequest request) {
         return qyworkCorpConfigService.saveCurrentConfig(request);

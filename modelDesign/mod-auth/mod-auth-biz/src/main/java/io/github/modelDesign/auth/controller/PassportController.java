@@ -1,5 +1,6 @@
 package io.github.modelDesign.auth.controller;
 
+import io.github.modelDesign.auth.annotation.IgnorePermission;
 import io.github.modelDesign.auth.request.ChangePasswordRequest;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
 import io.github.modelDesign.auth.request.RefreshTokenRequest;
@@ -28,6 +29,7 @@ import java.util.List;
  * 登录与当前用户接口。
  */
 @Tag(name = "认证授权")
+@IgnorePermission
 @RestController
 @RequestMapping("/passport")
 @RequiredArgsConstructor

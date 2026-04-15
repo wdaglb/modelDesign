@@ -1,5 +1,6 @@
 package io.github.modelDesign.thirdparty.qywork.controller;
 
+import io.github.modelDesign.auth.annotation.IgnorePermission;
 import io.github.modelDesign.thirdparty.qywork.service.QyworkOauthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,12 +24,14 @@ public class QyworkOauthController {
     private final QyworkOauthService qyworkOauthService;
 
     @Operation(summary = "企业微信扫码中转入口")
+    @IgnorePermission
     @GetMapping("/binding/scan-entry")
     public RedirectView scanEntry(@RequestParam("sceneToken") String sceneToken) {
         return new RedirectView(qyworkOauthService.buildAuthorizeUrlBySceneToken(sceneToken));
     }
 
     @Operation(summary = "企业微信 OAuth 回调")
+    @IgnorePermission
     @GetMapping(value = "/oauth/callback", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
     public String callback(

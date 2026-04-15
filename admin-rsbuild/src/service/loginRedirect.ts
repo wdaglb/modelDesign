@@ -1,4 +1,4 @@
-import type { ParsedLocation } from '@tanstack/react-router';
+import { isRedirect, type ParsedLocation } from '@tanstack/react-router';
 
 const DEFAULT_REDIRECT_PATH = '/';
 const LOGIN_PATH = '/login';
@@ -60,6 +60,60 @@ export const normalizeLoginRedirect = (redirect?: string): string => {
   }
 
   return redirect;
+};
+
+/**
+ * 将回跳地址转换为最小可用的路由位置信息。
+ *
+ * 登录页需要在真正跳转前先复用根路由守卫做一次校验，
+ * 这里统一构造 `ParsedLocation`，避免各处重复拼接。
+ *
+ * @param redirect 已标准化的站内回跳地址
+ * @returns 可供守卫复用的最小位置信息
+ */
+const buildParsedLocationFromRedirect = (redirect: string): ParsedLocation => {
+  const url = new URL(redirect, 'http://localhost');
+
+  return {
+    pathname: url.pathname,
+    href: url.toString(),
+    search: {},
+    searchStr: url.search,
+    hash: url.hash,
+    state: undefined,
+    maskedLocation: undefined,
+    unmaskOnReload: false,
+  } as ParsedLocation;
+};
+
+/**
+ * 解析登录页在已有 token 场景下是否应该自动跳转。
+ *
+ * 设计意图：
+ * 仅凭本地 token 直接离开登录页会绕过真正的鉴权与菜单校验，
+ * 当目标页无权限或 token 已失效时，容易和根路由守卫形成来回重定向。
+ * 因此这里先复用守卫校验目标地址，只在确认可达时才允许自动跳转。
+ *
+ * @param redirect 候选回跳地址
+ * @param guard 路由守卫实现
+ * @returns 可直接跳转的目标地址；若应停留登录页则返回 null
+ */
+export const resolveLoginRouteRedirect = async (
+  redirect: string | undefined,
+  guard: (location: ParsedLocation) => Promise<void>,
+): Promise<string | null> => {
+  const redirectTarget = normalizeLoginRedirect(redirect);
+  const location = buildParsedLocationFromRedirect(redirectTarget);
+
+  try {
+    await guard(location);
+    return redirectTarget;
+  } catch (error) {
+    if (isRedirect(error) && error.options.to === LOGIN_PATH) {
+      return null;
+    }
+    throw error;
+  }
 };
 
 /**

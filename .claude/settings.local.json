@@ -5,7 +5,8 @@
       "Bash(python3:*)",
       "Bash(pnpm add:*)",
       "Bash(npx vitest:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(mvn:*)"
     ]
   }
 }

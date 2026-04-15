@@ -1,5 +1,6 @@
 package io.github.modelDesign.auth.service;
 
+import lombok.extern.slf4j.Slf4j;
 import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.constant.PermissionType;
 import io.github.modelDesign.auth.domain.Menu;
@@ -17,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -39,7 +42,18 @@ import java.util.stream.Collectors;
  * 4. 为当前登录用户输出可见菜单与可用按钮，供前后端同时消费。
  */
 @Service
+@Slf4j
 public class PermissionService {
+    /**
+     * Casbin 用户主体前缀。
+     */
+    private static final String USER_SUBJECT_PREFIX = "user:";
+
+    /**
+     * Casbin 角色主体前缀。
+     */
+    private static final String ROLE_SUBJECT_PREFIX = "role:";
+
     /**
      * 菜单服务。
      */
@@ -81,6 +95,11 @@ public class PermissionService {
     private final PermissionResourceValidator permissionResourceValidator;
 
     /**
+     * 权限资源目录服务。
+     */
+    private final PermissionResourceCatalogService permissionResourceCatalogService;
+
+    /**
      * 运行时依赖构造函数。
      *
      * @param menuService 菜单服务
@@ -100,7 +119,8 @@ public class PermissionService {
                              Enforcer enforcer,
                              PermissionGroupService permissionGroupService,
                              RolePermissionGroupMapper rolePermissionGroupMapper,
-                             PermissionResourceValidator permissionResourceValidator) {
+                             PermissionResourceValidator permissionResourceValidator,
+                             PermissionResourceCatalogService permissionResourceCatalogService) {
         this.menuService = menuService;
         this.roleService = roleService;
         this.userMapper = userMapper;
@@ -109,6 +129,7 @@ public class PermissionService {
         this.permissionGroupService = permissionGroupService;
         this.rolePermissionGroupMapper = rolePermissionGroupMapper;
         this.permissionResourceValidator = permissionResourceValidator;
+        this.permissionResourceCatalogService = permissionResourceCatalogService;
     }
 
     /**
@@ -126,6 +147,7 @@ public class PermissionService {
         this.permissionGroupService = null;
         this.rolePermissionGroupMapper = null;
         this.permissionResourceValidator = null;
+        this.permissionResourceCatalogService = null;
     }
 
     /**
@@ -140,20 +162,26 @@ public class PermissionService {
         Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         Long currentUserId = currentAdminAccessor.requireCurrentUserId();
         if (currentAdminAccessor.isSuperAdmin()) {
-            return buildCurrentPermission(menuService.listEnabledNodes());
+            return buildSuperAdminCurrentPermission(currentTenantId);
         }
 
-        Set<String> resourceNames = getUserGrantedResourceNames(
+        Set<String> menuResources = getUserGrantedResourceNames(
                 String.valueOf(currentUserId),
-                currentTenantId
+                currentTenantId,
+                PermissionType.MENU
         );
-        if (resourceNames.isEmpty()) {
+        Set<String> apiResources = getUserGrantedResourceNames(
+                String.valueOf(currentUserId),
+                currentTenantId,
+                PermissionType.API
+        );
+        if (menuResources.isEmpty() && apiResources.isEmpty()) {
             return CurrentPermissionVo.builder()
                     .menus(List.of())
-                    .buttons(List.of())
+                    .permissions(List.of())
                     .build();
         }
-        return buildCurrentPermission(resourceNames);
+        return buildCurrentPermission(menuResources, apiResources);
     }
 
     /**
@@ -204,7 +232,7 @@ public class PermissionService {
         if (!StringUtils.hasText(sub) || !StringUtils.hasText(domain)) {
             return false;
         }
-        if (!PermissionType.MENU.equals(type)) {
+        if (!PermissionType.MENU.equals(type) && !PermissionType.API.equals(type)) {
             return false;
         }
 
@@ -214,7 +242,7 @@ public class PermissionService {
         } catch (NumberFormatException exception) {
             return false;
         }
-        Set<String> resourceNames = getUserGrantedResourceNames(sub, tenantId);
+        Set<String> resourceNames = getUserGrantedResourceNames(sub, tenantId, type);
         return PermissionPathMatcher.matchesAny(resourceNames, obj);
     }
 
@@ -239,7 +267,11 @@ public class PermissionService {
      */
     public List<List<String>> getPermissionsForRole(String roleCode) {
         Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
-        return enforcer.getFilteredPolicy(0, roleCode, toDomain(currentTenantId))
+        return enforcer.getFilteredPolicy(
+                        0,
+                        toRoleSubject(roleCode),
+                        toDomain(currentTenantId)
+                )
                 .stream()
                 .map(policy -> policy.subList(1, policy.size()))
                 .toList();
@@ -254,8 +286,26 @@ public class PermissionService {
     public RolePermissionVo getRolePermission(String roleCode) {
         roleService.requireRoleByCode(roleCode);
         Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
+        List<String> menuResources = loadDirectResourceNamesByRole(
+                roleCode,
+                currentTenantId,
+                PermissionType.MENU
+        );
+        List<String> apiResources = loadDirectResourceNamesByRole(
+                roleCode,
+                currentTenantId,
+                PermissionType.API
+        );
+        log.info(
+                "角色权限读取：roleCode={} tenantId={} menuResources={} apiResources={}",
+                roleCode,
+                currentTenantId,
+                menuResources,
+                apiResources
+        );
         return RolePermissionVo.builder()
-                .resources(loadDirectResourceNamesByRole(roleCode, currentTenantId))
+                .menuResources(menuResources)
+                .apiResources(apiResources)
                 .resourceGroupCodes(loadRolePermissionGroupCodes(roleCode, currentTenantId))
                 .build();
     }
@@ -269,12 +319,17 @@ public class PermissionService {
      */
     @Transactional
     public void updateRolePermissions(String roleCode,
-                                      List<String> resources,
+                                      List<String> menuResources,
+                                      List<String> apiResources,
                                       List<String> resourceGroupCodes) {
         roleService.requireRoleByCode(roleCode);
         Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
-        List<String> normalizedResources = permissionResourceValidator.normalizeResourceNames(
-                resources,
+        List<String> normalizedMenuResources = permissionResourceValidator.normalizeMenuResourceNames(
+                menuResources,
+                currentTenantId
+        );
+        List<String> normalizedApiResources = permissionResourceValidator.normalizeApiResourceNames(
+                apiResources,
                 currentTenantId
         );
         Set<String> normalizedGroupCodes = permissionGroupService.normalizeGroupCodes(resourceGroupCodes);
@@ -287,24 +342,45 @@ public class PermissionService {
             }
         }
 
-        enforcer.removeFilteredPolicy(0, roleCode, toDomain(currentTenantId), PermissionType.MENU);
+        enforcer.removeFilteredPolicy(
+                0,
+                toRoleSubject(roleCode),
+                toDomain(currentTenantId),
+                PermissionType.MENU
+        );
+        enforcer.removeFilteredPolicy(
+                0,
+                toRoleSubject(roleCode),
+                toDomain(currentTenantId),
+                PermissionType.API
+        );
+
+        log.info(
+                "角色权限更新：已清理旧直绑策略 roleCode={} tenantId={}",
+                roleCode,
+                currentTenantId
+        );
         rolePermissionGroupMapper.delete(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.lambdaQuery(RolePermissionGroup.class)
                         .eq(RolePermissionGroup::getTenantId, currentTenantId)
                         .eq(RolePermissionGroup::getRoleCode, roleCode)
         );
 
-        List<List<String>> policies = new ArrayList<>();
-        for (String resource : normalizedResources) {
-            policies.add(List.of(
-                    roleCode,
+        for (String resource : normalizedMenuResources) {
+            enforcer.addPermissionForUser(
+                    toRoleSubject(roleCode),
                     toDomain(currentTenantId),
                     PermissionType.MENU,
                     resource
-            ));
+            );
         }
-        if (!policies.isEmpty()) {
-            enforcer.addPolicies(policies);
+        for (String resource : normalizedApiResources) {
+            enforcer.addPermissionForUser(
+                    toRoleSubject(roleCode),
+                    toDomain(currentTenantId),
+                    PermissionType.API,
+                    resource
+            );
         }
 
         for (String groupCode : normalizedGroupCodes) {
@@ -314,6 +390,7 @@ public class PermissionService {
             relation.setGroupCode(groupCode);
             rolePermissionGroupMapper.insert(relation);
         }
+        persistCasbinPolicy();
     }
 
     /**
@@ -373,7 +450,7 @@ public class PermissionService {
 
         List<List<String>> existingPolicies = enforcer.getFilteredGroupingPolicy(
                 0,
-                userId,
+                toUserSubject(userId),
                 "",
                 toDomain(currentTenantId)
         );
@@ -384,11 +461,12 @@ public class PermissionService {
         for (String roleCode : normalizedRoleCodes) {
             roleService.requireRoleByCode(roleCode);
             enforcer.addRoleForUserInDomain(
-                    userId,
-                    roleCode,
+                    toUserSubject(userId),
+                    toRoleSubject(roleCode),
                     toDomain(currentTenantId)
             );
         }
+        persistCasbinPolicy();
     }
 
     /**
@@ -401,17 +479,18 @@ public class PermissionService {
         roleService.requireRoleByCode(roleCode);
         Long currentTenantId = currentAdminAccessor.requireCurrentTenantId();
         List<String> userIds = enforcer.getUsersForRoleInDomain(
-                roleCode,
+                toRoleSubject(roleCode),
                 toDomain(currentTenantId)
         );
 
         List<Long> result = new ArrayList<>();
         for (String userId : userIds) {
-            if (!StringUtils.hasText(userId)) {
+            String normalizedUserId = fromUserSubject(userId);
+            if (!StringUtils.hasText(normalizedUserId)) {
                 continue;
             }
             try {
-                result.add(Long.parseLong(userId));
+                result.add(Long.parseLong(normalizedUserId));
             } catch (NumberFormatException ignored) {
                 /**
                  * Casbin 中若混入了非数字主体，说明数据已脱离当前用户主体约定。
@@ -435,13 +514,13 @@ public class PermissionService {
         List<Long> normalizedUserIds = normalizeUserIds(userIds);
 
         List<String> existingUsers = enforcer.getUsersForRoleInDomain(
-                roleCode,
+                toRoleSubject(roleCode),
                 toDomain(currentTenantId)
         );
         for (String userId : existingUsers) {
             enforcer.deleteRoleForUserInDomain(
                     userId,
-                    roleCode,
+                    toRoleSubject(roleCode),
                     toDomain(currentTenantId)
             );
         }
@@ -449,32 +528,83 @@ public class PermissionService {
         for (Long userId : normalizedUserIds) {
             validateUserAccessible(String.valueOf(userId), currentTenantId);
             enforcer.addRoleForUserInDomain(
-                    String.valueOf(userId),
-                    roleCode,
+                    toUserSubject(String.valueOf(userId)),
+                    toRoleSubject(roleCode),
                     toDomain(currentTenantId)
             );
         }
+        persistCasbinPolicy();
     }
 
     /**
      * 计算用户在当前租户下拥有的最终资源集合。
      *
+     * 这里先通过 Casbin 的 implicit permission 读取用户最终生效的
+     * 直绑资源与角色继承资源，再叠加业务表中的资源组展开结果。
+     *
      * @param userId 用户 ID
      * @param tenantId 租户 ID
      * @return 资源集合
      */
-    private Set<String> getUserGrantedResourceNames(String userId, Long tenantId) {
+    private Set<String> getUserGrantedResourceNames(String userId,
+                                                    Long tenantId,
+                                                    String resourceType) {
+        Set<String> resourceNames = new LinkedHashSet<>(
+                loadImplicitResourceNamesByUser(userId, tenantId, resourceType)
+        );
         List<String> roleCodes = loadRoleCodesForUser(userId, tenantId);
-        if (roleCodes.isEmpty()) {
-            return Set.of();
-        }
-
-        Set<String> resourceNames = new LinkedHashSet<>();
         for (String roleCode : roleCodes) {
-            resourceNames.addAll(loadEffectiveResourceNamesByRole(roleCode, tenantId));
+            Set<String> groupResources = permissionGroupService.collectResourcesByGroupCodes(
+                    loadRolePermissionGroupCodes(roleCode, tenantId)
+            );
+            for (String groupResource : groupResources) {
+                if (!permissionResourceValidator.matchesResourceType(groupResource, resourceType)) {
+                    continue;
+                }
+                if (!PermissionResource.isResourceAssignable(tenantId, groupResource)) {
+                    continue;
+                }
+                resourceNames.add(groupResource);
+            }
         }
         return resourceNames;
     }
+
+    /**
+     * 获取用户在指定租户下通过 Casbin 生效的直绑资源集合。
+     *
+     * 该读取会同时包含用户直绑策略与通过角色继承得到的策略，
+     * 但不包含业务表中资源组展开出的资源。
+     *
+     * @param userId 用户 ID
+     * @param tenantId 租户 ID
+     * @param resourceType 资源类型
+     * @return 资源路径列表
+     */
+    private Set<String> loadImplicitResourceNamesByUser(String userId,
+                                                        Long tenantId,
+                                                        String resourceType) {
+        List<List<String>> policies = enforcer.getImplicitPermissionsForUserInDomain(
+                toUserSubject(userId),
+                toDomain(tenantId)
+        );
+        Set<String> resources = new LinkedHashSet<>();
+        for (List<String> policy : policies) {
+            if (policy.size() < 4) {
+                continue;
+            }
+            if (!resourceType.equals(policy.get(2))) {
+                continue;
+            }
+            String resource = policy.get(3);
+            if (!PermissionResource.isResourceAssignable(tenantId, resource)) {
+                continue;
+            }
+            resources.add(resource);
+        }
+        return resources;
+    }
+
 
     /**
      * 获取角色在指定租户下直接绑定的资源集合。
@@ -483,16 +613,34 @@ public class PermissionService {
      * @param tenantId 租户 ID
      * @return 资源路径列表
      */
-    private List<String> loadDirectResourceNamesByRole(String roleCode, Long tenantId) {
-        List<List<String>> policies = enforcer.getFilteredPolicy(
-                0,
+    private List<String> loadDirectResourceNamesByRole(String roleCode,
+                                                       Long tenantId,
+                                                       String resourceType) {
+        /**
+         * 这里直接按“角色主体 + 租户域”读取 Casbin 权限，
+         * 返回结构为 `[domain, type, resource]`。
+         *
+         * 因此前两位分别是租户域和资源类型，
+         * 不再需要从完整 `p` 策略中手动剥离主体字段。
+         */
+        List<List<String>> policies = enforcer.getPermissionsForUserInDomain(
+                toRoleSubject(roleCode),
+                toDomain(tenantId)
+        );
+        log.info(
+                "角色资源原始策略读取：roleCode={} subject={} tenantId={} resourceType={} policies={}",
                 roleCode,
-                toDomain(tenantId),
-                PermissionType.MENU
+                toRoleSubject(roleCode),
+                tenantId,
+                resourceType,
+                policies
         );
         List<String> resources = new ArrayList<>();
         for (List<String> policy : policies) {
-            if (policy.size() < 4) {
+            if (policy.size() < 3) {
+                continue;
+            }
+            if (!resourceType.equals(policy.get(2))) {
                 continue;
             }
             String resource = policy.get(3);
@@ -511,11 +659,21 @@ public class PermissionService {
      * @param tenantId 租户 ID
      * @return 生效资源集合
      */
-    private Set<String> loadEffectiveResourceNamesByRole(String roleCode, Long tenantId) {
-        Set<String> resources = new LinkedHashSet<>(loadDirectResourceNamesByRole(roleCode, tenantId));
-        resources.addAll(permissionGroupService.collectResourcesByGroupCodes(
+    private Set<String> loadEffectiveResourceNamesByRole(String roleCode,
+                                                         Long tenantId,
+                                                         String resourceType) {
+        Set<String> resources = new LinkedHashSet<>(
+                loadDirectResourceNamesByRole(roleCode, tenantId, resourceType)
+        );
+        Set<String> groupResources = permissionGroupService.collectResourcesByGroupCodes(
                 loadRolePermissionGroupCodes(roleCode, tenantId)
-        ));
+        );
+        for (String groupResource : groupResources) {
+            if (!permissionResourceValidator.matchesResourceType(groupResource, resourceType)) {
+                continue;
+            }
+            resources.add(groupResource);
+        }
 
         Set<String> assignableResources = new LinkedHashSet<>();
         for (String resource : resources) {
@@ -562,15 +720,16 @@ public class PermissionService {
      */
     private List<String> loadRoleCodesForUser(String userId, Long tenantId) {
         List<String> roles = enforcer.getRolesForUserInDomain(
-                userId,
+                toUserSubject(userId),
                 toDomain(tenantId)
         );
         List<String> normalizedRoles = new ArrayList<>();
         for (String roleCode : roles) {
-            if (!StringUtils.hasText(roleCode)) {
+            String normalizedRoleCode = fromRoleSubject(roleCode);
+            if (!StringUtils.hasText(normalizedRoleCode)) {
                 continue;
             }
-            normalizedRoles.add(roleCode.trim());
+            normalizedRoles.add(normalizedRoleCode);
         }
         return normalizedRoles;
     }
@@ -633,6 +792,30 @@ public class PermissionService {
     }
 
     /**
+     * 持久化当前 Casbin 策略。
+     *
+     * 设计意图：
+     * 1. 当前权限变更链路同时维护 Casbin 策略与业务表数据；
+     * 2. 仅依赖 adapter 的自动保存行为不够直观，也不利于排查“重启后策略丢失”问题；
+     * 3. 因此这里在事务提交后显式执行一次 `savePolicy`，确保内存态与数据库最终一致。
+     */
+    private void persistCasbinPolicy() {
+        if (TransactionSynchronizationManager.isActualTransactionActive()
+                && TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            enforcer.savePolicy();
+                        }
+                    }
+            );
+            return;
+        }
+        enforcer.savePolicy();
+    }
+
+    /**
      * 将租户 ID 转换为 Casbin 域标识。
      *
      * @param tenantId 租户 ID
@@ -651,14 +834,18 @@ public class PermissionService {
      * @param resourceNames 权限资源集合
      * @return 当前权限返回值
      */
-    private CurrentPermissionVo buildCurrentPermission(Set<String> resourceNames) {
+    private CurrentPermissionVo buildCurrentPermission(Set<String> menuResourceNames,
+                                                       Set<String> apiResourceNames) {
         List<Menu> matchedNodes = new ArrayList<>();
         for (Menu menu : menuService.listEnabledNodes()) {
-            if (PermissionPathMatcher.matchesAny(resourceNames, menu.getName())) {
+            if (PermissionPathMatcher.matchesAny(menuResourceNames, menu.getName())) {
                 matchedNodes.add(menu);
             }
         }
-        return buildCurrentPermission(matchedNodes);
+        return buildCurrentPermission(
+                matchedNodes,
+                apiResourceNames.stream().sorted(String::compareTo).toList()
+        );
     }
 
     /**
@@ -667,13 +854,21 @@ public class PermissionService {
      * @param menusOrButtons 命中的菜单与按钮节点
      * @return 当前权限返回值
      */
-    private CurrentPermissionVo buildCurrentPermission(List<Menu> menusOrButtons) {
+    /**
+     * 把菜单节点、按钮资源与接口资源统一组装成返回结构。
+     *
+     * @param menusOrButtons 命中的菜单与按钮节点
+     * @param apiResources 接口资源列表
+     * @return 当前权限返回值
+     */
+    private CurrentPermissionVo buildCurrentPermission(List<Menu> menusOrButtons,
+                                                       List<String> apiResources) {
         List<CurrentPermissionVo.MenuItemVo> menus = new ArrayList<>();
-        List<String> buttons = new ArrayList<>();
+        LinkedHashSet<String> permissions = new LinkedHashSet<>();
 
         for (Menu menu : menusOrButtons) {
             if (MenuNodeTypeEnum.BUTTON.equals(menu.getNodeType())) {
-                buttons.add(menu.getName());
+                permissions.add(menu.getName());
                 continue;
             }
             menus.add(CurrentPermissionVo.MenuItemVo.builder()
@@ -685,10 +880,93 @@ public class PermissionService {
                     .iconValue(menu.getIconValue())
                     .build());
         }
+        permissions.addAll(apiResources);
 
         return CurrentPermissionVo.builder()
                 .menus(menus)
-                .buttons(buttons)
+                .permissions(new ArrayList<>(permissions))
                 .build();
+    }
+
+    /**
+     * 组装超级管理员权限返回值。
+     *
+     * 超级管理员不依赖角色绑定，因此这里直接合并：
+     * 1. 全部菜单/按钮资源；
+     * 2. 后端扫描出的全部接口资源。
+     *
+     * @param currentTenantId 当前租户 ID
+     * @return 当前权限返回值
+     */
+    private CurrentPermissionVo buildSuperAdminCurrentPermission(Long currentTenantId) {
+        List<Menu> enabledNodes = menuService.listEnabledNodes();
+        Set<String> mergedPermissionResources = new LinkedHashSet<>();
+        Set<String> apiResources = new LinkedHashSet<>();
+
+        for (Menu menu : enabledNodes) {
+            if (!PermissionResource.isResourceAssignable(currentTenantId, menu.getName())) {
+                continue;
+            }
+            mergedPermissionResources.add(menu.getName());
+        }
+        if (permissionResourceCatalogService != null) {
+            for (String resourceName : permissionResourceCatalogService.getApiResourceNameSet()) {
+                if (!PermissionResource.isResourceAssignable(currentTenantId, resourceName)) {
+                    continue;
+                }
+                apiResources.add(resourceName);
+            }
+        }
+
+        return buildCurrentPermission(
+                mergedPermissionResources,
+                apiResources
+        );
+    }
+
+    /**
+     * 构造 Casbin 用户主体。
+     *
+     * @param userId 用户 ID
+     * @return Casbin 用户主体
+     */
+    private String toUserSubject(String userId) {
+        return USER_SUBJECT_PREFIX + userId;
+    }
+
+    /**
+     * 构造 Casbin 角色主体。
+     *
+     * @param roleCode 角色编码
+     * @return Casbin 角色主体
+     */
+    private String toRoleSubject(String roleCode) {
+        return ROLE_SUBJECT_PREFIX + roleCode;
+    }
+
+    /**
+     * 从 Casbin 用户主体中还原用户 ID。
+     *
+     * @param subject Casbin 用户主体
+     * @return 裸用户 ID
+     */
+    private String fromUserSubject(String subject) {
+        if (!StringUtils.hasText(subject) || !subject.startsWith(USER_SUBJECT_PREFIX)) {
+            return null;
+        }
+        return subject.substring(USER_SUBJECT_PREFIX.length());
+    }
+
+    /**
+     * 从 Casbin 角色主体中还原角色编码。
+     *
+     * @param subject Casbin 角色主体
+     * @return 裸角色编码
+     */
+    private String fromRoleSubject(String subject) {
+        if (!StringUtils.hasText(subject) || !subject.startsWith(ROLE_SUBJECT_PREFIX)) {
+            return null;
+        }
+        return subject.substring(ROLE_SUBJECT_PREFIX.length());
     }
 }

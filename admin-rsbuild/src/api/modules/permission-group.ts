@@ -66,11 +66,19 @@ export interface PermissionGroupUpdateStatusParams {
 }
 
 /**
+ * 资源组删除参数。
+ */
+export interface PermissionGroupDeleteParams {
+  id: number;
+}
+
+/**
  * 资源组资源信息。
  */
 export interface PermissionGroupResourceVo {
   groupCode: string;
-  resources: string[];
+  menuResources: string[];
+  apiResources: string[];
 }
 
 /**
@@ -125,10 +133,23 @@ export const getResources = (groupCode: string) => {
 /**
  * 更新资源组资源列表。
  */
-export const updateResources = (groupCode: string, resources: string[]) => {
+export const updateResources = (
+  groupCode: string,
+  data: { menuResources: string[]; apiResources: string[] },
+) => {
   return request('/permission-group/resources/update', {
     method: 'post',
     params: { groupCode },
-    data: { resources },
+    data,
+  });
+};
+
+/**
+ * 删除资源组。
+ */
+export const deleteGroup = (id: number) => {
+  return request('/permission-group/delete', {
+    method: 'post',
+    data: { id },
   });
 };

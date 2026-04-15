@@ -90,6 +90,7 @@ describe('initialState', () => {
     );
     vi.mocked(ApiPassport.getCurrentPermission).mockResolvedValue({
       menus: [],
+      permissions: [],
     });
 
     try {
@@ -118,6 +119,7 @@ describe('initialState', () => {
     } as never);
     vi.mocked(ApiPassport.getCurrentPermission).mockResolvedValue({
       menus: [],
+      permissions: [],
     });
 
     const firstResult = await initialState({ location });

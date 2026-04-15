@@ -12,12 +12,22 @@ import {
 } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { ApiMenu, ApiPermissionGroup, ApiRole } from '@/api';
+import {
+  ApiMenu,
+  ApiPermissionGroup,
+  ApiPermissionResource,
+  ApiRole,
+} from '@/api';
 import type { Menu } from '@/api/modules/menu.types.ts';
 import type { PermissionGroup } from '@/api/modules/permission-group';
+import type { PermissionResourceCatalogItem } from '@/api/modules/permission-resource';
 import type { Role } from '@/api/modules/role';
 import PermissionResourcePanel from '@/components/business/PermissionResourcePanel';
 import { modalContext } from '@/components/KModal/Modal.tsx';
+import {
+  buildShortcutApiUsageCountMap,
+  collectAutoApiResourcesByMenuResources,
+} from '@/constants/permissionGroupShortcut.ts';
 import queryKey from '@/constants/queryKey';
 import useAuthStore from '@/store/auth.ts';
 
@@ -30,20 +40,27 @@ interface Props {
  *
  * 当前同时支持编辑两类绑定：
  * 1. 直接绑定的资源组
- * 2. 直接绑定的具体资源与通配资源
+ * 2. 菜单与按钮资源
+ *
+ * 接口资源不再允许手动勾选，而是根据菜单与按钮自动补齐。
  */
 const PermissionDrawer = ({ role }: Props) => {
   const ctx = useContext(modalContext);
   const queryClient = useQueryClient();
   const currentInfo = useAuthStore((state) => state.currentInfo);
   const [groupKeyword, setGroupKeyword] = useState('');
-  const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  const [selectedMenuResources, setSelectedMenuResources] = useState<string[]>([]);
   const [selectedGroupCodes, setSelectedGroupCodes] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const { data: menuList = [], isLoading: menuLoading } = useQuery({
     queryKey: ['rolePermissionMenuList'],
     queryFn: () => ApiMenu.getList(),
+  });
+
+  const { data: apiResources = [], isLoading: apiResourceLoading } = useQuery({
+    queryKey: ['permissionResourceCatalog'],
+    queryFn: () => ApiPermissionResource.getCatalog(),
   });
 
   const { data: permissionGroupList, isLoading: permissionGroupLoading } =
@@ -66,7 +83,7 @@ const PermissionDrawer = ({ role }: Props) => {
     if (!permission) {
       return;
     }
-    setSelectedResources(permission.resources || []);
+    setSelectedMenuResources(permission.menuResources || []);
     setSelectedGroupCodes(permission.resourceGroupCodes || []);
   }, [permission]);
 
@@ -85,7 +102,46 @@ const PermissionDrawer = ({ role }: Props) => {
     });
   }, [groupKeyword, permissionGroups]);
 
-  const isLoading = menuLoading || permissionGroupLoading || permissionLoading;
+  const menuApiUsageCountMap = useMemo(() => {
+    const availableResourceSet = new Set(
+      (apiResources as PermissionResourceCatalogItem[]).map((item) => item.resource),
+    );
+    const originalCountMap = buildShortcutApiUsageCountMap();
+    return Object.fromEntries(
+      Object.entries(originalCountMap).map(([resource, count]) => {
+        if (count === 0) {
+          return [resource, 0];
+        }
+
+        const autoApiResources = collectAutoApiResourcesByMenuResources([resource]);
+        const filteredApiResources = autoApiResources.filter((item) => {
+          return availableResourceSet.has(item);
+        });
+        return [resource, filteredApiResources.length];
+      }),
+    );
+  }, [apiResources]);
+
+  const matchedShortcutApiResources = useMemo(() => {
+    const availableResourceSet = new Set(
+      (apiResources as PermissionResourceCatalogItem[]).map((item) => item.resource),
+    );
+    return collectAutoApiResourcesByMenuResources(selectedMenuResources).filter(
+      (item) => {
+        return availableResourceSet.has(item);
+      },
+    );
+  }, [apiResources, selectedMenuResources]);
+
+  const effectiveSelectedApiResources = useMemo(() => {
+    return matchedShortcutApiResources;
+  }, [matchedShortcutApiResources]);
+
+  const isLoading =
+    menuLoading ||
+    permissionGroupLoading ||
+    permissionLoading ||
+    apiResourceLoading;
 
   const groupContent = renderGroupContent({
     filteredPermissionGroups,
@@ -96,22 +152,22 @@ const PermissionDrawer = ({ role }: Props) => {
     onSelectedGroupCodesChange: setSelectedGroupCodes,
   });
 
-  const resourceContent = (
-    <PermissionResourcePanel
-      menuList={menuList as Menu[]}
-      value={selectedResources}
-      tenantId={currentInfo?.tenantId}
-      userId={currentInfo?.userId}
-      loading={isLoading}
-      onChange={setSelectedResources}
-    />
-  );
+  const resourceContent = renderResourceContent({
+    loading: isLoading,
+    menuApiUsageCountMap,
+    menuList: menuList as Menu[],
+    onMenuResourcesChange: setSelectedMenuResources,
+    selectedMenuResources,
+    tenantId: currentInfo?.tenantId,
+    userId: currentInfo?.userId,
+  });
 
   const handleSave = async () => {
     setSubmitting(true);
     try {
       await ApiRole.updatePermission(role.code, {
-        resources: selectedResources,
+        menuResources: selectedMenuResources,
+        apiResources: effectiveSelectedApiResources,
         resourceGroupCodes: selectedGroupCodes,
       });
       await queryClient.invalidateQueries({
@@ -143,7 +199,7 @@ const PermissionDrawer = ({ role }: Props) => {
 
       <Flex justify={'flex-end'} gap={8}>
         <Typography.Text type={'secondary'} style={{ flex: 1 }}>
-          保存时会同时提交资源组绑定与直接资源绑定。
+          保存时会同时提交资源组绑定、菜单资源以及菜单自动补齐的接口资源。
         </Typography.Text>
         <Button onClick={() => ctx.close()}>取消</Button>
         <Button
@@ -165,6 +221,37 @@ interface GroupContentProps {
   selectedGroupCodes: string[];
   onKeywordChange: (keyword: string) => void;
   onSelectedGroupCodesChange: (groupCodes: string[]) => void;
+}
+
+interface ResourceContentProps {
+  loading: boolean;
+  menuApiUsageCountMap: Record<string, number>;
+  menuList: Menu[];
+  onMenuResourcesChange: (resources: string[]) => void;
+  selectedMenuResources: string[];
+  tenantId?: number;
+  userId?: number;
+}
+
+function renderResourceContent(props: ResourceContentProps) {
+  return (
+    <PermissionResourcePanel
+      mode={'menuOnly'}
+      menuApiUsageCountMap={props.menuApiUsageCountMap}
+      menuList={props.menuList}
+      apiResources={[]}
+      value={{
+        menuResources: props.selectedMenuResources,
+        apiResources: [],
+      }}
+      tenantId={props.tenantId}
+      userId={props.userId}
+      loading={props.loading}
+      onChange={(value) => {
+        props.onMenuResourcesChange(value.menuResources);
+      }}
+    />
+  );
 }
 
 function renderGroupContent(props: GroupContentProps) {

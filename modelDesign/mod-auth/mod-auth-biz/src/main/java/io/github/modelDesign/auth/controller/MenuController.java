@@ -1,7 +1,5 @@
 package io.github.modelDesign.auth.controller;
 
-import io.github.modelDesign.auth.annotation.RequirePermission;
-import io.github.modelDesign.auth.constant.PermissionResource;
 import io.github.modelDesign.auth.request.MenuCreateRequest;
 import io.github.modelDesign.auth.request.MenuDeleteRequest;
 import io.github.modelDesign.auth.request.MenuEditRequest;
@@ -44,10 +42,6 @@ public class MenuController {
      * @return 菜单列表
      */
     @Operation(summary = "获取菜单列表")
-    @RequirePermission(anyOf = {
-            PermissionResource.SYSTEM_MENU,
-            PermissionResource.SYSTEM_ROLE_PERMISSION
-    })
     @GetMapping("/list")
     public List<MenuVo> list() {
         return menuService.getList();
@@ -60,7 +54,6 @@ public class MenuController {
      * @return 菜单信息
      */
     @Operation(summary = "创建菜单")
-    @RequirePermission(PermissionResource.SYSTEM_MENU_CREATE)
     @PostMapping("/create")
     public MenuVo create(@Valid @RequestBody MenuCreateRequest request) {
         return menuService.create(request);
@@ -74,7 +67,6 @@ public class MenuController {
      * @return 菜单信息
      */
     @Operation(summary = "编辑菜单")
-    @RequirePermission(PermissionResource.SYSTEM_MENU_EDIT)
     @PostMapping("/edit")
     public MenuVo edit(@Parameter(description = "菜单 ID", required = true) @RequestParam @NotNull(message = "菜单 ID 不能为空") Long id,
                        @Valid @RequestBody MenuEditRequest request) {
@@ -88,7 +80,6 @@ public class MenuController {
      * @return 删除数量
      */
     @Operation(summary = "删除菜单")
-    @RequirePermission(PermissionResource.SYSTEM_MENU_DELETE)
     @PostMapping("/delete")
     public Integer delete(@Valid @RequestBody MenuDeleteRequest request) {
         return menuService.delete(request.getIds());
@@ -100,7 +91,6 @@ public class MenuController {
      * @param request 排序请求
      */
     @Operation(summary = "交换菜单排序")
-    @RequirePermission(PermissionResource.SYSTEM_MENU_SORT)
     @PostMapping("/swap_sort")
     public void swapSort(@Valid @RequestBody MenuSwapSortRequest request) {
         menuService.swapSort(request.getSource(), request.getTarget());

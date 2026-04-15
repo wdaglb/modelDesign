@@ -1,8 +1,10 @@
+import { isRedirect, redirect } from '@tanstack/react-router';
 import { describe, expect, it } from 'vitest';
 
 import {
   buildLoginRedirectFromLocation,
   normalizeLoginRedirect,
+  resolveLoginRouteRedirect,
 } from '@/service/loginRedirect.ts';
 
 describe('loginRedirect', () => {
@@ -24,5 +26,46 @@ describe('loginRedirect', () => {
   it('拦截非法外链并回落到首页', () => {
     expect(normalizeLoginRedirect('https://example.com')).toBe('/');
     expect(normalizeLoginRedirect('//example.com')).toBe('/');
+  });
+
+  it('已有登录态且守卫放行时返回目标业务地址', async () => {
+    const result = await resolveLoginRouteRedirect(
+      '/system/role?tab=menu#permission',
+      async () => {},
+    );
+
+    expect(result).toBe('/system/role?tab=menu#permission');
+  });
+
+  it('守卫判断需要回到登录页时停留在当前登录页', async () => {
+    const result = await resolveLoginRouteRedirect(
+      '/system/role',
+      async () => {
+        throw redirect({
+          to: '/login',
+          search: {
+            redirect: '/system/role',
+          },
+        });
+      },
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('守卫给出其他业务重定向时继续向上抛出', async () => {
+    await expect(
+      resolveLoginRouteRedirect('/system/role', async () => {
+        throw redirect({
+          to: '/personal-center',
+        });
+      }),
+    ).rejects.toSatisfy((error: unknown) => {
+      if (!isRedirect(error)) {
+        return false;
+      }
+
+      return error.options.to === '/personal-center';
+    });
   });
 });

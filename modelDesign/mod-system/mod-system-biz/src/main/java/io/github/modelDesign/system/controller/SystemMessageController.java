@@ -1,5 +1,6 @@
 package io.github.modelDesign.system.controller;
 
+import io.github.modelDesign.auth.annotation.IgnorePermission;
 import io.github.modelDesign.system.request.SystemMessageListRequest;
 import io.github.modelDesign.system.request.SystemMessageReadAllRequest;
 import io.github.modelDesign.system.request.SystemMessageReadRequest;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 系统消息接口。
  */
 @Tag(name = "系统消息")
+@IgnorePermission
 @Validated
 @RestController
 @RequiredArgsConstructor
