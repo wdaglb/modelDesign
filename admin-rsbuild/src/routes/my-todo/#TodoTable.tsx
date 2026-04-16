@@ -1,9 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Empty, Flex, Input, Select, Space, Tag, Typography } from 'antd';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Empty,
+  Flex,
+  Input,
+  Select,
+  Space,
+  Tag,
+  Typography,
+  message,
+} from 'antd';
 import type { TableColumnsType } from 'antd';
 
-import { ApiTodo } from '@/api';
+import { ApiProjectTaskStatus, ApiTodo } from '@/api';
 import type { TodoItem } from '@/api/modules/todo.types';
 import {
   TodoPriority,
@@ -14,8 +23,12 @@ import {
   TodoStatusOptions,
 } from '@/api/modules/todo.types';
 import { KTable } from '@/components';
+import { useKDrawer } from '@/components/KDrawer';
+import { useKModal } from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
 import useAutoRefresh from '@/hooks/useAutoRefresh';
+import { openTaskPreviewDrawer } from '@/routes/agile-board/#previewDrawerService';
+import { openTaskModal } from '@/service/taskModalService.tsx';
 
 /**
  * 优先级颜色映射。
@@ -53,11 +66,69 @@ const getWorkDaysText = (value?: number) => {
  * 我的待办表格。
  */
 const TodoTable = () => {
+  const drawer = useKDrawer();
+  const modal = useKModal();
   const queryClient = useQueryClient();
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<TodoPriority | undefined>();
   const [status, setStatus] = useState<TodoStatus | undefined>();
+
+  /**
+   * 详情抽屉依赖状态配置，用于渲染状态文案与切换选项。
+   */
+  const { data: statusConfigs = [] } = useQuery({
+    queryKey: queryKey.project.taskStatusList(),
+    queryFn: () => ApiProjectTaskStatus.getList(),
+  });
+
+  /**
+   * 统一刷新与任务详情相关的查询缓存。
+   */
+  const refreshTaskRelatedQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: queryKey.todo.list(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKey.project.taskList(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKey.project.taskBoard(),
+      }),
+    ]);
+  };
+
+  /**
+   * 打开任务详情抽屉，并在编辑完成后同步刷新列表。
+   */
+  const openTodoDetailDrawer = async (task: TodoItem) => {
+    try {
+      await openTaskPreviewDrawer(drawer, {
+        taskId: task.id,
+        statusConfigs,
+        onTaskUpdated: refreshTaskRelatedQueries,
+        onEdit: async (detailTask) => {
+          const submitted = await openTaskModal(modal, {
+            task: detailTask,
+            statusConfigs,
+          });
+
+          if (!submitted) {
+            return;
+          }
+
+          await refreshTaskRelatedQueries();
+        },
+      });
+    } catch (error) {
+      if (error === 'KDrawer cancel') {
+        return;
+      }
+
+      message.error('打开任务详情失败，请稍后重试');
+    }
+  };
 
   /**
    * 列表查询参数。
@@ -174,6 +245,16 @@ const TodoTable = () => {
       request={(requestParams) => ApiTodo.getList(requestParams) as Promise<any>}
       params={params}
       columns={columns}
+      onRow={(record) => {
+        return {
+          onClick: () => {
+            void openTodoDetailDrawer(record);
+          },
+          style: {
+            cursor: 'pointer',
+          },
+        };
+      }}
       pagination={{
         current: pagination.current,
         pageSize: pagination.pageSize,
