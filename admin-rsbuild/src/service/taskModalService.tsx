@@ -16,6 +16,11 @@ interface OpenTaskModalOptions {
   projectId?: number;
 
   /**
+   * 新建时默认负责人 ID。
+   */
+  defaultAssigneeId?: number;
+
+  /**
    * 编辑时传入的任务详情。
    */
   task?: ProjectTaskDetail;
@@ -84,6 +89,7 @@ export async function openTaskModal(
       children: (
         <TaskCreateForm
           projectId={options.projectId}
+          defaultAssigneeId={options.defaultAssigneeId}
           task={options.task}
           statusConfigs={options.statusConfigs}
         />

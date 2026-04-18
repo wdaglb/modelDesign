@@ -1,31 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { message } from 'antd';
-import ClipboardJS from 'clipboard';
+
+import { copyTextToClipboard } from '@/utils';
 
 import TaskCard from '../TaskCard';
 import type { TaskCardTask } from '../TaskCard.types';
 
-const clipboardMockState = vi.hoisted(() => {
+vi.mock('@/utils', () => {
   return {
-    handlers: {} as Record<string, (() => void) | undefined>,
-    destroy: vi.fn(),
-  };
-});
-
-vi.mock('clipboard', () => {
-  return {
-    default: vi.fn().mockImplementation(() => {
-      clipboardMockState.handlers = {};
-      clipboardMockState.destroy = vi.fn();
-
-      return {
-        on(eventName: string, handler: () => void) {
-          clipboardMockState.handlers[eventName] = handler;
-        },
-        destroy: clipboardMockState.destroy,
-      };
-    }),
+    copyTextToClipboard: vi.fn(),
   };
 });
 
@@ -42,8 +26,6 @@ const baseTask: TaskCardTask = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  clipboardMockState.handlers = {};
-  clipboardMockState.destroy = vi.fn();
 });
 
 describe('TaskCard', () => {
@@ -61,12 +43,12 @@ describe('TaskCard', () => {
 
     expect(taskNumber).toBeDefined();
     expect(taskNumber.getAttribute('data-task-card-copy-trigger')).toBe('true');
-    expect(taskNumber.getAttribute('data-clipboard-text')).toBe('TASK-101');
-    expect(ClipboardJS).toHaveBeenCalled();
 
     fireEvent.click(taskNumber);
-    clipboardMockState.handlers.success?.();
 
+    await waitFor(() => {
+      expect(copyTextToClipboard).toHaveBeenCalledWith('TASK-101');
+    });
     await waitFor(() => {
       expect(successMock).toHaveBeenCalledWith('任务编号已复制');
     });
@@ -78,10 +60,11 @@ describe('TaskCard', () => {
       return undefined as never;
     });
 
+    vi.mocked(copyTextToClipboard).mockRejectedValue(new Error('copy failed'));
+
     render(<TaskCard task={baseTask} />);
 
     fireEvent.click(screen.getByText('# TASK-101'));
-    clipboardMockState.handlers.error?.();
 
     await waitFor(() => {
       expect(errorMock).toHaveBeenCalledWith('任务编号复制失败，请稍后重试');

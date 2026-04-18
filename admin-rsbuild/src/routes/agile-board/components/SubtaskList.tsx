@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { Button, Typography } from 'antd';
 import type { TaskPriority } from '@/api/modules/project-task.types';
 import { TaskCard } from '@/components';
@@ -25,18 +25,32 @@ interface SubtaskListProps {
 /**
  * 子任务列表，仅展示一级子任务。
  */
-const SubtaskList = (props: SubtaskListProps) => {
-  const [expanded, setExpanded] = useState(true);
+const SubtaskList = memo((props: SubtaskListProps) => {
+  const [expanded, setExpanded] = useState(false);
   const subtaskCount = props.subtasks.length;
-  let toggleText = '展开子任务';
 
-  if (expanded) {
-    toggleText = '收起子任务';
-  }
+  const toggleText = useMemo(() => {
+    let text = '展开子任务';
 
-  let contentNode = null;
-  if (expanded) {
-    contentNode = (
+    if (expanded) {
+      text = '收起子任务';
+    }
+
+    return text;
+  }, [expanded]);
+
+  const handleToggleExpanded = useCallback(() => {
+    setExpanded((currentExpanded) => {
+      return !currentExpanded;
+    });
+  }, []);
+
+  const contentNode = useMemo(() => {
+    if (!expanded) {
+      return null;
+    }
+
+    return (
       <SubtaskListContent data-subtask-list="true">
         {props.subtasks.map((subtask) => {
           const adaptedTask = mapAgileBoardTaskToTaskCardTask(subtask);
@@ -60,7 +74,7 @@ const SubtaskList = (props: SubtaskListProps) => {
         })}
       </SubtaskListContent>
     );
-  }
+  }, [expanded, props.disabled, props.onPreview, props.onPriorityChange, props.subtasks]);
 
   return (
     <SubtaskListRoot>
@@ -73,11 +87,7 @@ const SubtaskList = (props: SubtaskListProps) => {
           size="small"
           aria-expanded={expanded}
           data-subtask-toggle="true"
-          onClick={() => {
-            setExpanded((currentExpanded) => {
-              return !currentExpanded;
-            });
-          }}
+          onClick={handleToggleExpanded}
         >
           {toggleText}
         </Button>
@@ -85,6 +95,8 @@ const SubtaskList = (props: SubtaskListProps) => {
       {contentNode}
     </SubtaskListRoot>
   );
-};
+});
+
+SubtaskList.displayName = 'SubtaskList';
 
 export default SubtaskList;

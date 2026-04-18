@@ -1,12 +1,7 @@
 import { Space, Tooltip, message } from 'antd';
-import ClipboardJS from 'clipboard';
-import {
-  useEffect,
-  useRef,
-  type MouseEvent,
-  type PointerEvent,
-  type ReactNode,
-} from 'react';
+import { type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+
+import { copyTextToClipboard } from '@/utils';
 
 import TaskCardPriorityTag, {
   TASK_CARD_PRIORITY_TRIGGER_SELECTOR,
@@ -26,6 +21,11 @@ import {
 } from './TaskCard.styled';
 
 const TASK_CARD_COPY_TRIGGER_SELECTOR = '[data-task-card-copy-trigger="true"]';
+
+interface CopyTaskNumberClickParams {
+  event: MouseEvent<HTMLElement>;
+  taskNumberText?: string;
+}
 
 /**
  * 任务卡片中项目名称展示文案。
@@ -130,34 +130,12 @@ function resolveCardStackSize(isCompact: boolean) {
 }
 
 /**
- * 为任务编号节点创建 clipboard.js 实例。
- *
- * 这里显式返回任务编号文本，确保敏捷面板卡片在点击复制时
- * 总是使用当前渲染出来的编号值，而不是依赖外部闭包状态。
- *
- * @param triggerNode 负责触发复制的节点
- * @param taskNumberText 需要复制的任务编号
- * @returns ClipboardJS
- */
-function createTaskNumberClipboard(
-  triggerNode: Element,
-  taskNumberText: string,
-) {
-  return new ClipboardJS(triggerNode, {
-    text() {
-      return taskNumberText;
-    },
-  });
-}
-
-/**
  * 通用任务卡片，提供统一的信息结构与点击交互。
  *
  * @param props 任务卡片属性
  * @returns 任务卡片节点
  */
 const TaskCard = (props: TaskCardProps) => {
-  const rootElementRef = useRef<HTMLDivElement | null>(null);
   const rootProps = props.rootProps;
   const isCompact = Boolean(props.compact || props.isSubtask);
   const shouldHideMeta = Boolean(props.compact) && !props.isSubtask;
@@ -238,48 +216,24 @@ const TaskCard = (props: TaskCardProps) => {
   }
 
   /**
-   * 绑定任务编号复制实例，并在复制结果返回后给出用户提示。
+   * 点击任务编号时复制内容并阻断卡片点击事件。
    *
-   * 使用 effect 管理 clipboard.js 生命周期，避免在组件重复渲染时
-   * 残留多份事件监听，导致复制提示重复触发。
+   * @param params 点击参数
    */
-  useEffect(() => {
-    if (!taskNumberText) {
-      return undefined;
+  const handleCopyTaskNumberClick = async (params: CopyTaskNumberClickParams) => {
+    params.event.preventDefault();
+    params.event.stopPropagation();
+
+    if (!params.taskNumberText) {
+      return;
     }
 
-    const rootNode = rootElementRef.current;
-    if (!rootNode) {
-      return undefined;
-    }
-
-    const triggerNode = rootNode.querySelector(TASK_CARD_COPY_TRIGGER_SELECTOR);
-    if (!triggerNode) {
-      return undefined;
-    }
-
-    const clipboard = createTaskNumberClipboard(triggerNode, taskNumberText);
-
-    clipboard.on('success', () => {
+    try {
+      await copyTextToClipboard(params.taskNumberText);
       message.success('任务编号已复制');
-    });
-    clipboard.on('error', () => {
+    } catch {
       message.error('任务编号复制失败，请稍后重试');
-    });
-
-    return () => {
-      clipboard.destroy();
-    };
-  }, [taskNumberText]);
-
-  /**
-   * 点击编号时阻断默认行为与事件冒泡，避免误触详情预览。
-   *
-   * @param event 点击事件
-   */
-  const handleCopyTaskNumberClick = (event: MouseEvent<HTMLElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
+    }
   };
 
   /**
@@ -305,8 +259,12 @@ const TaskCard = (props: TaskCardProps) => {
     headerLeftNode = (
       <TaskNumberLink
         data-task-card-copy-trigger="true"
-        data-clipboard-text={taskNumberText}
-        onClick={handleCopyTaskNumberClick}
+        onClick={async (event) => {
+          await handleCopyTaskNumberClick({
+            event,
+            taskNumberText,
+          });
+        }}
         onMouseDown={stopTaskNumberMouseEvent}
         onPointerDown={stopTaskNumberPointerEvent}
       >
@@ -350,7 +308,6 @@ const TaskCard = (props: TaskCardProps) => {
     <TaskCardRoot
       {...rootProps}
       {...dataAttributes}
-      ref={rootElementRef}
       onClick={handleMergedRootClick}
     >
       <TaskCardContainer

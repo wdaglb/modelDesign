@@ -1,4 +1,8 @@
 import { PERMISSION_RESOURCE } from './permission.ts';
+import {
+  GENERATED_BUTTON_RESOURCE_API_PROFILE,
+  GENERATED_MENU_RESOURCE_API_PROFILE,
+} from './resourceApiProfile.generated.ts';
 
 export interface PermissionGroupShortcut {
   /**
@@ -28,10 +32,10 @@ export interface PermissionGroupShortcut {
 }
 
 /**
- * 角色权限配置页使用的前端快捷资源组。
+ * 手工维护的兜底资源组映射。
  *
- * 这里用页面或按钮资源作为触发条件，帮助管理员在勾选菜单/按钮后，
- * 快速补齐该功能所需的接口资源，避免遗漏增删改查接口。
+ * 当构建期资源画像还未覆盖某些页面或按钮时，
+ * 仍然允许回退到这份稳定常量，避免角色权限配置能力失效。
  */
 export const PERMISSION_GROUP_SHORTCUTS: PermissionGroupShortcut[] = [
   {
@@ -255,6 +259,65 @@ export const PERMISSION_GROUP_SHORTCUTS: PermissionGroupShortcut[] = [
 ];
 
 /**
+ * 构建期生成的菜单资源画像。
+ */
+export const GENERATED_MENU_API_PROFILE: Record<string, string[]> = {
+  ...GENERATED_MENU_RESOURCE_API_PROFILE,
+};
+
+/**
+ * 构建期生成的按钮资源画像。
+ */
+export const GENERATED_BUTTON_API_PROFILE: Record<string, string[]> = {
+  ...GENERATED_BUTTON_RESOURCE_API_PROFILE,
+};
+
+/**
+ * 读取手工兜底映射。
+ */
+function buildFallbackResourceApiMap() {
+  const resourceToApiSetMap = new Map<string, Set<string>>();
+
+  for (const shortcut of PERMISSION_GROUP_SHORTCUTS) {
+    for (const triggerResource of shortcut.triggerResources) {
+      const currentApiSet =
+        resourceToApiSetMap.get(triggerResource) ?? new Set<string>();
+      shortcut.apiResources.forEach((resource) => {
+        currentApiSet.add(resource);
+      });
+      resourceToApiSetMap.set(triggerResource, currentApiSet);
+    }
+  }
+
+  return resourceToApiSetMap;
+}
+
+/**
+ * 合并生成画像与手工兜底映射。
+ *
+ * 优先使用构建期扫描出的真实结果，同时保留现有常量作为补齐来源。
+ */
+export function buildResourceApiProfileMap() {
+  const profileMap = buildFallbackResourceApiMap();
+  const generatedProfiles = [
+    GENERATED_MENU_API_PROFILE,
+    GENERATED_BUTTON_API_PROFILE,
+  ];
+
+  generatedProfiles.forEach((profile) => {
+    Object.entries(profile).forEach(([resource, apiResources]) => {
+      const currentApiSet = profileMap.get(resource) ?? new Set<string>();
+      apiResources.forEach((apiResource) => {
+        currentApiSet.add(apiResource);
+      });
+      profileMap.set(resource, currentApiSet);
+    });
+  });
+
+  return profileMap;
+}
+
+/**
  * 根据当前勾选的页面或按钮资源，找出命中的快捷资源组。
  */
 export function matchPermissionGroupShortcuts(selectedResources: string[]) {
@@ -285,21 +348,8 @@ export function collectShortcutApiResources(
  * 统计每个菜单或按钮资源会自动补齐多少接口资源。
  */
 export function buildShortcutApiUsageCountMap() {
-  const resourceToApiSetMap = new Map<string, Set<string>>();
-
-  for (const shortcut of PERMISSION_GROUP_SHORTCUTS) {
-    for (const triggerResource of shortcut.triggerResources) {
-      const currentApiSet =
-        resourceToApiSetMap.get(triggerResource) ?? new Set<string>();
-      shortcut.apiResources.forEach((resource) => {
-        currentApiSet.add(resource);
-      });
-      resourceToApiSetMap.set(triggerResource, currentApiSet);
-    }
-  }
-
   return Object.fromEntries(
-    Array.from(resourceToApiSetMap.entries()).map(([resource, apiSet]) => {
+    Array.from(buildResourceApiProfileMap().entries()).map(([resource, apiSet]) => {
       return [resource, apiSet.size];
     }),
   );
@@ -311,7 +361,18 @@ export function buildShortcutApiUsageCountMap() {
 export function collectAutoApiResourcesByMenuResources(
   selectedResources: string[],
 ) {
-  return collectShortcutApiResources(
-    matchPermissionGroupShortcuts(selectedResources),
-  );
+  const profileMap = buildResourceApiProfileMap();
+  const resourceSet = new Set<string>();
+
+  selectedResources.forEach((resource) => {
+    const apiResources = profileMap.get(resource);
+    if (!apiResources) {
+      return;
+    }
+    apiResources.forEach((apiResource) => {
+      resourceSet.add(apiResource);
+    });
+  });
+
+  return Array.from(resourceSet);
 }

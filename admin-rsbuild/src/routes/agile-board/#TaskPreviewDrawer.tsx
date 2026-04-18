@@ -20,11 +20,11 @@ import {
 import { drawerContext } from '@/components/KDrawer/Drawer.tsx';
 import { KMarkdownPreview } from '@/components';
 import queryKey from '@/constants/queryKey';
+import { copyTextToClipboard } from '@/utils';
 
 import {
   buildAgileBoardTaskShareUrl,
   buildBoardEditPayload,
-  copyTextToClipboard,
   buildBoardStatusOptions,
   getBoardStatusText,
   getTaskAssigneeText,

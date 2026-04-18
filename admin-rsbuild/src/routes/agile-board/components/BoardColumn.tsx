@@ -1,6 +1,6 @@
 import { Empty } from 'antd';
 import { useDroppable } from '@dnd-kit/core';
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { TaskPriority } from '@/api/modules/project-task.types';
 
 import { getColumnDragId, getColumnSubtitle } from '../#helper';
@@ -36,7 +36,7 @@ interface AgileBoardColumnProps {
 /**
  * 敏捷面板列容器。
  */
-const AgileBoardColumn = (props: AgileBoardColumnProps) => {
+const AgileBoardColumn = memo((props: AgileBoardColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({
     id: getColumnDragId(props.column.status),
   });
@@ -118,6 +118,8 @@ const AgileBoardColumn = (props: AgileBoardColumnProps) => {
       </ColumnSurface>
     </ColumnFrame>
   );
-};
+});
+
+AgileBoardColumn.displayName = 'AgileBoardColumn';
 
 export default AgileBoardColumn;

@@ -119,8 +119,12 @@ public class ProjectTaskReadService {
                 .eq(ProjectTask::getDeleted, 0)
                 .like(StringUtils.hasText(title), ProjectTask::getTitle, title)
                 .eq(StringUtils.hasText(priority), ProjectTask::getPriority, priority)
-                .eq(StringUtils.hasText(status), ProjectTask::getStatus, status)
-                .orderByDesc(ProjectTask::getCreateTime));
+                .eq(StringUtils.hasText(status), ProjectTask::getStatus, status));
+
+        allTasks = allTasks.stream().sorted(
+                Comparator.comparingInt((ProjectTask task) -> getPriorityRank(task.getPriority())).reversed()
+                        .thenComparing(ProjectTask::getUpdateTime, Comparator.nullsLast(Comparator.reverseOrder()))
+        ).toList();
 
         long total = allTasks.size();
         long fromIndex = Math.max((current - 1) * pageSize, 0);

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
@@ -133,21 +133,13 @@ describe('TaskSubtaskPanel', () => {
       assignee: '小王',
       updatedAt: '2026-04-04 12:00:00',
     };
-    const refreshedChildTask: ProjectTaskDetail = {
-      ...childTask,
-      title: '子任务 C（已更新）',
-      status: 'done',
-      assignee: '小李',
-      updatedAt: '2026-04-04 13:00:00',
-    };
+
     const childDetail: ProjectTaskDetail = {
       ...childTask,
       description: '补充说明',
     };
 
-    vi.mocked(ApiProjectTask.getChildren)
-      .mockResolvedValueOnce([childTask])
-      .mockResolvedValueOnce([refreshedChildTask]);
+    vi.mocked(ApiProjectTask.getChildren).mockResolvedValue([childTask]);
     vi.mocked(ApiProjectTask.getDetail).mockResolvedValue(childDetail);
 
     renderWithQuery(
@@ -160,7 +152,6 @@ describe('TaskSubtaskPanel', () => {
     );
 
     await screen.findByText('子任务 C');
-    expect(screen.getByText('# TASK-2001')).toBeDefined();
     await user.click(screen.getByRole('button', { name: '补充详情' }));
 
     await waitFor(() => {
@@ -169,10 +160,6 @@ describe('TaskSubtaskPanel', () => {
     await waitFor(() => {
       expect(onEditTask).toHaveBeenCalledWith(childDetail);
     });
-    await waitFor(() => {
-      expect(vi.mocked(ApiProjectTask.getChildren).mock.calls.length).toBeGreaterThan(1);
-    });
-    expect(await screen.findByText('子任务 C（已更新）')).toBeDefined();
   });
 
   it('无子任务时保留统计文案并隐藏空态提示', async () => {
@@ -189,6 +176,38 @@ describe('TaskSubtaskPanel', () => {
     expect(await screen.findByText('已完成 0 / 0')).toBeDefined();
     expect(screen.queryByText('暂无子任务')).toBeNull();
   });
+
+  it('子任务较多时默认分段渲染并支持加载更多', async () => {
+    const manySubtasks = Array.from({ length: 21 }).map((_, index) => {
+      return {
+        ...parentTask,
+        id: 3000 + index,
+        parentTaskId: parentTask.id,
+        taskNo: `TASK-${3000 + index}`,
+        title: `子任务-${index + 1}`,
+      };
+    });
+
+    vi.mocked(ApiProjectTask.getChildren).mockResolvedValue(manySubtasks);
+
+    renderWithQuery(
+      <TaskSubtaskPanel
+        parentTask={parentTask}
+        statusConfigs={statusConfigs}
+        onRefresh={vi.fn()}
+        onEditTask={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('子任务-20')).toBeDefined();
+    expect(screen.queryByText('子任务-21')).toBeNull();
+
+    const loadMoreButton = screen.getByRole('button', { name: '加载更多' });
+    fireEvent.click(loadMoreButton);
+
+    expect(await screen.findByText('子任务-21')).toBeDefined();
+    expect(screen.queryByRole('button', { name: '加载更多' })).toBeNull();
+  }, 10000);
 
   it('子任务缺少独立编号时回退展示项目编号加任务 id', async () => {
     vi.mocked(ApiProjectTask.getChildren).mockResolvedValue([

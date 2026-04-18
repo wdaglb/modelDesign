@@ -16,6 +16,7 @@ import KModal from '@/components/KModal';
 import { modalContext } from '@/components/KModal/Modal.tsx';
 import queryKey from '@/constants/queryKey';
 import useAuthStore from '@/store/auth.ts';
+import { copyTextToClipboard } from '@/utils';
 
 /**
  * 密码录入模式。
@@ -126,7 +127,7 @@ const CreateUserForm = () => {
       return;
     }
 
-    await navigator.clipboard.writeText(result.password);
+    await copyTextToClipboard(result.password);
     message.success('初始密码已复制');
   };
 

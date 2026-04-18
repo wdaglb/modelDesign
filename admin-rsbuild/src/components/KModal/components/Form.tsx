@@ -29,8 +29,9 @@ const Form = (props: Props) => {
         target.closest('.ant-picker-dropdown') ||
         target.closest('.ant-select-dropdown'),
     );
+    const isMarkdownEditor = Boolean(target.closest('.md-editor'));
 
-    if (isTextArea || isButton || isSelectLike) {
+    if (isTextArea || isButton || isSelectLike || isMarkdownEditor) {
       return;
     }
 

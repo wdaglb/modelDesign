@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rsbuild build",
+    "generate:resource-api-profile": "node scripts/generate-resource-api-profile.mjs",
+    "build": "npm run generate:resource-api-profile && rsbuild build",
     "dev": "rsbuild dev",
     "format": "prettier --write .",
     "lint": "eslint .",
     "preview": "rsbuild preview",
     "dev:rsdoctor": "cross-env RSDOCTOR=true rsbuild dev",
-    "build:rsdoctor": "cross-env RSDOCTOR=true rsbuild build",
+    "build:rsdoctor": "npm run generate:resource-api-profile && cross-env RSDOCTOR=true rsbuild build",
     "test": "vitest",
     "test:run": "vitest run"
   },

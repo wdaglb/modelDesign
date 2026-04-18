@@ -26,9 +26,11 @@ import { KTable } from '@/components';
 import { useKDrawer } from '@/components/KDrawer';
 import { useKModal } from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
+import { PERMISSION_RESOURCE } from '@/constants/permission';
 import useAutoRefresh from '@/hooks/useAutoRefresh';
 import { openTaskPreviewDrawer } from '@/routes/agile-board/#previewDrawerService';
 import { openTaskModal } from '@/service/taskModalService.tsx';
+import useAuthStore from '@/store/auth.ts';
 
 /**
  * 优先级颜色映射。
@@ -69,6 +71,7 @@ const TodoTable = () => {
   const drawer = useKDrawer();
   const modal = useKModal();
   const queryClient = useQueryClient();
+  const currentInfo = useAuthStore((state) => state.currentInfo);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<TodoPriority | undefined>();
@@ -127,6 +130,26 @@ const TodoTable = () => {
       }
 
       message.error('打开任务详情失败，请稍后重试');
+    }
+  };
+
+  /**
+   * 打开新建任务弹窗并在提交后刷新待办列表。
+   */
+  const handleCreateTask = async () => {
+    try {
+      const submitted = await openTaskModal(modal, {
+        statusConfigs,
+        defaultAssigneeId: currentInfo?.userId,
+      });
+
+      if (!submitted) {
+        return;
+      }
+
+      await refreshTaskRelatedQueries();
+    } catch {
+      message.error('打开新建任务弹窗失败，请稍后重试');
     }
   };
 
@@ -312,6 +335,18 @@ const TodoTable = () => {
                 setStatus(value);
               }}
             />
+          </Space>
+
+          <Space>
+            <KTable.Button
+              type={'primary'}
+              permissionCode={PERMISSION_RESOURCE.projectTaskCreate}
+              onClick={async () => {
+                await handleCreateTask();
+              }}
+            >
+              新建任务
+            </KTable.Button>
           </Space>
         </Flex>
       }

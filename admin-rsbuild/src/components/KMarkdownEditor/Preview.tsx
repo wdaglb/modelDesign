@@ -113,6 +113,12 @@ const KMarkdownPreview = (props: KMarkdownPreviewProps) => {
           preview={{
             visible: previewVisible,
             current: previewCurrent,
+            /**
+             * 受控模式下同步当前索引，确保预览弹窗内可正常切换上一张/下一张。
+             */
+            onChange: (current) => {
+              setPreviewCurrent(current);
+            },
             onVisibleChange: (visible) => {
               setPreviewVisible(visible);
             },

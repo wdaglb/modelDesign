@@ -96,7 +96,7 @@ describe('BoardColumn', () => {
     expect(screen.queryByText('暂无子任务')).toBeNull();
   });
 
-  it('父任务有子任务时继续渲染子任务区', () => {
+  it('父任务有子任务时默认收起子任务内容', () => {
     const { container } = render(
       <DndContext>
         <BoardColumn
@@ -109,8 +109,9 @@ describe('BoardColumn', () => {
       </DndContext>,
     );
 
-    expect(container.querySelector('[data-subtask-list="true"]')).toBeTruthy();
-    expect(screen.getByText('子任务 A')).toBeDefined();
+    expect(screen.getByRole('button', { name: '展开子任务' })).toBeDefined();
+    expect(container.querySelector('[data-subtask-list="true"]')).toBeNull();
+    expect(screen.queryByText('子任务 A')).toBeNull();
   });
 
   it('子任务列表支持展开与收起', async () => {
@@ -127,20 +128,19 @@ describe('BoardColumn', () => {
       </DndContext>,
     );
 
+    await user.click(screen.getByRole('button', { name: '展开子任务' }));
+
+    expect(container.querySelector('[data-subtask-list="true"]')).toBeTruthy();
     expect(screen.getByText('子任务 A')).toBeDefined();
 
     await user.click(screen.getByRole('button', { name: '收起子任务' }));
 
     expect(container.querySelector('[data-subtask-list="true"]')).toBeNull();
     expect(screen.queryByText('子任务 A')).toBeNull();
-
-    await user.click(screen.getByRole('button', { name: '展开子任务' }));
-
-    expect(container.querySelector('[data-subtask-list="true"]')).toBeTruthy();
-    expect(screen.getByText('子任务 A')).toBeDefined();
   });
 
-  it('子任务列表使用更明显的左侧缩进', () => {
+  it('子任务列表使用更明显的左侧缩进', async () => {
+    const user = userEvent.setup();
     const { container } = render(
       <DndContext>
         <BoardColumn
@@ -152,6 +152,8 @@ describe('BoardColumn', () => {
         />
       </DndContext>,
     );
+
+    await user.click(screen.getByRole('button', { name: '展开子任务' }));
 
     const subtaskList = container.querySelector('[data-subtask-list="true"]');
 

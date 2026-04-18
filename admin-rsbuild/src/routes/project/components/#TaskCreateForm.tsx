@@ -20,9 +20,16 @@ import { KMarkdownEditor, UserSelect } from '@/components';
 import KModal from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
 
+import {
+  getRememberedProjectIdFromStorage,
+  saveRememberedProjectIdToStorage,
+} from './#taskCreateFormHelper';
+
 interface TaskCreateFormProps {
   /** 默认项目 ID。 */
   projectId?: number;
+  /** 新建时默认负责人 ID。 */
+  defaultAssigneeId?: number;
   /** 状态配置列表。 */
   statusConfigs?: TaskStatusConfig[];
   /** 编辑时传入的任务详情。 */
@@ -145,10 +152,13 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
       layout={'vertical'}
       style={{ height: '100%' }}
       initialValues={{
-        projectId: props.task?.projectId ?? props.projectId,
+        projectId:
+          props.task?.projectId ??
+          props.projectId ??
+          getRememberedProjectIdFromStorage(),
         title: props.task?.title,
         description: props.task?.description,
-        assigneeId: props.task?.assigneeId,
+        assigneeId: props.task?.assigneeId ?? props.defaultAssigneeId,
         status: props.task?.status ?? TaskStatus.Todo,
         priority: props.task?.priority ?? TaskPriority.Low,
         workDays: props.task?.workDays,
@@ -185,6 +195,8 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
           projectId: values.projectId,
           ...(params as Omit<CreateProjectTaskParams, 'projectId'>),
         });
+
+        saveRememberedProjectIdToStorage(values.projectId);
         return true;
       }}
     >

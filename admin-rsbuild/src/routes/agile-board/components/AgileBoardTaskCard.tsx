@@ -1,4 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
+import { memo } from 'react';
 
 import { TaskCard } from '@/components';
 import { TaskPriority } from '@/api/modules/project-task.types';
@@ -34,7 +35,7 @@ interface AgileBoardTaskCardPreviewProps {
  * - 拖拽语义仅保留在场景层，通用 TaskCard 不感知 dnd-kit；
  * - 数据经适配层转换后传入通用卡片，减少业务重复渲染逻辑。
  */
-const AgileBoardTaskCard = (props: AgileBoardTaskCardProps) => {
+const AgileBoardTaskCard = memo((props: AgileBoardTaskCardProps) => {
   const adaptedTask = mapAgileBoardTaskToTaskCardTask(props.task);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: getTaskDragId(props.task.id),
@@ -69,7 +70,9 @@ const AgileBoardTaskCard = (props: AgileBoardTaskCardProps) => {
       />
     </TaskCardShell>
   );
-};
+});
+
+AgileBoardTaskCard.displayName = 'AgileBoardTaskCard';
 
 /**
  * 看板拖拽浮层卡片，复用场景适配数据与通用渲染能力。

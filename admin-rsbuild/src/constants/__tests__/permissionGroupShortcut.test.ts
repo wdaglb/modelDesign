@@ -51,6 +51,9 @@ describe('permissionGroupShortcut', () => {
     ).toEqual([
       '/project/list',
       '/project/detail',
+      '/project/create',
+      '/project/deleted',
+      '/project/edit',
       '/project/task/my-todo',
       '/project/task/list',
       '/project/task/board',
@@ -62,10 +65,18 @@ describe('permissionGroupShortcut', () => {
     ]);
   });
 
-  it('should collect agile board api resources from selected menu resource', () => {
+  it('should collect agile board page level api resources from selected menu resource', () => {
     expect(
       collectAutoApiResourcesByMenuResources([PERMISSION_RESOURCE.agileBoard]),
-    ).toEqual(['/project/task/agile-board']);
+    ).toEqual([
+      '/project/task/agile-board',
+      '/project/list',
+      '/project/task-status/list',
+      '/project/task/children/batch',
+      '/project/task/detail',
+      '/project/task/detail/by-code',
+      '/project/task/edit',
+    ]);
   });
 
   it('should collect project operation api resources from selected button resources', () => {
@@ -90,11 +101,19 @@ describe('permissionGroupShortcut', () => {
   it('should build usage count map for project resources', () => {
     const usageCountMap = buildShortcutApiUsageCountMap();
 
-    expect(usageCountMap[PERMISSION_RESOURCE.project]).toBe(2);
-    expect(usageCountMap[PERMISSION_RESOURCE.agileBoard]).toBe(1);
+    expect(usageCountMap[PERMISSION_RESOURCE.project]).toBe(5);
+    expect(usageCountMap[PERMISSION_RESOURCE.agileBoard]).toBe(7);
     expect(usageCountMap[PERMISSION_RESOURCE.projectTask]).toBe(8);
     expect(usageCountMap[PERMISSION_RESOURCE.projectMemberManage]).toBe(3);
     expect(usageCountMap[PERMISSION_RESOURCE.projectTaskTagManage]).toBe(4);
+  });
+
+  it('should keep generated menu profile wider than button profile fallback', () => {
+    const usageCountMap = buildShortcutApiUsageCountMap();
+
+    expect(usageCountMap[PERMISSION_RESOURCE.systemRole]).toBe(13);
+    expect(usageCountMap[PERMISSION_RESOURCE.systemRolePermission]).toBe(5);
+    expect(usageCountMap[PERMISSION_RESOURCE.systemPermissionGroupResource]).toBe(4);
   });
 
   it('should collect auto api resources directly from selected menu resources', () => {
@@ -111,11 +130,4 @@ describe('permissionGroupShortcut', () => {
     ]);
   });
 
-  it('should build usage count map with deduplicated api resources', () => {
-    const usageCountMap = buildShortcutApiUsageCountMap();
-
-    expect(usageCountMap[PERMISSION_RESOURCE.systemRolePermission]).toBe(5);
-    expect(usageCountMap[PERMISSION_RESOURCE.systemRole]).toBe(1);
-    expect(usageCountMap[PERMISSION_RESOURCE.systemPermissionGroupResource]).toBe(4);
-  });
 });

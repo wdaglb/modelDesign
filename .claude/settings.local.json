@@ -6,7 +6,9 @@
       "Bash(pnpm add:*)",
       "Bash(npx vitest:*)",
       "Bash(pnpm build:*)",
-      "Bash(mvn:*)"
+      "Bash(mvn:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
@@ -15,12 +15,12 @@ import { ApiProjectTask } from '@/api';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail, TaskStatusCode } from '@/api/modules/project-task.types';
 import queryKey from '@/constants/queryKey';
+import { copyTextToClipboard } from '@/utils';
 
 import {
   getBoardStatusText,
   getTaskAssigneeText,
   buildAgileBoardTaskShareUrl,
-  copyTextToClipboard,
   resolveTaskNumberText,
 } from './#helper';
 import TaskPreviewSection from './#TaskPreviewSection';
@@ -54,6 +54,17 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
   const [title, setTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number>();
+  const [visibleSubtaskCount, setVisibleSubtaskCount] = useState(20);
+
+  /**
+   * 子任务列表分段渲染首批数量。
+   */
+  const SUBTASK_INITIAL_VISIBLE_COUNT = 20;
+
+  /**
+   * 每次点击加载更多时追加的子任务数量。
+   */
+  const SUBTASK_LOAD_MORE_COUNT = 20;
 
   const subtaskQuery = useQuery({
     queryKey: queryKey.project.taskChildren(props.parentTask.id),
@@ -88,6 +99,31 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
 
   const totalCount = subtaskQuery.data?.length ?? 0;
   const canCreate = Boolean(title.trim()) && Boolean(initialSubtaskStatus) && !creating;
+
+  /**
+   * 当前可见的子任务集合，避免一次性渲染全部子任务卡片。
+   */
+  const visibleSubtasks = useMemo(() => {
+    const allSubtasks = subtaskQuery.data ?? [];
+
+    return allSubtasks.slice(0, visibleSubtaskCount);
+  }, [subtaskQuery.data, visibleSubtaskCount]);
+
+  /**
+   * 是否还有可继续加载的子任务。
+   */
+  const hasMoreSubtasks = useMemo(() => {
+    const allSubtasks = subtaskQuery.data ?? [];
+
+    return allSubtasks.length > visibleSubtaskCount;
+  }, [subtaskQuery.data, visibleSubtaskCount]);
+
+  /**
+   * 切换父任务时重置可见数量，保证每次打开抽屉的首屏成本稳定。
+   */
+  useEffect(() => {
+    setVisibleSubtaskCount(SUBTASK_INITIAL_VISIBLE_COUNT);
+  }, [props.parentTask.id]);
 
   const handleQuickCreate = async () => {
     if (!canCreate || !initialSubtaskStatus) {
@@ -159,6 +195,15 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
     }
   };
 
+  /**
+   * 继续加载更多子任务，分摊单次渲染压力。
+   */
+  const handleLoadMoreSubtasks = () => {
+    setVisibleSubtaskCount((previousCount) => {
+      return previousCount + SUBTASK_LOAD_MORE_COUNT;
+    });
+  };
+
   return (
     <Space
       orientation={'vertical'}
@@ -214,8 +259,8 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
             />
           ) : null}
 
-          {!subtaskQuery.isLoading && !subtaskQuery.isError && subtaskQuery.data?.length
-            ? subtaskQuery.data.map((item) => {
+          {!subtaskQuery.isLoading && !subtaskQuery.isError && visibleSubtasks.length
+            ? visibleSubtasks.map((item) => {
                 const taskNumberText = resolveTaskNumberText(item);
                 return (
                   <Card
@@ -294,6 +339,16 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
                 );
               })
             : null}
+
+          {!subtaskQuery.isLoading && !subtaskQuery.isError && hasMoreSubtasks ? (
+            <Button
+              size={'small'}
+              disabled={editingTaskId !== undefined}
+              onClick={handleLoadMoreSubtasks}
+            >
+              加载更多
+            </Button>
+          ) : null}
         </Space>
       </TaskPreviewSection>
     </Space>
