@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +29,7 @@ class ProjectTaskViewAssemblerTest {
         ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
         ProjectTaskDependencyService dependencyService = mock(ProjectTaskDependencyService.class);
         ProjectTaskTagBindingService tagBindingService = mock(ProjectTaskTagBindingService.class);
+        ProjectTaskDynamicService taskDynamicService = mock(ProjectTaskDynamicService.class);
         TaskStatusConfigService taskStatusConfigService = mock(TaskStatusConfigService.class);
         ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport = mock(ProjectTaskTimeMetricsSupport.class);
         ProjectTaskViewAssembler assembler = new ProjectTaskViewAssembler(
@@ -36,6 +38,7 @@ class ProjectTaskViewAssemblerTest {
                 projectTaskMapper,
                 dependencyService,
                 tagBindingService,
+                taskDynamicService,
                 taskStatusConfigService,
                 projectTaskTimeMetricsSupport
         );
@@ -64,6 +67,8 @@ class ProjectTaskViewAssemblerTest {
                 .thenReturn(Collections.emptyMap());
         when(tagBindingService.findTagMapByTaskIds(any()))
                 .thenReturn(Collections.emptyMap());
+        when(taskDynamicService.findLatestSummaryMapByTaskIds(any()))
+                .thenReturn(Map.of(1L, "最新动态摘要"));
         when(taskStatusConfigService.getCompletedStatusCode()).thenReturn("done");
         when(projectTaskTimeMetricsSupport.calculateElapsedDays(any(), any()))
                 .thenReturn(null);
@@ -73,5 +78,6 @@ class ProjectTaskViewAssemblerTest {
         assertEquals(1, result.size());
         assertEquals("TASK", result.get(0).getProjectCode());
         assertEquals("任务平台", result.get(0).getProjectName());
+        assertEquals("最新动态摘要", result.get(0).getLatestDynamicSummary());
     }
 }

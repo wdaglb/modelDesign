@@ -205,9 +205,24 @@ const TodoTable = () => {
       ellipsis: {
         showTitle: false,
       },
-      render: (value: TodoItem['title']) => (
-        <Typography.Text ellipsis={{ tooltip: value }}>{value}</Typography.Text>
-      ),
+      render: (_value, record) => {
+        return (
+          <Space direction={'vertical'} size={2} style={{ width: '100%' }}>
+            <Typography.Text ellipsis={{ tooltip: record.title }}>
+              {record.title}
+            </Typography.Text>
+            {record.latestDynamicSummary ? (
+              <Typography.Text
+                type={'secondary'}
+                ellipsis={{ tooltip: record.latestDynamicSummary }}
+                style={{ fontSize: 12 }}
+              >
+                {record.latestDynamicSummary}
+              </Typography.Text>
+            ) : null}
+          </Space>
+        );
+      },
     },
     {
       title: '接收时间',
@@ -265,7 +280,9 @@ const TodoTable = () => {
   return (
     <KTable<TodoItem>
       queryKey={todoQueryKey}
-      request={(requestParams) => ApiTodo.getList(requestParams) as Promise<any>}
+      request={(requestParams) =>
+        ApiTodo.getList(requestParams) as Promise<any>
+      }
       params={params}
       columns={columns}
       onRow={(record) => {

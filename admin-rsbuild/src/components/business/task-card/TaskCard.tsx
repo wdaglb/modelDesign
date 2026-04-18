@@ -9,6 +9,7 @@ import TaskCardPriorityTag, {
 import type { TaskCardProps, TaskCardTask } from './TaskCard.types';
 import {
   TaskCardContainer,
+  TaskDynamicAlert,
   TaskCardHeader,
   TaskCardRoot,
   TaskCardStack,
@@ -116,6 +117,28 @@ function getTaskNumberDisplayText(task: TaskCardTask) {
 }
 
 /**
+ * 任务卡片中的最新动态摘要。
+ *
+ * 摘要只做空值规整，具体截断与省略交给样式层统一处理，
+ * 这样敏捷面板卡片与其它任务卡片场景可以共用同一份文案。
+ *
+ * @param task 当前任务数据
+ * @returns 动态摘要
+ */
+function getTaskLatestDynamicSummary(task: TaskCardTask) {
+  if (!task.latestDynamicSummary) {
+    return undefined;
+  }
+
+  const normalizedSummary = task.latestDynamicSummary.trim();
+  if (!normalizedSummary) {
+    return undefined;
+  }
+
+  return normalizedSummary;
+}
+
+/**
  * 解析卡片内容间距。
  *
  * @param isCompact 是否为紧凑模式
@@ -139,6 +162,10 @@ const TaskCard = (props: TaskCardProps) => {
   const rootProps = props.rootProps;
   const isCompact = Boolean(props.compact || props.isSubtask);
   const shouldHideMeta = Boolean(props.compact) && !props.isSubtask;
+  /**
+   * 仅子任务完成态展示单行删除线，父任务保持原样。
+   */
+  const isCompletedSubtask = Boolean(props.isSubtask && props.task.isCompleted);
 
   let hoverable = true;
   if (props.isOverlay) {
@@ -151,9 +178,7 @@ const TaskCard = (props: TaskCardProps) => {
    * @param event 点击事件
    * @returns Promise<void>
    */
-  const handleInternalRootClick = async (
-    event: MouseEvent<HTMLDivElement>,
-  ) => {
+  const handleInternalRootClick = async (event: MouseEvent<HTMLDivElement>) => {
     if (props.isOverlay) {
       return;
     }
@@ -202,6 +227,7 @@ const TaskCard = (props: TaskCardProps) => {
   const workDaysText = getTaskWorkDaysText(props.task);
   const taskNumberText = getTaskNumberText(props.task);
   const taskNumberDisplayText = getTaskNumberDisplayText(props.task);
+  const latestDynamicSummary = getTaskLatestDynamicSummary(props.task);
   const stackSize = resolveCardStackSize(isCompact);
   const dataAttributes: Record<string, string> = {
     'data-task-card-root': 'true',
@@ -215,12 +241,18 @@ const TaskCard = (props: TaskCardProps) => {
     dataAttributes['data-task-card-subtask'] = 'true';
   }
 
+  if (isCompletedSubtask) {
+    dataAttributes['data-task-card-completed-subtask'] = 'true';
+  }
+
   /**
    * 点击任务编号时复制内容并阻断卡片点击事件。
    *
    * @param params 点击参数
    */
-  const handleCopyTaskNumberClick = async (params: CopyTaskNumberClickParams) => {
+  const handleCopyTaskNumberClick = async (
+    params: CopyTaskNumberClickParams,
+  ) => {
     params.event.preventDefault();
     params.event.stopPropagation();
 
@@ -323,6 +355,14 @@ const TaskCard = (props: TaskCardProps) => {
           size={stackSize}
           styles={{ item: { width: '100%' } }}
         >
+          {latestDynamicSummary ? (
+            <TaskDynamicAlert
+              type={'warning'}
+              showIcon={false}
+              message={latestDynamicSummary}
+            />
+          ) : null}
+
           <TaskCardHeader>
             {headerLeftNode}
             <TaskPrioritySlot>
@@ -339,6 +379,7 @@ const TaskCard = (props: TaskCardProps) => {
             strong
             $compact={Boolean(props.compact)}
             $isSubtask={Boolean(props.isSubtask)}
+            $isCompletedSubtask={isCompletedSubtask}
           >
             {props.task.title}
           </TaskTitleText>

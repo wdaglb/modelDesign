@@ -1,4 +1,4 @@
-import { Card, Space, Typography } from 'antd';
+import { Alert, Card, Space, Typography } from 'antd';
 import styled from 'styled-components';
 
 function resolveTaskCardShadow(isOverlay: boolean, disabled: boolean) {
@@ -49,7 +49,15 @@ function resolveTitleLineHeight(isCompact: boolean, isSubtask: boolean) {
   return '22px';
 }
 
-function resolveTitleMinHeight(isCompact: boolean, isSubtask: boolean) {
+function resolveTitleMinHeight(
+  isCompact: boolean,
+  isSubtask: boolean,
+  isCompletedSubtask: boolean,
+) {
+  if (isCompletedSubtask) {
+    return 20;
+  }
+
   if (isCompact || isSubtask) {
     return 40;
   }
@@ -91,6 +99,33 @@ export const TaskCardContainer = styled(Card)<{
  */
 export const TaskCardStack = styled(Space)`
   width: 100%;
+`;
+
+/**
+ * 任务动态告警条。
+ *
+ * Alert 没有 size 属性，因此这里仅补最小样式把它压缩成单行提示条。
+ */
+export const TaskDynamicAlert = styled(Alert)`
+  border: 1px solid #ffd591;
+  border-radius: 8px;
+  background: #fff7e6;
+  padding: 6px 10px;
+
+  .ant-alert-content {
+    min-width: 0;
+  }
+
+  .ant-alert-message {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    color: #ad4e00;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 /**
@@ -139,19 +174,49 @@ export const TaskHeaderText = styled(Typography.Text)`
 export const TaskTitleText = styled(Typography.Text)<{
   $compact: boolean;
   $isSubtask: boolean;
+  $isCompletedSubtask: boolean;
 }>`
   display: -webkit-box;
   min-height: ${(props) =>
-    resolveTitleMinHeight(props.$compact, props.$isSubtask)}px;
+    resolveTitleMinHeight(
+      props.$compact,
+      props.$isSubtask,
+      props.$isCompletedSubtask,
+    )}px;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: ${(props) => {
+    if (props.$isCompletedSubtask) {
+      return 1;
+    }
+
+    return 2;
+  }};
   font-size: ${(props) =>
     resolveTitleFontSize(props.$compact, props.$isSubtask)}px;
   line-height: ${(props) =>
     resolveTitleLineHeight(props.$compact, props.$isSubtask)};
-  white-space: normal;
-  word-break: break-word;
+  white-space: ${(props) => {
+    if (props.$isCompletedSubtask) {
+      return 'nowrap';
+    }
+
+    return 'normal';
+  }};
+  word-break: ${(props) => {
+    if (props.$isCompletedSubtask) {
+      return 'normal';
+    }
+
+    return 'break-word';
+  }};
+  text-decoration: ${(props) => {
+    if (props.$isCompletedSubtask) {
+      return 'line-through';
+    }
+
+    return 'none';
+  }};
 `;
 
 /**

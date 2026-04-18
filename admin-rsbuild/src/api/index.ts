@@ -6,6 +6,7 @@ import * as ApiPermissionResource from './modules/permission-resource';
 import * as ApiPosition from './modules/position';
 import * as ApiProjectMember from './modules/project-member';
 import * as ApiProjectTaskChangeLog from './modules/project-task-change-log';
+import * as ApiProjectTaskDynamic from './modules/project-task-dynamic';
 import * as ApiProjectTask from './modules/project-task';
 import * as ApiProjectTaskStatus from './modules/project-task-status';
 import * as ApiMenu from './modules/menu';
@@ -29,6 +30,7 @@ export {
   ApiProject,
   ApiProjectMember,
   ApiProjectTaskChangeLog,
+  ApiProjectTaskDynamic,
   ApiProjectTask,
   ApiProjectTaskStatus,
   ApiQywork,

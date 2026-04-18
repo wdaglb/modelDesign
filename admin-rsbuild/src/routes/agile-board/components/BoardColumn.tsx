@@ -9,7 +9,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { TaskPriority } from '@/api/modules/project-task.types';
+import {
+  TaskPriority,
+  type TaskStatusCode,
+} from '@/api/modules/project-task.types';
 
 import { getColumnDragId, getColumnSubtitle } from '../#helper';
 import type { AgileBoardColumnMeta, AgileBoardTask } from '../#types';
@@ -35,6 +38,7 @@ interface AgileBoardColumnProps {
   onPreview: (task: AgileBoardTask) => Promise<void>;
   tasks: AgileBoardTask[];
   subtaskMap: Map<number, AgileBoardTask[]>;
+  completedStatusSet: ReadonlySet<TaskStatusCode>;
   onPriorityChange: (
     task: AgileBoardTask,
     priority: TaskPriority,
@@ -84,6 +88,7 @@ const AgileBoardColumn = memo((props: AgileBoardColumnProps) => {
           <SubtaskList
             disabled={props.disabled}
             subtasks={subtasks}
+            completedStatusSet={props.completedStatusSet}
             onPreview={props.onPreview}
             onPriorityChange={props.onPriorityChange}
           />
@@ -109,6 +114,7 @@ const AgileBoardColumn = memo((props: AgileBoardColumnProps) => {
       props.onPreview,
       props.onPriorityChange,
       props.subtaskMap,
+      props.completedStatusSet,
     ],
   );
 

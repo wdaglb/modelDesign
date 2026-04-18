@@ -158,7 +158,11 @@ export const PERMISSION_GROUP_SHORTCUTS: PermissionGroupShortcut[] = [
     code: 'AGILE_BOARD_PAGE_DEPENDENCIES',
     name: '敏捷面板页面依赖接口',
     triggerResources: [PERMISSION_RESOURCE.agileBoard],
-    apiResources: ['/project/task/agile-board'],
+    apiResources: [
+      '/project/task/agile-board',
+      '/project/task/dynamic/list',
+      '/project/task/dynamic/create',
+    ],
     description: '进入敏捷面板页面后需要的基础接口。',
   },
   {
@@ -174,6 +178,8 @@ export const PERMISSION_GROUP_SHORTCUTS: PermissionGroupShortcut[] = [
       '/project/task/children',
       '/project/task/children/batch',
       '/project/task/change-log/list',
+      '/project/task/dynamic/list',
+      '/project/task/dynamic/create',
     ],
     description: '进入项目任务页面、我的待办与敏捷面板后需要的基础任务接口。',
   },
@@ -202,7 +208,11 @@ export const PERMISSION_GROUP_SHORTCUTS: PermissionGroupShortcut[] = [
     code: 'PROJECT_MEMBER_DEPENDENCIES',
     name: '项目成员管理依赖接口',
     triggerResources: [PERMISSION_RESOURCE.projectMemberManage],
-    apiResources: ['/project/member/list', '/project/member/add', '/project/member/delete'],
+    apiResources: [
+      '/project/member/list',
+      '/project/member/add',
+      '/project/member/delete',
+    ],
     description: '项目成员管理实际调用的接口。',
   },
   {
@@ -349,9 +359,11 @@ export function collectShortcutApiResources(
  */
 export function buildShortcutApiUsageCountMap() {
   return Object.fromEntries(
-    Array.from(buildResourceApiProfileMap().entries()).map(([resource, apiSet]) => {
-      return [resource, apiSet.size];
-    }),
+    Array.from(buildResourceApiProfileMap().entries()).map(
+      ([resource, apiSet]) => {
+        return [resource, apiSet.size];
+      },
+    ),
   );
 }
 

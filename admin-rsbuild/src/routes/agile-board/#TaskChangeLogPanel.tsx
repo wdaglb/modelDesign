@@ -1,9 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Card, Empty, Skeleton, Space, Typography } from 'antd';
+import { Alert, Empty, Skeleton, Typography } from 'antd';
 
 import { ApiProjectTaskChangeLog } from '@/api';
 import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
 import queryKey from '@/constants/queryKey';
+
+import {
+  TaskPreviewChangeBlock,
+  TaskPreviewChangeHeader,
+  TaskPreviewChangeLogCard,
+  TaskPreviewChangeLogList,
+  TaskPreviewChangeValue,
+  TaskPreviewOperatorMeta,
+  TaskPreviewVerticalStack,
+} from './styles/task-preview-drawer.styled';
 
 interface TaskChangeLogPanelProps {
   /**
@@ -56,12 +66,7 @@ const TaskChangeLogPanel = (props: TaskChangeLogPanelProps) => {
   }
 
   return (
-    <Space
-      direction={'vertical'}
-      size={12}
-      style={{ width: '100%' }}
-      styles={{ item: { width: '100%' } }}
-    >
+    <TaskPreviewChangeLogList>
       {changeLogQuery.data.items.map((item) => {
         return <TaskChangeLogCard key={item.id} item={item} />;
       })}
@@ -69,7 +74,7 @@ const TaskChangeLogPanel = (props: TaskChangeLogPanelProps) => {
       <Typography.Text type={'secondary'} style={{ fontSize: 12 }}>
         仅展示最近 {changeLogQuery.data.items.length} 条变更记录。
       </Typography.Text>
-    </Space>
+    </TaskPreviewChangeLogList>
   );
 };
 
@@ -85,48 +90,32 @@ interface TaskChangeLogCardProps {
  */
 const TaskChangeLogCard = (props: TaskChangeLogCardProps) => {
   return (
-    <Card
-      size={'small'}
-      styles={{
-        body: {
-          padding: 16,
-        },
-      }}
-    >
-      <Space
-        direction={'vertical'}
-        size={10}
-        style={{ width: '100%' }}
-        styles={{ item: { width: '100%' } }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
+    <TaskPreviewChangeLogCard size={'small'}>
+      <TaskPreviewVerticalStack>
+        <TaskPreviewChangeHeader>
           <div>
             <Typography.Text strong>{props.item.operationText}</Typography.Text>
-            <div style={{ marginTop: 4 }}>
+            <TaskPreviewOperatorMeta>
               <Typography.Text type={'secondary'} style={{ fontSize: 12 }}>
                 {props.item.operatorName}
               </Typography.Text>
-            </div>
+            </TaskPreviewOperatorMeta>
           </div>
 
           <Typography.Text type={'secondary'} style={{ fontSize: 12 }}>
             {props.item.createdAt}
           </Typography.Text>
-        </div>
+        </TaskPreviewChangeHeader>
 
         {renderChangeContent(props.item)}
-      </Space>
-    </Card>
+      </TaskPreviewVerticalStack>
+    </TaskPreviewChangeLogCard>
   );
 };
 
+/**
+ * 渲染单条变更内容。
+ */
 function renderChangeContent(item: ProjectTaskChangeLogItem) {
   if (!item.changes.length) {
     return (
@@ -137,38 +126,29 @@ function renderChangeContent(item: ProjectTaskChangeLogItem) {
   }
 
   return (
-    <Space
-      direction={'vertical'}
-      size={8}
-      style={{ width: '100%' }}
-      styles={{ item: { width: '100%' } }}
-    >
+    <TaskPreviewVerticalStack>
       {item.changes.map((change, index) => {
         return (
-          <div
-            key={`${item.id}-${change.field}-${index}`}
-            style={{
-              padding: '10px 12px',
-              borderRadius: 12,
-              background: 'rgba(15, 23, 42, 0.03)',
-            }}
-          >
+          <TaskPreviewChangeBlock key={`${item.id}-${change.field}-${index}`}>
             <Typography.Text strong style={{ fontSize: 13 }}>
               {change.label}
             </Typography.Text>
-            <div style={{ marginTop: 6 }}>
+            <TaskPreviewChangeValue>
               <Typography.Text type={'secondary'} style={{ fontSize: 12 }}>
                 {formatChangeValue(change.beforeValue)} →{' '}
                 {formatChangeValue(change.afterValue)}
               </Typography.Text>
-            </div>
-          </div>
+            </TaskPreviewChangeValue>
+          </TaskPreviewChangeBlock>
         );
       })}
-    </Space>
+    </TaskPreviewVerticalStack>
   );
 }
 
+/**
+ * 获取无明细变更时的展示文案。
+ */
 function getEmptyChangeText(item: ProjectTaskChangeLogItem) {
   if (item.operationType === 'delete') {
     return '任务已删除';
@@ -181,6 +161,9 @@ function getEmptyChangeText(item: ProjectTaskChangeLogItem) {
   return '本次操作无明细变更';
 }
 
+/**
+ * 格式化变更值展示。
+ */
 function formatChangeValue(value?: string) {
   if (!value) {
     return '-';

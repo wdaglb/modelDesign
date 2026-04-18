@@ -268,6 +268,8 @@ class ProjectTaskReadServiceTest {
         AuthUserApi authUserApi = mock(AuthUserApi.class);
         ProjectMapper projectMapper = mock(ProjectMapper.class);
         ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
+        ProjectTaskDynamicService projectTaskDynamicService =
+                mock(ProjectTaskDynamicService.class);
 
         ProjectTaskReadService service = new ProjectTaskReadService(
                 authCurrentUserApi,
@@ -276,7 +278,8 @@ class ProjectTaskReadServiceTest {
                 projectMapper,
                 projectTaskMapper,
                 mock(ProjectTaskGuardService.class),
-                mock(ProjectTaskViewAssembler.class)
+                mock(ProjectTaskViewAssembler.class),
+                projectTaskDynamicService
         );
 
         when(authCurrentUserApi.getCurrentUser()).thenReturn(AuthCurrentUserDto.builder()
@@ -332,6 +335,13 @@ class ProjectTaskReadServiceTest {
                 AuthUserSimpleDto.builder().id(7L).nickname("发起人").build()
         ));
         when(projectMapper.selectBatchIds(any())).thenReturn(List.of(projectWithName));
+        when(projectTaskDynamicService.findLatestSummaryMapByTaskIds(any())).thenReturn(
+                Map.of(
+                        1L, "高优先级旧动态",
+                        2L, "高优先级新动态",
+                        3L, "低优先级最新动态"
+                )
+        );
 
         MyTodoListRequest request = new MyTodoListRequest();
         PageResponse<MyTodoItemVo> response = service.getMyTodoList(request);
@@ -341,6 +351,7 @@ class ProjectTaskReadServiceTest {
         assertEquals(2L, response.getItems().get(0).getId());
         assertEquals(1L, response.getItems().get(1).getId());
         assertEquals(3L, response.getItems().get(2).getId());
+        assertEquals("高优先级新动态", response.getItems().get(0).getLatestDynamicSummary());
     }
 
     private ProjectTaskReadService buildService(ProjectTaskMapper projectTaskMapper,
@@ -353,7 +364,8 @@ class ProjectTaskReadServiceTest {
                 mock(ProjectMapper.class),
                 projectTaskMapper,
                 mock(ProjectTaskGuardService.class),
-                projectTaskViewAssembler
+                projectTaskViewAssembler,
+                mock(ProjectTaskDynamicService.class)
         );
     }
 

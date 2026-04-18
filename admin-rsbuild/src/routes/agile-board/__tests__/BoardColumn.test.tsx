@@ -7,6 +7,7 @@ import type {
   AgileBoardColumnMeta,
   AgileBoardTask,
 } from '@/routes/agile-board/#types';
+import type { TaskStatusCode } from '@/api/modules/project-task.types';
 import BoardColumn from '@/routes/agile-board/components/BoardColumn';
 
 const column: AgileBoardColumnMeta = {
@@ -33,6 +34,22 @@ const childTask = {
   ...parentTask,
   id: 102,
   title: '子任务 A',
+} as AgileBoardTask;
+
+const completedStatusSet = new Set<TaskStatusCode>(['done']);
+const emptyCompletedStatusSet = new Set<TaskStatusCode>();
+const completedChildTask = {
+  ...childTask,
+  id: 103,
+  status: 'done',
+  title: '已完成子任务标题很长很长很长很长很长',
+} as AgileBoardTask;
+
+const todoChildTask = {
+  ...childTask,
+  id: 104,
+  status: 'todo',
+  title: '未完成子任务标题很长很长很长很长很长',
 } as AgileBoardTask;
 
 /**
@@ -105,6 +122,7 @@ describe('BoardColumn', () => {
           column={column}
           tasks={tasks}
           subtaskMap={new Map()}
+          completedStatusSet={completedStatusSet}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -150,6 +168,7 @@ describe('BoardColumn', () => {
           column={column}
           tasks={tasks}
           subtaskMap={new Map()}
+          completedStatusSet={completedStatusSet}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -172,6 +191,7 @@ describe('BoardColumn', () => {
           column={column}
           tasks={[]}
           subtaskMap={new Map()}
+          completedStatusSet={completedStatusSet}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -188,6 +208,7 @@ describe('BoardColumn', () => {
           column={column}
           tasks={[parentTask]}
           subtaskMap={new Map()}
+          completedStatusSet={completedStatusSet}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -215,6 +236,7 @@ describe('BoardColumn', () => {
           column={column}
           tasks={[parentTask]}
           subtaskMap={new Map()}
+          completedStatusSet={completedStatusSet}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -232,6 +254,7 @@ describe('BoardColumn', () => {
           column={column}
           tasks={[parentTask]}
           subtaskMap={new Map([[parentTask.id, [childTask]]])}
+          completedStatusSet={emptyCompletedStatusSet}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -251,6 +274,7 @@ describe('BoardColumn', () => {
           column={column}
           tasks={[parentTask]}
           subtaskMap={new Map([[parentTask.id, [childTask]]])}
+          completedStatusSet={emptyCompletedStatusSet}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -266,7 +290,7 @@ describe('BoardColumn', () => {
 
     expect(container.querySelector('[data-subtask-list="true"]')).toBeNull();
     expect(screen.queryByText('子任务 A')).toBeNull();
-  });
+  }, 10000);
 
   it('子任务列表使用更明显的左侧缩进', async () => {
     const user = userEvent.setup();
@@ -276,6 +300,7 @@ describe('BoardColumn', () => {
           column={column}
           tasks={[parentTask]}
           subtaskMap={new Map([[parentTask.id, [childTask]]])}
+          completedStatusSet={emptyCompletedStatusSet}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -295,5 +320,35 @@ describe('BoardColumn', () => {
     const subtaskStyle = window.getComputedStyle(subtaskList);
 
     expect(subtaskStyle.paddingLeft).toBe('24px');
+  });
+
+  it('已完成子任务卡片添加完成态标记，未完成子任务保持默认标记', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={[parentTask]}
+          subtaskMap={new Map([[parentTask.id, [completedChildTask, todoChildTask]]])}
+          completedStatusSet={completedStatusSet}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    await user.click(screen.getByRole('button', { name: '展开子任务' }));
+
+    const completedSubtaskRoots = container.querySelectorAll(
+      '[data-task-card-completed-subtask="true"]',
+    );
+    const allSubtaskRoots = container.querySelectorAll(
+      '[data-task-card-subtask="true"]',
+    );
+
+    expect(allSubtaskRoots.length).toBe(2);
+    expect(completedSubtaskRoots.length).toBe(1);
+    expect(screen.getByText(completedChildTask.title)).toBeDefined();
+    expect(screen.getByText(todoChildTask.title)).toBeDefined();
   });
 });

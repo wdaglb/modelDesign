@@ -62,6 +62,8 @@ describe('permissionGroupShortcut', () => {
       '/project/task/children',
       '/project/task/children/batch',
       '/project/task/change-log/list',
+      '/project/task/dynamic/list',
+      '/project/task/dynamic/create',
     ]);
   });
 
@@ -70,6 +72,8 @@ describe('permissionGroupShortcut', () => {
       collectAutoApiResourcesByMenuResources([PERMISSION_RESOURCE.agileBoard]),
     ).toEqual([
       '/project/task/agile-board',
+      '/project/task/dynamic/list',
+      '/project/task/dynamic/create',
       '/project/list',
       '/project/task-status/list',
       '/project/task/children/batch',
@@ -102,8 +106,8 @@ describe('permissionGroupShortcut', () => {
     const usageCountMap = buildShortcutApiUsageCountMap();
 
     expect(usageCountMap[PERMISSION_RESOURCE.project]).toBe(5);
-    expect(usageCountMap[PERMISSION_RESOURCE.agileBoard]).toBe(7);
-    expect(usageCountMap[PERMISSION_RESOURCE.projectTask]).toBe(8);
+    expect(usageCountMap[PERMISSION_RESOURCE.agileBoard]).toBe(9);
+    expect(usageCountMap[PERMISSION_RESOURCE.projectTask]).toBe(10);
     expect(usageCountMap[PERMISSION_RESOURCE.projectMemberManage]).toBe(3);
     expect(usageCountMap[PERMISSION_RESOURCE.projectTaskTagManage]).toBe(4);
   });
@@ -113,7 +117,9 @@ describe('permissionGroupShortcut', () => {
 
     expect(usageCountMap[PERMISSION_RESOURCE.systemRole]).toBe(13);
     expect(usageCountMap[PERMISSION_RESOURCE.systemRolePermission]).toBe(5);
-    expect(usageCountMap[PERMISSION_RESOURCE.systemPermissionGroupResource]).toBe(4);
+    expect(
+      usageCountMap[PERMISSION_RESOURCE.systemPermissionGroupResource],
+    ).toBe(4);
   });
 
   it('should collect auto api resources directly from selected menu resources', () => {
@@ -129,5 +135,4 @@ describe('permissionGroupShortcut', () => {
       '/permission-resource/catalog',
     ]);
   });
-
 });

@@ -29,12 +29,12 @@ export async function openTaskPreviewDrawer(
   options: OpenTaskPreviewDrawerOptions,
 ) {
   await drawer.open({
-    title: '任务预览',
+    title: '任务详情',
     /**
      * 任务说明已支持 Markdown 预览，适当放宽侧栏宽度以减少换行，
      * 让标题、代码块和图片的阅读体验更稳定。
      */
-    size: 900,
+    size: 840,
     styles: {
       body: {
         padding: 0,

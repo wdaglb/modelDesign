@@ -1,6 +1,17 @@
-import { Button, Card, Flex, Select, Space, Tag, Typography } from 'antd';
+import { Button, Select, Space, Tag, Typography } from 'antd';
 
 import type { TaskStatusCode } from '@/api/modules/project-task.types';
+
+import {
+  TaskPreviewProjectText,
+  TaskPreviewQuickActions,
+  TaskPreviewSummaryCard,
+  TaskPreviewSummaryMain,
+  TaskPreviewSummaryMeta,
+  TaskPreviewTaskNumberText,
+  TaskPreviewTitle,
+  TaskPreviewVerticalStack,
+} from './styles/task-preview-drawer.styled';
 
 interface TaskPreviewSummaryProps {
   canApplyStatus: boolean;
@@ -27,82 +38,55 @@ interface TaskPreviewSummaryProps {
  */
 const TaskPreviewSummary = (props: TaskPreviewSummaryProps) => {
   return (
-    <Card
-      size="small"
-      style={{
-        borderRadius: 16,
-      }}
-      styles={{
-        body: {
-          padding: 18,
-        },
-      }}
-    >
-      <Space
-        orientation="vertical"
-        size={16}
-        style={{ width: '100%' }}
-        styles={{ item: { width: '100%' } }}
-      >
-        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-          <Typography.Text
-            type="secondary"
-            style={{
-              fontSize: 12,
-              letterSpacing: 0.3,
-            }}
-          >
-            {props.projectText}
-          </Typography.Text>
-          <Space wrap size={12}>
-            <Typography.Link
-              style={{
-                fontSize: 12,
-                letterSpacing: 0.3,
-                fontFamily:
-                  "'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', monospace",
-              }}
-              onClick={() => {
-                void props.onCopyTaskNumber();
-              }}
-            >
-              {`# ${props.taskNumberText}`}
-            </Typography.Link>
-            <Typography.Link
-              style={{ fontSize: 12, letterSpacing: 0.3 }}
-              onClick={() => {
-                void props.onCopyTaskLink();
-              }}
-            >
-              复制任务链接
-            </Typography.Link>
-          </Space>
-          <Typography.Title
-            level={4}
-            style={{
-              margin: 0,
-              lineHeight: '30px',
-            }}
-          >
-            {props.title}
-          </Typography.Title>
-          <Space wrap size={8}>
-            <Tag color={props.priorityColor}>{props.priorityText}</Tag>
-            <Tag color={props.statusTagColor}>{props.statusText}</Tag>
-          </Space>
-        </Space>
-
-        <Flex
-          align="end"
-          justify="space-between"
-          gap={16}
-          style={{ width: '100%' }}
-        >
-          <Space orientation="vertical" size={8}>
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              快速操作
+    <TaskPreviewSummaryCard size="small">
+      <TaskPreviewVerticalStack>
+        <TaskPreviewSummaryMain>
+          <TaskPreviewSummaryMeta>
+            <Typography.Text type="secondary">
+              <TaskPreviewProjectText>{props.projectText}</TaskPreviewProjectText>
             </Typography.Text>
-            <Space size={8}>
+            <Space wrap size={12}>
+              <Typography.Link
+                onClick={() => {
+                  void props.onCopyTaskNumber();
+                }}
+              >
+                <TaskPreviewTaskNumberText>
+                  {`# ${props.taskNumberText}`}
+                </TaskPreviewTaskNumberText>
+              </Typography.Link>
+              <Typography.Link
+                onClick={() => {
+                  void props.onCopyTaskLink();
+                }}
+              >
+                复制任务链接
+              </Typography.Link>
+            </Space>
+            <TaskPreviewTitle>{props.title}</TaskPreviewTitle>
+            <Space wrap size={8}>
+              <Tag color={props.priorityColor}>{props.priorityText}</Tag>
+              <Tag color={props.statusTagColor}>{props.statusText}</Tag>
+            </Space>
+          </TaskPreviewSummaryMeta>
+
+          <Space size={8}>
+            <Button
+              type="primary"
+              onClick={() => {
+                void props.onEdit();
+              }}
+            >
+              编辑任务
+            </Button>
+            <Button onClick={props.onClose}>关闭</Button>
+          </Space>
+        </TaskPreviewSummaryMain>
+
+        <TaskPreviewQuickActions>
+          <TaskPreviewVerticalStack>
+            <Typography.Text type="secondary">快速操作</Typography.Text>
+            <Space size={8} wrap>
               <Select
                 value={props.selectedStatus}
                 style={{ width: 180 }}
@@ -119,22 +103,10 @@ const TaskPreviewSummary = (props: TaskPreviewSummaryProps) => {
                 应用状态
               </Button>
             </Space>
-          </Space>
-
-          <Space size={8}>
-            <Button
-              type="primary"
-              onClick={() => {
-                void props.onEdit();
-              }}
-            >
-              编辑任务
-            </Button>
-            <Button onClick={props.onClose}>关闭</Button>
-          </Space>
-        </Flex>
-      </Space>
-    </Card>
+          </TaskPreviewVerticalStack>
+        </TaskPreviewQuickActions>
+      </TaskPreviewVerticalStack>
+    </TaskPreviewSummaryCard>
   );
 };
 

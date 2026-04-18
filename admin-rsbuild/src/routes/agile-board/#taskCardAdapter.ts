@@ -38,17 +38,27 @@ function normalizeTaskText(value: string | null | undefined) {
  * 以上文案由通用 TaskCard 内部统一渲染，本适配层仅负责
  * 将空值规整为 undefined，确保看板场景与历史行为一致。
  */
+interface TaskCardTaskAdapterOptions {
+  /**
+   * 是否为完成态任务。
+   */
+  isCompleted?: boolean;
+}
+
 export function mapAgileBoardTaskToTaskCardTask(
   task: AgileBoardTask,
+  options?: TaskCardTaskAdapterOptions,
 ): TaskCardTask {
   return {
     id: task.id,
     taskNumber: resolveTaskNumberText(task),
     projectName: normalizeTaskText(task.projectName),
     title: task.title,
+    latestDynamicSummary: normalizeTaskText(task.latestDynamicSummary),
     priority: task.priority,
     workDays: task.workDays,
     assignee: normalizeTaskText(task.assignee),
     dueTime: normalizeTaskText(task.dueTime),
+    isCompleted: options?.isCompleted,
   };
 }

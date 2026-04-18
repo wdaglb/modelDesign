@@ -17,6 +17,7 @@ import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as AgileBoardIndexRouteImport } from './routes/agile-board/index'
 import { Route as ProjectProjectIdRouteImport } from './routes/project/$projectId'
 import { Route as AiChatRouteImport } from './routes/ai.chat'
+import { Route as AgileBoardTaskDrawerDemoRouteImport } from './routes/agile-board/task-drawer-demo'
 import { Route as SystemUserIndexRouteImport } from './routes/system/user/index'
 import { Route as SystemTenantIndexRouteImport } from './routes/system/tenant/index'
 import { Route as SystemRoleIndexRouteImport } from './routes/system/role/index'
@@ -70,6 +71,12 @@ const AiChatRoute = AiChatRouteImport.update({
   path: '/ai/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgileBoardTaskDrawerDemoRoute =
+  AgileBoardTaskDrawerDemoRouteImport.update({
+    id: '/agile-board/task-drawer-demo',
+    path: '/agile-board/task-drawer-demo',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SystemUserIndexRoute = SystemUserIndexRouteImport.update({
   id: '/system/user/',
   path: '/system/user/',
@@ -136,6 +143,7 @@ const SystemThirdPartyQyworkIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/my-todo': typeof MyTodoRoute
+  '/agile-board/task-drawer-demo': typeof AgileBoardTaskDrawerDemoRoute
   '/ai/chat': typeof AiChatRoute
   '/project/$projectId': typeof ProjectProjectIdRouteWithChildren
   '/agile-board/': typeof AgileBoardIndexRoute
@@ -158,6 +166,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/my-todo': typeof MyTodoRoute
+  '/agile-board/task-drawer-demo': typeof AgileBoardTaskDrawerDemoRoute
   '/ai/chat': typeof AiChatRoute
   '/agile-board': typeof AgileBoardIndexRoute
   '/login': typeof LoginIndexRoute
@@ -180,6 +189,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/my-todo': typeof MyTodoRoute
+  '/agile-board/task-drawer-demo': typeof AgileBoardTaskDrawerDemoRoute
   '/ai/chat': typeof AiChatRoute
   '/project/$projectId': typeof ProjectProjectIdRouteWithChildren
   '/agile-board/': typeof AgileBoardIndexRoute
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/my-todo'
+    | '/agile-board/task-drawer-demo'
     | '/ai/chat'
     | '/project/$projectId'
     | '/agile-board/'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/my-todo'
+    | '/agile-board/task-drawer-demo'
     | '/ai/chat'
     | '/agile-board'
     | '/login'
@@ -247,6 +259,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/my-todo'
+    | '/agile-board/task-drawer-demo'
     | '/ai/chat'
     | '/project/$projectId'
     | '/agile-board/'
@@ -270,6 +283,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MyTodoRoute: typeof MyTodoRoute
+  AgileBoardTaskDrawerDemoRoute: typeof AgileBoardTaskDrawerDemoRoute
   AiChatRoute: typeof AiChatRoute
   ProjectProjectIdRoute: typeof ProjectProjectIdRouteWithChildren
   AgileBoardIndexRoute: typeof AgileBoardIndexRoute
@@ -342,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/ai/chat'
       fullPath: '/ai/chat'
       preLoaderRoute: typeof AiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agile-board/task-drawer-demo': {
+      id: '/agile-board/task-drawer-demo'
+      path: '/agile-board/task-drawer-demo'
+      fullPath: '/agile-board/task-drawer-demo'
+      preLoaderRoute: typeof AgileBoardTaskDrawerDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/system/user/': {
@@ -451,6 +472,7 @@ const ProjectProjectIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MyTodoRoute: MyTodoRoute,
+  AgileBoardTaskDrawerDemoRoute: AgileBoardTaskDrawerDemoRoute,
   AiChatRoute: AiChatRoute,
   ProjectProjectIdRoute: ProjectProjectIdRouteWithChildren,
   AgileBoardIndexRoute: AgileBoardIndexRoute,

@@ -69,6 +69,12 @@ public class ProjectTaskDetailVo {
     private String description;
 
     /**
+     * 最新动态摘要。
+     */
+    @Schema(description = "最新动态摘要")
+    private String latestDynamicSummary;
+
+    /**
      * 任务状态编码。
      */
     @Schema(description = "任务状态编码", allowableValues = {"todo", "inProgress", "pendingTest", "pendingRelease", "done", "canceled"})

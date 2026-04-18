@@ -10,10 +10,16 @@ export interface TaskCardTask {
   taskNumber?: string;
   projectName?: string;
   title: string;
+  /** 最新动态摘要。 */
+  latestDynamicSummary?: string;
   priority: TaskPriority;
   workDays?: number;
   assignee?: string;
   dueTime?: string;
+  /**
+   * 是否为完成态任务。
+   */
+  isCompleted?: boolean;
 }
 
 /**

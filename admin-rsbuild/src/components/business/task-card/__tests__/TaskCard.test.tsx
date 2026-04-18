@@ -18,6 +18,7 @@ const baseTask: TaskCardTask = {
   taskNumber: 'TASK-101',
   projectName: '火星项目',
   title: '补充任务编号展示',
+  latestDynamicSummary: '已补充最新动态摘要展示',
   priority: 'high',
   assignee: '小王',
   dueTime: '2026-04-06',
@@ -31,11 +32,9 @@ beforeEach(() => {
 describe('TaskCard', () => {
   it('点击左上角任务编号时复制内容并拦截详情打开', async () => {
     const onPreview = vi.fn();
-    const successMock = vi
-      .spyOn(message, 'success')
-      .mockImplementation(() => {
-        return undefined as never;
-      });
+    const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
+      return undefined as never;
+    });
 
     render(<TaskCard task={baseTask} onPreview={onPreview} />);
 
@@ -119,5 +118,20 @@ describe('TaskCard', () => {
     expect(screen.getByText('2 人天')).toBeTruthy();
     expect(screen.getByText('小王')).toBeTruthy();
     expect(screen.getByText('截止 2026-04-06')).toBeTruthy();
+  });
+
+  it('非紧凑态在卡片顶部使用单行 Alert 展示最新动态摘要', () => {
+    render(<TaskCard task={baseTask} />);
+
+    expect(screen.getByText('已补充最新动态摘要展示')).toBeTruthy();
+    expect(screen.getByRole('alert')).toBeTruthy();
+  });
+
+  it('紧凑态也在卡片顶部展示最新动态摘要且不显示标签', () => {
+    render(<TaskCard task={baseTask} compact />);
+
+    expect(screen.getByText('已补充最新动态摘要展示')).toBeTruthy();
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.queryByText('最新动态')).toBeNull();
   });
 });

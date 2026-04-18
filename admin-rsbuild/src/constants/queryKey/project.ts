@@ -24,7 +24,15 @@ export const taskBoard = () => ['projectTaskBoard'];
 /**
  * 任务变更日志查询键。
  */
-export const taskChangeLog = (taskId: number) => ['projectTaskChangeLog', taskId];
+export const taskChangeLog = (taskId: number) => [
+  'projectTaskChangeLog',
+  taskId,
+];
+
+/**
+ * 任务动态查询键。
+ */
+export const taskDynamic = (taskId: number) => ['projectTaskDynamic', taskId];
 
 /**
  * 子任务列表查询键。

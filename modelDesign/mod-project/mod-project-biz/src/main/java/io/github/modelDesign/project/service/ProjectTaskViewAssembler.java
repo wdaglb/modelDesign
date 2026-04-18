@@ -61,6 +61,11 @@ public class ProjectTaskViewAssembler {
     private final ProjectTaskTagBindingService projectTaskTagBindingService;
 
     /**
+     * 任务动态服务。
+     */
+    private final ProjectTaskDynamicService projectTaskDynamicService;
+
+    /**
      * 任务状态配置服务。
      */
     private final TaskStatusConfigService taskStatusConfigService;
@@ -113,6 +118,8 @@ public class ProjectTaskViewAssembler {
         Map<Long, List<ProjectTaskPredecessorVo>> unfinishedPredecessorMap = projectTaskDependencyService.findUnfinishedPredecessorMapByTaskIds(taskIds);
         Map<Long, List<Long>> tagIdMap = projectTaskTagBindingService.findTagIdMapByTaskIds(taskIds);
         Map<Long, List<ProjectTaskTagVo>> tagMap = projectTaskTagBindingService.findTagMapByTaskIds(taskIds);
+        Map<Long, String> latestDynamicSummaryMap =
+                projectTaskDynamicService.findLatestSummaryMapByTaskIds(taskIds);
 
         LocalDateTime now = LocalDateTime.now();
         List<ProjectTaskDetailVo> result = new ArrayList<>();
@@ -150,6 +157,9 @@ public class ProjectTaskViewAssembler {
                     .completedChildTaskCount(completedChildTaskCountMap.getOrDefault(task.getId(), 0))
                     .title(task.getTitle())
                     .description(task.getDescription())
+                    .latestDynamicSummary(
+                            latestDynamicSummaryMap.getOrDefault(task.getId(), "")
+                    )
                     .status(task.getStatus())
                     .projectName(projectNameMap.getOrDefault(task.getProjectId(), ""))
                     .priority(task.getPriority())

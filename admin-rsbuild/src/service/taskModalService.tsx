@@ -3,6 +3,7 @@ import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { OpenProps } from '@/components/KModal/types.ts';
 
 import TaskCreateForm from '@/routes/project/components/#TaskCreateForm';
+import TaskEditForm from '@/routes/project/components/#TaskEditForm';
 
 interface OpenTaskModalOptions {
   /**
@@ -51,6 +52,9 @@ interface KModalInstance {
  *
  * 统一处理新建/编辑标题、尺寸和取消关闭逻辑。
  *
+ * 这里保持对外签名不变，只在内部把“编辑任务”分流到新的 TaskEditForm，
+ * 避免创建表单继续承载编辑职责。
+ *
  * @param modal KModal 实例
  * @param options 弹窗选项
  * @return 是否完成任务表单提交
@@ -75,6 +79,25 @@ export async function openTaskModal(
     bodyHeight = options.bodyHeight;
   }
 
+  let children = (
+    <TaskCreateForm
+      projectId={options.projectId}
+      defaultAssigneeId={options.defaultAssigneeId}
+      task={options.task}
+      statusConfigs={options.statusConfigs}
+    />
+  );
+
+  if (options.task) {
+    children = (
+      <TaskEditForm
+        mode={'full'}
+        task={options.task}
+        statusConfigs={options.statusConfigs}
+      />
+    );
+  }
+
   try {
     await modal.open({
       title,
@@ -86,14 +109,7 @@ export async function openTaskModal(
           overflowY: 'auto',
         },
       },
-      children: (
-        <TaskCreateForm
-          projectId={options.projectId}
-          defaultAssigneeId={options.defaultAssigneeId}
-          task={options.task}
-          statusConfigs={options.statusConfigs}
-        />
-      ),
+      children,
     });
     return true;
   } catch (error) {

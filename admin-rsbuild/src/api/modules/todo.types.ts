@@ -111,6 +111,11 @@ export interface TodoItem {
   title: string;
 
   /**
+   * 最新动态摘要。
+   */
+  latestDynamicSummary?: string;
+
+  /**
    * 接收时间。
    */
   receivedAt: string;

@@ -195,6 +195,8 @@ export interface ProjectTaskDetail {
   projectName?: string;
   title: string;
   description?: string;
+  /** 最新动态摘要。 */
+  latestDynamicSummary?: string;
   status: TaskStatusCode;
   priority: TaskPriority;
   workDays?: number;

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { Card, Typography } from 'antd';
+import { Typography } from 'antd';
+
+import { TaskPreviewSectionCard } from './styles/task-preview-drawer.styled';
 
 interface TaskPreviewSectionProps {
   children: ReactNode;
@@ -11,21 +13,16 @@ interface TaskPreviewSectionProps {
  */
 const TaskPreviewSection = (props: TaskPreviewSectionProps) => {
   return (
-    <Card
+    <TaskPreviewSectionCard
       size="small"
-      styles={{
-        body: {
-          padding: 16,
-        },
-      }}
       title={
-        <Typography.Text strong style={{ fontSize: 14 }}>
+        <Typography.Text strong style={{ fontSize: 16, lineHeight: '24px' }}>
           {props.title}
         </Typography.Text>
       }
     >
       {props.children}
-    </Card>
+    </TaskPreviewSectionCard>
   );
 };
 

@@ -89,6 +89,11 @@ public class ProjectTaskReadService {
     private final ProjectTaskViewAssembler projectTaskViewAssembler;
 
     /**
+     * 任务动态服务。
+     */
+    private final ProjectTaskDynamicService projectTaskDynamicService;
+
+    /**
      * 获取我的待办列表（当前登录用户作为负责人的任务）。
      *
      * @param request 列表请求
@@ -147,12 +152,20 @@ public class ProjectTaskReadService {
 
         Map<Long, String> creatorNameMap = getCreatorNameMap(creatorIds);
         Map<Long, String> projectNameMap = getProjectNameMap(projectIds);
+        Set<Long> taskIds = pageTasks.stream()
+                .map(ProjectTask::getId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<Long, String> latestDynamicSummaryMap =
+                projectTaskDynamicService.findLatestSummaryMapByTaskIds(taskIds);
 
         List<MyTodoItemVo> items = new ArrayList<>();
         for (ProjectTask task : pageTasks) {
             items.add(MyTodoItemVo.builder()
                     .id(task.getId())
                     .title(task.getTitle())
+                    .latestDynamicSummary(
+                            latestDynamicSummaryMap.getOrDefault(task.getId(), "")
+                    )
                     .receivedAt(formatDateTime(task.getCreateTime()))
                     .priority(task.getPriority())
                     .workDays(task.getWorkDays())

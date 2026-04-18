@@ -28,12 +28,13 @@
 ### 架构与构建
 
 - 使用 Rsbuild + React 插件，配置见 `admin-rsbuild/rsbuild.config.ts`。
-- UI框架使用Ant Design，尽量避免自己造组件
+- 布局使用`ant design`，尽量避免自己造组件
+- 非按ui设计稿时，尽量使用`ant design` 来实现布局与样式，**可以使用组件属性调整时不要使用自定义css样式**.
 - TanStack Router 通过 `@tanstack/router-plugin` 自动扫描 `src/routes/` 生成 `src/routeTree.gen.ts`。
 - `#` 前缀文件会被路由生成器忽略，适合作为页面私有子组件。
 - 新增路由时必须使用 `createFileRoute(...)` 导出 `Route`，不要只默认导出组件。
 - `src/routeTree.gen.ts` 是生成文件，不要手改。
-- 简单样式可以直接写style，复杂样式需要使用styled-components编写
+- 简单样式可以直接写style，复杂样式再使用styled-components编写
 
 ### 分层结构
 

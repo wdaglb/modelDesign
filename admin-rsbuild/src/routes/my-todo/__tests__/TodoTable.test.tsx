@@ -150,7 +150,7 @@ describe('TodoTable', () => {
 
     expect(mockDrawer.open).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: '任务预览',
+        title: '任务详情',
       }),
     );
   });

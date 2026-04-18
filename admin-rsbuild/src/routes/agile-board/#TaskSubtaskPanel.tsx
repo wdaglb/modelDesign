@@ -3,13 +3,22 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Alert,
   Button,
-  Card,
   Input,
   Skeleton,
   Space,
   Typography,
   message,
 } from 'antd';
+
+import {
+  TaskPreviewFullWidth,
+  TaskPreviewSubtaskCard,
+  TaskPreviewSubtaskHeader,
+  TaskPreviewSubtaskList,
+  TaskPreviewSubtaskMetaGrid,
+  TaskPreviewTaskNumberText,
+  TaskPreviewVerticalStack,
+} from './styles/task-preview-drawer.styled';
 
 import { ApiProjectTask } from '@/api';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
@@ -205,14 +214,9 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
   };
 
   return (
-    <Space
-      orientation={'vertical'}
-      size={12}
-      style={{ width: '100%' }}
-      styles={{ item: { width: '100%' } }}
-    >
+    <TaskPreviewVerticalStack>
       <TaskPreviewSection title={'快捷创建'}>
-        <Space orientation={'vertical'} size={10} style={{ width: '100%' }}>
+        <TaskPreviewVerticalStack>
           <Space.Compact block>
             <Input
               value={title}
@@ -240,11 +244,11 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
           <Typography.Text type={'secondary'} style={{ fontSize: 12 }}>
             默认继承父任务负责人，可创建后继续补充详情。
           </Typography.Text>
-        </Space>
+        </TaskPreviewVerticalStack>
       </TaskPreviewSection>
 
       <TaskPreviewSection title={'子任务列表'}>
-        <Space orientation={'vertical'} size={12} style={{ width: '100%' }}>
+        <TaskPreviewVerticalStack>
           <Typography.Text type={'secondary'} style={{ fontSize: 12 }}>
             已完成 {completedCount} / {totalCount}
           </Typography.Text>
@@ -259,45 +263,23 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
             />
           ) : null}
 
-          {!subtaskQuery.isLoading && !subtaskQuery.isError && visibleSubtasks.length
-            ? visibleSubtasks.map((item) => {
+          {!subtaskQuery.isLoading && !subtaskQuery.isError && visibleSubtasks.length ? (
+            <TaskPreviewSubtaskList>
+              {visibleSubtasks.map((item) => {
                 const taskNumberText = resolveTaskNumberText(item);
                 return (
-                  <Card
-                    key={item.id}
-                    size={'small'}
-                    styles={{
-                      body: {
-                        padding: 14,
-                      },
-                    }}
-                  >
-                    <Space
-                      orientation={'vertical'}
-                      size={10}
-                      style={{ width: '100%' }}
-                      styles={{ item: { width: '100%' } }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          justifyContent: 'space-between',
-                          gap: 12,
-                        }}
-                      >
+                  <TaskPreviewSubtaskCard key={item.id} size={'small'}>
+                    <TaskPreviewVerticalStack>
+                      <TaskPreviewSubtaskHeader>
                         <Space orientation={'vertical'} size={4} style={{ minWidth: 0 }}>
                           <Typography.Link
-                            style={{
-                              fontSize: 12,
-                              fontFamily:
-                                "'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', monospace",
-                            }}
                             onClick={async () => {
                               await handleCopyTaskNumber(item);
                             }}
                           >
-                            {`# ${taskNumberText}`}
+                            <TaskPreviewTaskNumberText>
+                              {`# ${taskNumberText}`}
+                            </TaskPreviewTaskNumberText>
                           </Typography.Link>
                           <Typography.Text strong>{item.title}</Typography.Text>
                         </Space>
@@ -321,9 +303,9 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
                             补充详情
                           </Button>
                         </Space>
-                      </div>
+                      </TaskPreviewSubtaskHeader>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <TaskPreviewSubtaskMetaGrid>
                         <Typography.Text type={'secondary'} style={{ fontSize: 12 }}>
                           状态：{getBoardStatusText(item.status, props.statusConfigs)}
                         </Typography.Text>
@@ -333,25 +315,28 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
                         <Typography.Text type={'secondary'} style={{ fontSize: 12 }}>
                           更新时间：{item.updatedAt || '-'}
                         </Typography.Text>
-                      </div>
-                    </Space>
-                  </Card>
+                      </TaskPreviewSubtaskMetaGrid>
+                    </TaskPreviewVerticalStack>
+                  </TaskPreviewSubtaskCard>
                 );
-              })
-            : null}
+              })}
+            </TaskPreviewSubtaskList>
+          ) : null}
 
           {!subtaskQuery.isLoading && !subtaskQuery.isError && hasMoreSubtasks ? (
-            <Button
-              size={'small'}
-              disabled={editingTaskId !== undefined}
-              onClick={handleLoadMoreSubtasks}
-            >
-              加载更多
-            </Button>
+            <TaskPreviewFullWidth>
+              <Button
+                size={'small'}
+                disabled={editingTaskId !== undefined}
+                onClick={handleLoadMoreSubtasks}
+              >
+                加载更多
+              </Button>
+            </TaskPreviewFullWidth>
           ) : null}
-        </Space>
+        </TaskPreviewVerticalStack>
       </TaskPreviewSection>
-    </Space>
+    </TaskPreviewVerticalStack>
   );
 };
 

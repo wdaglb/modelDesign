@@ -1,6 +1,9 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Button, Typography } from 'antd';
-import type { TaskPriority } from '@/api/modules/project-task.types';
+import type {
+  TaskPriority,
+  TaskStatusCode,
+} from '@/api/modules/project-task.types';
 import { TaskCard } from '@/components';
 
 import { mapAgileBoardTaskToTaskCardTask } from '../#taskCardAdapter';
@@ -15,6 +18,7 @@ import {
 interface SubtaskListProps {
   disabled?: boolean;
   subtasks: AgileBoardTask[];
+  completedStatusSet: ReadonlySet<TaskStatusCode>;
   onPreview: (task: AgileBoardTask) => Promise<void>;
   onPriorityChange: (
     task: AgileBoardTask,
@@ -53,7 +57,9 @@ const SubtaskList = memo((props: SubtaskListProps) => {
     return (
       <SubtaskListContent data-subtask-list="true">
         {props.subtasks.map((subtask) => {
-          const adaptedTask = mapAgileBoardTaskToTaskCardTask(subtask);
+          const adaptedTask = mapAgileBoardTaskToTaskCardTask(subtask, {
+            isCompleted: props.completedStatusSet.has(subtask.status),
+          });
 
           return (
             <SubtaskItem key={subtask.id}>
@@ -74,7 +80,14 @@ const SubtaskList = memo((props: SubtaskListProps) => {
         })}
       </SubtaskListContent>
     );
-  }, [expanded, props.disabled, props.onPreview, props.onPriorityChange, props.subtasks]);
+  }, [
+    expanded,
+    props.completedStatusSet,
+    props.disabled,
+    props.onPreview,
+    props.onPriorityChange,
+    props.subtasks,
+  ]);
 
   return (
     <SubtaskListRoot>

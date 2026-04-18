@@ -26,6 +26,12 @@ public class MyTodoItemVo {
     private String title;
 
     /**
+     * 最新动态摘要。
+     */
+    @Schema(description = "最新动态摘要")
+    private String latestDynamicSummary;
+
+    /**
      * 接收时间（任务创建时间）。
      */
     @Schema(description = "接收时间")

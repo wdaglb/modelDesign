@@ -16,6 +16,7 @@ import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
 import {
   TaskPriority,
   type ProjectTaskDetail,
+  type TaskStatusCode,
 } from '@/api/modules/project-task.types';
 import { RequestError } from '@/api/types';
 import { useKDrawer } from '@/components/KDrawer';
@@ -110,6 +111,20 @@ function RouteComponent() {
     queryKey: queryKey.project.taskStatusList(),
     queryFn: () => ApiProjectTaskStatus.getList(),
   });
+  /**
+   * 完成态状态集合，用于子任务卡片展示完成样式。
+   */
+  const completedStatusSet = useMemo(() => {
+    const statusSet = new Set<TaskStatusCode>();
+
+    statusConfigs.forEach((statusConfig) => {
+      if (statusConfig.isCompleted) {
+        statusSet.add(statusConfig.code);
+      }
+    });
+
+    return statusSet;
+  }, [statusConfigs]);
   const projectOptions = useMemo(() => {
     const items = projectListData?.items;
 
@@ -142,9 +157,9 @@ function RouteComponent() {
   const hasFilters = useMemo(() => {
     return Boolean(
       filters.title ||
-        filters.projectId !== undefined ||
-        filters.assigneeId !== undefined ||
-        filters.priority !== undefined,
+      filters.projectId !== undefined ||
+      filters.assigneeId !== undefined ||
+      filters.priority !== undefined,
     );
   }, [filters]);
 
@@ -333,7 +348,7 @@ function RouteComponent() {
   );
   const clearPreviewSearch = useCallback(async () => {
     await navigate({
-      to: '/agile-board/',
+      to: '/agile-board',
       search: {},
       replace: true,
     });
@@ -341,7 +356,7 @@ function RouteComponent() {
   const syncPreviewSearch = useCallback(
     async (task: ProjectTaskDetail) => {
       await navigate({
-        to: '/agile-board/',
+        to: '/agile-board',
         search: {
           taskId: task.id,
         },
@@ -535,7 +550,7 @@ function RouteComponent() {
 
     const openSharedTask = async () => {
       try {
-        const sharedTask = await ApiProjectTask.getDetail(search.taskId);
+        const sharedTask = await ApiProjectTask.getDetail(search.taskId!);
 
         if (cancelled) {
           return;
@@ -565,12 +580,7 @@ function RouteComponent() {
     return () => {
       cancelled = true;
     };
-  }, [
-    clearPreviewSearch,
-    openTaskPreview,
-    previewTaskId,
-    search.taskId,
-  ]);
+  }, [clearPreviewSearch, openTaskPreview, previewTaskId, search.taskId]);
   return (
     <BoardPageRoot>
       <BoardToolbarCard size="small">
@@ -606,6 +616,7 @@ function RouteComponent() {
                     disabled={updatingTaskId !== undefined}
                     tasks={groupedTasks[column.status]}
                     subtaskMap={subtaskMap}
+                    completedStatusSet={completedStatusSet}
                     onPreview={openTaskPreview}
                     onPriorityChange={handlePriorityChange}
                   />

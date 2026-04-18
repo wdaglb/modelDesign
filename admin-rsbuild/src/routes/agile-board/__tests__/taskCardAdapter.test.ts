@@ -63,6 +63,21 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
 
     expect(mapAgileBoardTaskToTaskCardTask(task).taskNumber).toBe('TASK-10');
   });
+
+  it('会映射最新动态摘要到任务卡片结构', () => {
+    const task: AgileBoardTask = {
+      id: 11,
+      projectId: 1,
+      title: '映射最新动态摘要',
+      latestDynamicSummary: '已完成摘要映射',
+      status: 'todo',
+      priority: 'medium',
+    };
+
+    expect(mapAgileBoardTaskToTaskCardTask(task).latestDynamicSummary).toBe(
+      '已完成摘要映射',
+    );
+  });
 });
 
 describe('taskChildrenBatch', () => {
