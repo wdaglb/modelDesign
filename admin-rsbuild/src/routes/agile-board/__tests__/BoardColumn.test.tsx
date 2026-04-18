@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DndContext } from '@dnd-kit/core';
 
@@ -35,7 +35,136 @@ const childTask = {
   title: '子任务 A',
 } as AgileBoardTask;
 
+/**
+ * 生成指定数量的任务数据，用于验证大列表虚拟渲染。
+ */
+function createTasks(count: number): AgileBoardTask[] {
+  return Array.from({ length: count }).map((_, index) => {
+    return {
+      ...parentTask,
+      id: 2000 + index,
+      title: `任务-${index + 1}`,
+    } as AgileBoardTask;
+  });
+}
+
+/**
+ * 注入列虚拟渲染依赖的 ResizeObserver mock。
+ */
+function mockResizeObserver(height: number) {
+  class ResizeObserverMock {
+    private callback: ResizeObserverCallback;
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+
+    observe(target: Element) {
+      Object.defineProperty(target, 'clientHeight', {
+        configurable: true,
+        value: height,
+      });
+      this.callback([], this as unknown as ResizeObserver);
+    }
+
+    disconnect() {
+      /** 空实现 */
+    }
+
+    unobserve() {
+      /** 空实现 */
+    }
+  }
+
+  vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+}
+
+/**
+ * 恢复列虚拟渲染依赖的 ResizeObserver mock。
+ */
+function restoreResizeObserver() {
+  vi.unstubAllGlobals();
+}
+
+/**
+ * 计算指定任务在虚拟渲染中的估算滚动偏移。
+ */
+function getTaskScrollTop(index: number) {
+  const taskRowEstimatedHeight = 134;
+  return index * taskRowEstimatedHeight;
+}
+
 describe('BoardColumn', () => {
+  it('任务量较大时启用列内虚拟渲染并按滚动更新可见任务', () => {
+    mockResizeObserver(320);
+
+    const tasks = createTasks(80);
+    const { container } = render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={tasks}
+          subtaskMap={new Map()}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    const virtualTaskList = container.querySelector('[data-virtualized="true"]');
+
+    expect(virtualTaskList).toBeTruthy();
+    expect(screen.getByText('任务-1')).toBeDefined();
+    expect(screen.queryByText('任务-70')).toBeNull();
+
+    const columnBody = container.querySelector('div.ant-card-body > div');
+
+    expect(columnBody).toBeTruthy();
+
+    if (!columnBody) {
+      restoreResizeObserver();
+      return;
+    }
+
+    Object.defineProperty(columnBody, 'scrollTop', {
+      configurable: true,
+      value: getTaskScrollTop(60),
+      writable: true,
+    });
+
+    fireEvent.scroll(columnBody);
+
+    expect(screen.getByText('任务-61')).toBeDefined();
+    expect(screen.queryByText('任务-1')).toBeNull();
+
+    restoreResizeObserver();
+  });
+
+  it('任务量较小时保持完整渲染', () => {
+    mockResizeObserver(320);
+
+    const tasks = createTasks(10);
+    const { container } = render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={tasks}
+          subtaskMap={new Map()}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    const virtualTaskList = container.querySelector('[data-virtualized="true"]');
+
+    expect(virtualTaskList).toBeNull();
+    expect(screen.getByText('任务-1')).toBeDefined();
+    expect(screen.getByText('任务-10')).toBeDefined();
+
+    restoreResizeObserver();
+  });
+
   it('列无数据时展示 Empty 说明', () => {
     render(
       <DndContext>
