@@ -22,6 +22,7 @@ import { useKDrawer } from '@/components/KDrawer';
 import { useKModal } from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
 import { openTaskModal } from '@/service/taskModalService.tsx';
+import useDebounce from '@/hooks/useDebounce';
 import { AgileBoardTaskCardPreview } from './components/AgileBoardTaskCard';
 import AgileBoardColumn from './components/BoardColumn';
 import AgileBoardToolbar from './components/BoardToolbar';
@@ -71,6 +72,8 @@ function RouteComponent() {
   });
   const [previewTaskId, setPreviewTaskId] = useState<number>();
   const [updatingTaskId, setUpdatingTaskId] = useState<number>();
+  const [titleSearchInput, setTitleSearchInput] = useState('');
+  const debouncedTitleSearchValue = useDebounce(titleSearchInput, 400);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -90,8 +93,13 @@ function RouteComponent() {
   const parentTasks = useMemo(() => {
     return filterBoardParentTasks(boardTasks);
   }, [boardTasks]);
+  /**
+   * 稳定父任务 ID 顺序，避免子任务批量查询键在同集合下反复抖动。
+   */
   const parentTaskIds = useMemo(() => {
-    return parentTasks.map((task) => task.id);
+    return [...parentTasks]
+      .sort((leftTask, rightTask) => leftTask.id - rightTask.id)
+      .map((task) => task.id);
   }, [parentTasks]);
   const { data: childrenBatch } = useQuery({
     queryKey: queryKey.project.taskChildrenBatch(parentTaskIds),
@@ -175,7 +183,10 @@ function RouteComponent() {
       await refetchBoardTasks();
     },
   });
-  const invalidateBoardQueries = async () => {
+  /**
+   * 刷新看板与关联列表，用于创建/编辑等影响范围较大的场景。
+   */
+  const invalidateBoardQueries = useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: queryKey.project.taskBoard(),
@@ -190,7 +201,136 @@ function RouteComponent() {
         queryKey: queryKey.todo.list(),
       }),
     ]);
-  };
+  }, [queryClient]);
+
+  /**
+   * 刷新看板任务变更最小依赖，避免每次状态/优先级调整都触发任务列表刷新。
+   */
+  const invalidateBoardMutationQueries = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: queryKey.project.taskBoard(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['projectTaskChildrenBatch'],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKey.todo.list(),
+      }),
+    ]);
+  }, [queryClient]);
+
+  /**
+   * 统一处理看板任务变更成功反馈，减少重复逻辑。
+   */
+  const handleBoardTaskMutationSuccess = useCallback(
+    async (successMessage: string) => {
+      message.success(successMessage);
+      await invalidateBoardMutationQueries();
+    },
+    [invalidateBoardMutationQueries],
+  );
+
+  /**
+   * 当前看板优先级更新回调，保持引用稳定并收敛刷新范围。
+   */
+  const handlePriorityChange = useCallback(
+    async (task: AgileBoardTask, nextPriority: TaskPriority) => {
+      if (updatingTaskId !== undefined) {
+        return;
+      }
+
+      if (task.priority === nextPriority) {
+        return;
+      }
+
+      setUpdatingTaskId(task.id);
+
+      try {
+        await ApiProjectTask.edit(
+          task.id,
+          buildBoardEditPayload(task, {
+            priority: nextPriority,
+          }),
+        );
+        await handleBoardTaskMutationSuccess('任务优先级已更新');
+      } finally {
+        setUpdatingTaskId(undefined);
+      }
+    },
+    [handleBoardTaskMutationSuccess, updatingTaskId],
+  );
+
+  /**
+   * 当前看板拖拽开始事件。
+   */
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      if (updatingTaskId !== undefined) {
+        return;
+      }
+
+      setActiveTaskDragId(String(event.active.id));
+    },
+    [updatingTaskId],
+  );
+
+  /**
+   * 当前看板拖拽取消事件。
+   */
+  const handleDragCancel = useCallback(() => {
+    setActiveTaskDragId(undefined);
+  }, []);
+
+  /**
+   * 当前看板拖拽结束事件，状态流转后仅刷新必要查询。
+   */
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      try {
+        if (updatingTaskId !== undefined) {
+          return;
+        }
+
+        if (!event.over) {
+          return;
+        }
+
+        const task = taskMap.get(String(event.active.id));
+
+        if (!task) {
+          return;
+        }
+
+        const nextStatus = resolveDropStatus(String(event.over.id));
+
+        if (!nextStatus) {
+          return;
+        }
+
+        if (task.status === nextStatus) {
+          return;
+        }
+
+        setUpdatingTaskId(task.id);
+
+        try {
+          await ApiProjectTask.edit(
+            task.id,
+            buildBoardEditPayload(task, {
+              status: nextStatus,
+            }),
+          );
+          await handleBoardTaskMutationSuccess('任务状态已更新');
+        } finally {
+          setUpdatingTaskId(undefined);
+        }
+      } finally {
+        setActiveTaskDragId(undefined);
+      }
+    },
+    [handleBoardTaskMutationSuccess, taskMap, updatingTaskId],
+  );
   const clearPreviewSearch = useCallback(async () => {
     await navigate({
       to: '/agile-board/',
@@ -210,24 +350,30 @@ function RouteComponent() {
     },
     [navigate],
   );
-  const openTaskForm = async (task?: ProjectTaskDetail) => {
-    setIsTaskFormOpen(true);
+  /**
+   * 打开任务表单，提交成功后刷新看板与关联列表。
+   */
+  const openTaskForm = useCallback(
+    async (task?: ProjectTaskDetail) => {
+      setIsTaskFormOpen(true);
 
-    try {
-      const submitted = await openTaskModal(modal, {
-        statusConfigs,
-        task,
-      });
+      try {
+        const submitted = await openTaskModal(modal, {
+          statusConfigs,
+          task,
+        });
 
-      if (!submitted) {
-        return;
+        if (!submitted) {
+          return;
+        }
+
+        await invalidateBoardQueries();
+      } finally {
+        setIsTaskFormOpen(false);
       }
-
-      await invalidateBoardQueries();
-    } finally {
-      setIsTaskFormOpen(false);
-    }
-  };
+    },
+    [invalidateBoardQueries, modal, setIsTaskFormOpen, statusConfigs],
+  );
   const openTaskPreview = useCallback(
     async (
       task: ProjectTaskDetail,
@@ -278,6 +424,104 @@ function RouteComponent() {
       syncPreviewSearch,
     ],
   );
+
+  /**
+   * 统一处理标题搜索，命中任务编号时直接打开预览，未命中则更新标题筛选。
+   */
+  const executeTitleSearch = useCallback(
+    async (value: string) => {
+      try {
+        await handleBoardTitleSearch(value, {
+          getDetailByCode: ApiProjectTask.getDetailByCode,
+          onOpenPreview: async (task) => {
+            await openTaskPreview(task);
+          },
+          onFallbackSearch: (title) => {
+            setFilters((previous) => {
+              return {
+                ...previous,
+                title,
+              };
+            });
+          },
+        });
+      } catch (error) {
+        if (error instanceof RequestError) {
+          return;
+        }
+
+        message.error('任务搜索失败，请稍后重试');
+      }
+    },
+    [openTaskPreview],
+  );
+
+  /**
+   * 标题输入值防抖后触发搜索，减少频繁请求与筛选重算。
+   */
+  useEffect(() => {
+    void executeTitleSearch(debouncedTitleSearchValue);
+  }, [debouncedTitleSearchValue, executeTitleSearch]);
+
+  /**
+   * 标题输入变化事件。
+   */
+  const handleTitleSearchChange = useCallback((value: string) => {
+    setTitleSearchInput(value);
+  }, []);
+
+  /**
+   * 项目筛选变化事件。
+   */
+  const handleProjectChange = useCallback((value?: number) => {
+    setFilters((previous) => {
+      return {
+        ...previous,
+        projectId: value,
+      };
+    });
+  }, []);
+
+  /**
+   * 负责人筛选变化事件。
+   */
+  const handleAssigneeChange = useCallback((value?: number) => {
+    setFilters((previous) => {
+      return {
+        ...previous,
+        assigneeId: value,
+      };
+    });
+  }, []);
+
+  /**
+   * 顶部优先级筛选变化事件。
+   */
+  const handleFilterPriorityChange = useCallback((value?: TaskPriority) => {
+    setFilters((previous) => {
+      return {
+        ...previous,
+        priority: value,
+      };
+    });
+  }, []);
+
+  /**
+   * 重置筛选条件并清空搜索输入。
+   */
+  const handleResetFilters = useCallback(() => {
+    setTitleSearchInput('');
+    setFilters({
+      title: '',
+    });
+  }, []);
+
+  /**
+   * 打开新建任务弹窗。
+   */
+  const handleCreateTask = useCallback(async () => {
+    await openTaskForm();
+  }, [openTaskForm]);
   useEffect(() => {
     if (previewTaskId !== undefined) {
       return;
@@ -327,87 +571,6 @@ function RouteComponent() {
     previewTaskId,
     search.taskId,
   ]);
-  const handleDragStart = (event: DragStartEvent) => {
-    if (updatingTaskId !== undefined) {
-      return;
-    }
-
-    setActiveTaskDragId(String(event.active.id));
-  };
-  const handleDragCancel = () => {
-    setActiveTaskDragId(undefined);
-  };
-  const handleDragEnd = async (event: DragEndEvent) => {
-    try {
-      if (updatingTaskId !== undefined) {
-        return;
-      }
-
-      if (!event.over) {
-        return;
-      }
-
-      const task = taskMap.get(String(event.active.id));
-
-      if (!task) {
-        return;
-      }
-
-      const nextStatus = resolveDropStatus(String(event.over.id));
-
-      if (!nextStatus) {
-        return;
-      }
-
-      if (task.status === nextStatus) {
-        return;
-      }
-
-      setUpdatingTaskId(task.id);
-
-      try {
-        await ApiProjectTask.edit(
-          task.id,
-          buildBoardEditPayload(task, {
-            status: nextStatus,
-          }),
-        );
-        message.success('任务状态已更新');
-        await invalidateBoardQueries();
-      } finally {
-        setUpdatingTaskId(undefined);
-      }
-    } finally {
-      setActiveTaskDragId(undefined);
-    }
-  };
-  const handlePriorityChange = async (
-    task: AgileBoardTask,
-    nextPriority: TaskPriority,
-  ) => {
-    if (updatingTaskId !== undefined) {
-      return;
-    }
-
-    if (task.priority === nextPriority) {
-      return;
-    }
-
-    setUpdatingTaskId(task.id);
-
-    try {
-      await ApiProjectTask.edit(
-        task.id,
-        buildBoardEditPayload(task, {
-          priority: nextPriority,
-        }),
-      );
-      message.success('任务优先级已更新');
-      await invalidateBoardQueries();
-    } finally {
-      setUpdatingTaskId(undefined);
-    }
-  };
   return (
     <BoardPageRoot>
       <BoardToolbarCard size="small">
@@ -417,74 +580,21 @@ function RouteComponent() {
           assigneeId={filters.assigneeId}
           priority={filters.priority}
           projectOptions={projectOptions}
-          onCreate={async () => {
-            await openTaskForm();
-          }}
-          onTitleSearch={async (value) => {
-            try {
-              await handleBoardTitleSearch(value, {
-                getDetailByCode: ApiProjectTask.getDetailByCode,
-                onOpenPreview: async (task) => {
-                  await openTaskPreview(task);
-                },
-                onFallbackSearch: (title) => {
-                  setFilters((previous) => {
-                    return {
-                      ...previous,
-                      title,
-                    };
-                  });
-                },
-              });
-            } catch (error) {
-              if (error instanceof RequestError) {
-                return;
-              }
-
-              message.error('任务搜索失败，请稍后重试');
-            }
-          }}
-          onProjectChange={(value) => {
-            setFilters((previous) => {
-              return {
-                ...previous,
-                projectId: value,
-              };
-            });
-          }}
-          onAssigneeChange={(value) => {
-            setFilters((previous) => {
-              return {
-                ...previous,
-                assigneeId: value,
-              };
-            });
-          }}
-          onPriorityChange={(value) => {
-            setFilters((previous) => {
-              return {
-                ...previous,
-                priority: value,
-              };
-            });
-          }}
-          onReset={() => {
-            setFilters({
-              title: '',
-            });
-          }}
+          titleSearchValue={titleSearchInput}
+          onCreate={handleCreateTask}
+          onTitleSearchChange={handleTitleSearchChange}
+          onProjectChange={handleProjectChange}
+          onAssigneeChange={handleAssigneeChange}
+          onPriorityChange={handleFilterPriorityChange}
+          onReset={handleResetFilters}
         />
       </BoardToolbarCard>
       <BoardContentCard size="small">
         <DndContext
           sensors={sensors}
-          onDragStart={(event) => {
-            handleDragStart(event);
-          }}
+          onDragStart={handleDragStart}
           onDragCancel={handleDragCancel}
-          onDragEnd={async (event) => {
-            await handleDragEnd(event);
-          }}
+          onDragEnd={handleDragEnd}
         >
           <BoardColumnsScroller>
             <BoardColumnsGrid $columnCount={agileBoardColumns.length}>

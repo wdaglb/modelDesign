@@ -23,12 +23,13 @@ interface AgileBoardToolbarProps {
   priority?: TaskPriority;
   projectId?: number;
   projectOptions: Array<{ label: string; value: number }>;
+  titleSearchValue: string;
   onAssigneeChange: (value?: number) => void;
   onCreate: () => Promise<void>;
   onPriorityChange: (value?: TaskPriority) => void;
   onProjectChange: (value?: number) => void;
   onReset: () => void;
-  onTitleSearch: (value: string) => void;
+  onTitleSearchChange: (value: string) => void;
 }
 
 /**
@@ -45,7 +46,11 @@ const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
             <ToolbarSearchInput
               allowClear
               placeholder="搜索任务标题或编号"
-              onSearch={props.onTitleSearch}
+              value={props.titleSearchValue}
+              onChange={(event) => {
+                props.onTitleSearchChange(event.target.value);
+              }}
+              onSearch={props.onTitleSearchChange}
             />
           </ToolbarField>
 
