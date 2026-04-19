@@ -16,13 +16,19 @@ import {
   message,
 } from 'antd';
 
-import { ApiProject, ApiProjectTask, ApiProjectTaskChangeLog } from '@/api';
+import {
+  ApiProject,
+  ApiProjectTask,
+  ApiProjectTaskChangeLog,
+  ApiProjectTaskType,
+} from '@/api';
 import type { Project } from '@/api/modules/project.types';
 import type {
   ProjectTaskChangeLogItem,
   ProjectTaskChangeItem,
 } from '@/api/modules/project-task-change-log';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
+import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import {
   TaskPriorityOptions,
   TaskStatus,
@@ -151,6 +157,10 @@ const TaskEditForm = (props: TaskEditFormProps) => {
     queryFn: () => ApiProject.getList({ current: 1, pageSize: 999 }),
     enabled: !isDrawerMode,
   });
+  const taskTypeQuery = useQuery({
+    queryKey: queryKey.project.taskTypeList(),
+    queryFn: () => ApiProjectTaskType.getList(),
+  });
 
   const subtaskQuery = useQuery({
     queryKey: queryKey.project.taskChildren(props.task.id),
@@ -186,6 +196,9 @@ const TaskEditForm = (props: TaskEditFormProps) => {
   const statusOptions = useMemo(() => {
     return buildStatusOptions(props.statusConfigs, props.task.status);
   }, [props.statusConfigs, props.task.status]);
+  const typeOptions = useMemo(() => {
+    return buildTypeOptions(taskTypeQuery.data, props.task);
+  }, [props.task, taskTypeQuery.data]);
 
   const subtaskItems = useMemo(() => {
     if (props.previewSubtasks !== undefined) {
@@ -682,6 +695,14 @@ function renderFullEditContent(props: FullEditContentProps) {
             </Form.Item>
 
             <Form.Item
+              name={'typeId'}
+              label={'类型'}
+              rules={[{ required: true, message: '请选择任务类型' }]}
+            >
+              <Select options={typeOptions} />
+            </Form.Item>
+
+            <Form.Item
               name={'status'}
               label={'状态'}
               rules={[{ required: true, message: '请选择任务状态' }]}
@@ -794,6 +815,47 @@ function buildStatusOptions(
     {
       label: `${TaskStatusLabel[TaskStatus.Canceled]}（历史状态）`,
       value: TaskStatus.Canceled,
+      disabled: true,
+    },
+  ];
+}
+
+/**
+ * 构造类型下拉选项。
+ *
+ * 这里兼容历史类型，避免旧任务在编辑时因为类型已删除而无法回显当前值。
+ *
+ * @param typeConfigs 后端类型配置
+ * @param task 当前任务
+ * @return 可展示的类型选项
+ */
+function buildTypeOptions(
+  typeConfigs?: ProjectTaskType[],
+  task?: ProjectTaskDetail,
+) {
+  const options = (typeConfigs ?? []).map((item) => {
+    return {
+      label: item.name,
+      value: item.id,
+    };
+  });
+
+  if (!task?.typeId) {
+    return options;
+  }
+
+  const currentTypeExists = (typeConfigs ?? []).some((item) => {
+    return item.id === task.typeId;
+  });
+  if (currentTypeExists) {
+    return options;
+  }
+
+  return [
+    ...options,
+    {
+      label: `${task.typeName || `类型#${task.typeId}`}（历史类型）`,
+      value: task.typeId,
       disabled: true,
     },
   ];

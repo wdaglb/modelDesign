@@ -4,127 +4,130 @@
  */
 
 export const GENERATED_MENU_RESOURCE_API_PROFILE = {
-  '/agile-board': [
-    '/project/list',
-    '/project/task-status/list',
-    '/project/task/agile-board',
-    '/project/task/children/batch',
-    '/project/task/detail',
-    '/project/task/detail/by-code',
-    '/project/task/edit',
+  "/agile-board": [
+    "/project/list",
+    "/project/task-status/list",
+    "/project/task/agile-board",
+    "/project/task/children/batch",
+    "/project/task/detail",
+    "/project/task/detail/by-code",
+    "/project/task/edit"
   ],
-  '/agile-board/task-drawer-demo': [
-    '/project/list',
-    '/project/task/change-log/list',
-    '/project/task/children',
-    '/project/task/create',
-    '/project/task/dynamic/create',
-    '/project/task/dynamic/list',
-    '/project/task/edit',
-    '/user/list',
+  "/login": [
+    "/tenant/options"
   ],
-  '/login': ['/tenant/options'],
-  '/my-todo': ['/project/task-status/list', '/project/task/my-todo'],
-  '/personal-center': [
-    '/passport/change_password',
-    '/passport/login_history',
-    '/passport/update_current_profile',
-    '/third-party/qywork/binding/current',
-    '/third-party/qywork/binding/session',
-    '/third-party/qywork/config/current',
+  "/my-todo": [
+    "/project/task-status/list",
+    "/project/task/my-todo"
   ],
-  '/project': [
-    '/project/create',
-    '/project/deleted',
-    '/project/edit',
-    '/project/list',
+  "/personal-center": [
+    "/passport/change_password",
+    "/passport/login_history",
+    "/passport/update_current_profile",
+    "/third-party/qywork/binding/current",
+    "/third-party/qywork/binding/session",
+    "/third-party/qywork/config/current"
   ],
-  '/project/$projectId': [
-    '/project/create',
-    '/project/detail',
-    '/project/edit',
-    '/project/list',
+  "/project": [
+    "/project/create",
+    "/project/deleted",
+    "/project/edit",
+    "/project/list"
   ],
-  '/project/$projectId/members': [
-    '/project/member/add',
-    '/project/member/delete',
-    '/project/member/list',
+  "/project/$projectId": [
+    "/project/create",
+    "/project/detail",
+    "/project/edit",
+    "/project/list"
   ],
-  '/project/$projectId/tables': ['/scheme/submit'],
-  '/project/$projectId/tasks': [
-    '/project/member/list',
-    '/project/task/deleted',
-    '/project/task/edit',
-    '/project/task/list',
+  "/project/$projectId/members": [
+    "/project/member/add",
+    "/project/member/delete",
+    "/project/member/list"
   ],
-  '/system/file-config': [
-    '/system/file/access-config/current',
-    '/system/file/access-config/save',
+  "/project/$projectId/tables": [
+    "/scheme/submit"
   ],
-  '/system/menu': [
-    '/menu/create',
-    '/menu/delete',
-    '/menu/edit',
-    '/menu/swap_sort',
+  "/project/$projectId/tasks": [
+    "/project/member/list",
+    "/project/task/deleted",
+    "/project/task/edit",
+    "/project/task/list"
   ],
-  '/system/permission-group': [
-    '/menu/list',
-    '/permission-group/add',
-    '/permission-group/delete',
-    '/permission-group/list',
-    '/permission-group/resources',
-    '/permission-group/resources/update',
-    '/permission-group/update',
-    '/permission-group/update_status',
-    '/permission-resource/catalog',
+  "/project/task-type": [
+    "/project/task-type/create",
+    "/project/task-type/deleted",
+    "/project/task-type/edit",
+    "/project/task-type/list"
   ],
-  '/system/position': [
-    '/position/add',
-    '/position/batch_update_status',
-    '/position/delete',
-    '/position/list',
-    '/position/update',
-    '/position/update_status',
+  "/system/file-config": [
+    "/system/file/access-config/current",
+    "/system/file/access-config/save"
   ],
-  '/system/role': [
-    '/menu/list',
-    '/permission-group/list',
-    '/permission-resource/catalog',
-    '/role/add',
-    '/role/batch_update_status',
-    '/role/list',
-    '/role/permission',
-    '/role/permission/update',
-    '/role/update',
-    '/role/update_status',
-    '/role/users',
-    '/role/users/update',
-    '/user/list',
+  "/system/menu": [
+    "/menu/create",
+    "/menu/delete",
+    "/menu/edit",
+    "/menu/swap_sort"
   ],
-  '/system/tenant': [
-    '/tenant/add',
-    '/tenant/delete',
-    '/tenant/list',
-    '/tenant/update',
-    '/tenant/update_status',
+  "/system/permission-group": [
+    "/menu/list",
+    "/permission-group/add",
+    "/permission-group/delete",
+    "/permission-group/list",
+    "/permission-group/resources",
+    "/permission-group/resources/update",
+    "/permission-group/update",
+    "/permission-group/update_status",
+    "/permission-resource/catalog"
   ],
-  '/system/third-party/qywork': [
-    '/third-party/qywork/config/current',
-    '/third-party/qywork/config/save',
+  "/system/position": [
+    "/position/add",
+    "/position/batch_update_status",
+    "/position/delete",
+    "/position/list",
+    "/position/update",
+    "/position/update_status"
   ],
-  '/system/user': [
-    '/position/list',
-    '/role/list',
-    '/user/add',
-    '/user/batch_update_status',
-    '/user/list',
-    '/user/positions',
-    '/user/positions/update',
-    '/user/roles',
-    '/user/roles/update',
-    '/user/update',
-    '/user/update_status',
+  "/system/role": [
+    "/menu/list",
+    "/permission-group/list",
+    "/permission-resource/catalog",
+    "/role/add",
+    "/role/batch_update_status",
+    "/role/list",
+    "/role/permission",
+    "/role/permission/update",
+    "/role/update",
+    "/role/update_status",
+    "/role/users",
+    "/role/users/update",
+    "/user/list"
   ],
+  "/system/tenant": [
+    "/tenant/add",
+    "/tenant/delete",
+    "/tenant/list",
+    "/tenant/update",
+    "/tenant/update_status"
+  ],
+  "/system/third-party/qywork": [
+    "/third-party/qywork/config/current",
+    "/third-party/qywork/config/save"
+  ],
+  "/system/user": [
+    "/position/list",
+    "/role/list",
+    "/user/add",
+    "/user/batch_update_status",
+    "/user/list",
+    "/user/positions",
+    "/user/positions/update",
+    "/user/roles",
+    "/user/roles/update",
+    "/user/update",
+    "/user/update_status"
+  ]
 } as const;
 
 export const GENERATED_BUTTON_RESOURCE_API_PROFILE = {} as const;

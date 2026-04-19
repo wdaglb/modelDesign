@@ -70,3 +70,8 @@ export const taskDetailByCode = (code: string) => [
  * 任务状态配置查询键。
  */
 export const taskStatusList = () => ['projectTaskStatusList'];
+
+/**
+ * 任务类型列表查询键。
+ */
+export const taskTypeList = () => ['projectTaskTypeList'];

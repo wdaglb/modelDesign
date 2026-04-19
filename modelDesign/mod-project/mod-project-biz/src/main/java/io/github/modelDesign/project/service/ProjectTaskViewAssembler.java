@@ -5,8 +5,10 @@ import io.github.modelDesign.auth.api.AuthUserApi;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
 import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
+import io.github.modelDesign.project.domain.TaskType;
 import io.github.modelDesign.project.mapper.ProjectMapper;
 import io.github.modelDesign.project.mapper.ProjectTaskMapper;
+import io.github.modelDesign.project.mapper.TaskTypeMapper;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import io.github.modelDesign.project.response.ProjectTaskPredecessorVo;
 import io.github.modelDesign.project.response.ProjectTaskTagVo;
@@ -71,6 +73,11 @@ public class ProjectTaskViewAssembler {
     private final TaskStatusConfigService taskStatusConfigService;
 
     /**
+     * 任务类型 Mapper。
+     */
+    private final TaskTypeMapper taskTypeMapper;
+
+    /**
      * 任务时间指标支持类。
      */
     private final ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport;
@@ -89,6 +96,7 @@ public class ProjectTaskViewAssembler {
         Set<Long> taskIds = new LinkedHashSet<>();
         Set<Long> parentTaskIds = new LinkedHashSet<>();
         Set<Long> projectIds = new LinkedHashSet<>();
+        Set<Long> typeIds = new LinkedHashSet<>();
         Set<Long> userIds = new LinkedHashSet<>();
         for (ProjectTask task : tasks) {
             taskIds.add(task.getId());
@@ -97,6 +105,9 @@ public class ProjectTaskViewAssembler {
             }
             if (task.getProjectId() != null) {
                 projectIds.add(task.getProjectId());
+            }
+            if (task.getTypeId() != null) {
+                typeIds.add(task.getTypeId());
             }
             if (task.getCreatorId() != null) {
                 userIds.add(task.getCreatorId());
@@ -111,6 +122,7 @@ public class ProjectTaskViewAssembler {
         Map<Long, String> projectNameMap = getProjectNameMap(projectMap);
         Map<Long, String> projectCodeMap = getProjectCodeMap(projectMap);
         Map<Long, String> parentTaskTitleMap = getParentTaskTitleMap(parentTaskIds);
+        Map<Long, String> typeNameMap = getTypeNameMap(typeIds);
         Map<Long, Integer> childTaskCountMap = getChildTaskCountMap(taskIds);
         Map<Long, Integer> completedChildTaskCountMap = getCompletedChildTaskCountMap(taskIds);
         Map<Long, List<Long>> predecessorIdMap = projectTaskDependencyService.findPredecessorIdMapByTaskIds(taskIds);
@@ -160,6 +172,8 @@ public class ProjectTaskViewAssembler {
                     .latestDynamicSummary(
                             latestDynamicSummaryMap.getOrDefault(task.getId(), "")
                     )
+                    .typeId(task.getTypeId())
+                    .typeName(typeNameMap.getOrDefault(task.getTypeId(), ""))
                     .status(task.getStatus())
                     .projectName(projectNameMap.getOrDefault(task.getProjectId(), ""))
                     .priority(task.getPriority())
@@ -323,6 +337,27 @@ public class ProjectTaskViewAssembler {
             completedChildCountMap.put(childTask.getParentTaskId(), count + 1);
         }
         return completedChildCountMap;
+    }
+
+    /**
+     * 提取任务类型名称映射，避免列表态重复查询类型表。
+     *
+     * @param typeIds 类型 ID 集合
+     * @return 类型名称映射
+     */
+    private Map<Long, String> getTypeNameMap(Set<Long> typeIds) {
+        if (typeIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<TaskType> taskTypes = taskTypeMapper.selectBatchIds(typeIds);
+        if (taskTypes.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, String> typeNameMap = new LinkedHashMap<>();
+        for (TaskType taskType : taskTypes) {
+            typeNameMap.put(taskType.getId(), taskType.getName());
+        }
+        return typeNameMap;
     }
 
     private String resolveUserNickname(AuthUserSimpleDto user) {

@@ -17,7 +17,6 @@ import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as AgileBoardIndexRouteImport } from './routes/agile-board/index'
 import { Route as ProjectProjectIdRouteImport } from './routes/project/$projectId'
 import { Route as AiChatRouteImport } from './routes/ai.chat'
-import { Route as AgileBoardTaskDrawerDemoRouteImport } from './routes/agile-board/task-drawer-demo'
 import { Route as SystemUserIndexRouteImport } from './routes/system/user/index'
 import { Route as SystemTenantIndexRouteImport } from './routes/system/tenant/index'
 import { Route as SystemRoleIndexRouteImport } from './routes/system/role/index'
@@ -25,6 +24,7 @@ import { Route as SystemPositionIndexRouteImport } from './routes/system/positio
 import { Route as SystemPermissionGroupIndexRouteImport } from './routes/system/permission-group/index'
 import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
 import { Route as SystemFileConfigIndexRouteImport } from './routes/system/file-config/index'
+import { Route as ProjectTaskTypeIndexRouteImport } from './routes/project/task-type/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
 import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$projectId.tasks'
 import { Route as ProjectProjectIdTablesRouteImport } from './routes/project/$projectId.tables'
@@ -71,12 +71,6 @@ const AiChatRoute = AiChatRouteImport.update({
   path: '/ai/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgileBoardTaskDrawerDemoRoute =
-  AgileBoardTaskDrawerDemoRouteImport.update({
-    id: '/agile-board/task-drawer-demo',
-    path: '/agile-board/task-drawer-demo',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const SystemUserIndexRoute = SystemUserIndexRouteImport.update({
   id: '/system/user/',
   path: '/system/user/',
@@ -113,6 +107,11 @@ const SystemFileConfigIndexRoute = SystemFileConfigIndexRouteImport.update({
   path: '/system/file-config/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectTaskTypeIndexRoute = ProjectTaskTypeIndexRouteImport.update({
+  id: '/project/task-type/',
+  path: '/project/task-type/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectProjectIdIndexRoute = ProjectProjectIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -143,7 +142,6 @@ const SystemThirdPartyQyworkIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/my-todo': typeof MyTodoRoute
-  '/agile-board/task-drawer-demo': typeof AgileBoardTaskDrawerDemoRoute
   '/ai/chat': typeof AiChatRoute
   '/project/$projectId': typeof ProjectProjectIdRouteWithChildren
   '/agile-board/': typeof AgileBoardIndexRoute
@@ -154,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
+  '/project/task-type/': typeof ProjectTaskTypeIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
   '/system/permission-group/': typeof SystemPermissionGroupIndexRoute
@@ -166,7 +165,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/my-todo': typeof MyTodoRoute
-  '/agile-board/task-drawer-demo': typeof AgileBoardTaskDrawerDemoRoute
   '/ai/chat': typeof AiChatRoute
   '/agile-board': typeof AgileBoardIndexRoute
   '/login': typeof LoginIndexRoute
@@ -176,6 +174,7 @@ export interface FileRoutesByTo {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
+  '/project/task-type': typeof ProjectTaskTypeIndexRoute
   '/system/file-config': typeof SystemFileConfigIndexRoute
   '/system/menu': typeof SystemMenuIndexRoute
   '/system/permission-group': typeof SystemPermissionGroupIndexRoute
@@ -189,7 +188,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/my-todo': typeof MyTodoRoute
-  '/agile-board/task-drawer-demo': typeof AgileBoardTaskDrawerDemoRoute
   '/ai/chat': typeof AiChatRoute
   '/project/$projectId': typeof ProjectProjectIdRouteWithChildren
   '/agile-board/': typeof AgileBoardIndexRoute
@@ -200,6 +198,7 @@ export interface FileRoutesById {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
+  '/project/task-type/': typeof ProjectTaskTypeIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
   '/system/permission-group/': typeof SystemPermissionGroupIndexRoute
@@ -214,7 +213,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/my-todo'
-    | '/agile-board/task-drawer-demo'
     | '/ai/chat'
     | '/project/$projectId'
     | '/agile-board/'
@@ -225,6 +223,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/project/$projectId/'
+    | '/project/task-type/'
     | '/system/file-config/'
     | '/system/menu/'
     | '/system/permission-group/'
@@ -237,7 +236,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/my-todo'
-    | '/agile-board/task-drawer-demo'
     | '/ai/chat'
     | '/agile-board'
     | '/login'
@@ -247,6 +245,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/project/$projectId'
+    | '/project/task-type'
     | '/system/file-config'
     | '/system/menu'
     | '/system/permission-group'
@@ -259,7 +258,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/my-todo'
-    | '/agile-board/task-drawer-demo'
     | '/ai/chat'
     | '/project/$projectId'
     | '/agile-board/'
@@ -270,6 +268,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/project/$projectId/'
+    | '/project/task-type/'
     | '/system/file-config/'
     | '/system/menu/'
     | '/system/permission-group/'
@@ -283,13 +282,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MyTodoRoute: typeof MyTodoRoute
-  AgileBoardTaskDrawerDemoRoute: typeof AgileBoardTaskDrawerDemoRoute
   AiChatRoute: typeof AiChatRoute
   ProjectProjectIdRoute: typeof ProjectProjectIdRouteWithChildren
   AgileBoardIndexRoute: typeof AgileBoardIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
   PersonalCenterIndexRoute: typeof PersonalCenterIndexRoute
   ProjectIndexRoute: typeof ProjectIndexRoute
+  ProjectTaskTypeIndexRoute: typeof ProjectTaskTypeIndexRoute
   SystemFileConfigIndexRoute: typeof SystemFileConfigIndexRoute
   SystemMenuIndexRoute: typeof SystemMenuIndexRoute
   SystemPermissionGroupIndexRoute: typeof SystemPermissionGroupIndexRoute
@@ -358,13 +357,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agile-board/task-drawer-demo': {
-      id: '/agile-board/task-drawer-demo'
-      path: '/agile-board/task-drawer-demo'
-      fullPath: '/agile-board/task-drawer-demo'
-      preLoaderRoute: typeof AgileBoardTaskDrawerDemoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/system/user/': {
       id: '/system/user/'
       path: '/system/user'
@@ -412,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/system/file-config'
       fullPath: '/system/file-config/'
       preLoaderRoute: typeof SystemFileConfigIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/project/task-type/': {
+      id: '/project/task-type/'
+      path: '/project/task-type'
+      fullPath: '/project/task-type/'
+      preLoaderRoute: typeof ProjectTaskTypeIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/project/$projectId/': {
@@ -472,13 +471,13 @@ const ProjectProjectIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MyTodoRoute: MyTodoRoute,
-  AgileBoardTaskDrawerDemoRoute: AgileBoardTaskDrawerDemoRoute,
   AiChatRoute: AiChatRoute,
   ProjectProjectIdRoute: ProjectProjectIdRouteWithChildren,
   AgileBoardIndexRoute: AgileBoardIndexRoute,
   LoginIndexRoute: LoginIndexRoute,
   PersonalCenterIndexRoute: PersonalCenterIndexRoute,
   ProjectIndexRoute: ProjectIndexRoute,
+  ProjectTaskTypeIndexRoute: ProjectTaskTypeIndexRoute,
   SystemFileConfigIndexRoute: SystemFileConfigIndexRoute,
   SystemMenuIndexRoute: SystemMenuIndexRoute,
   SystemPermissionGroupIndexRoute: SystemPermissionGroupIndexRoute,

@@ -338,6 +338,7 @@ export function buildBoardEditPayload(
   return {
     title: task.title,
     description: task.description,
+    typeId: task.typeId as number,
     status: task.status,
     priority: task.priority,
     workDays: task.workDays,

@@ -415,38 +415,3 @@ export const TaskDetailTimelineBody = styled.div`
   font-size: 14px;
   line-height: 24px;
 `;
-
-/**
- * Demo 页面布局。
- */
-export const TaskDrawerDemoPage = styled.div`
-  min-height: 100%;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  background: #eef1f6;
-`;
-
-/**
- * Demo 抽屉行。
- */
-export const TaskDrawerDemoRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  align-items: start;
-`;
-
-/**
- * Demo 抽屉壳，用于脱离真实 Drawer 组件时保持同尺寸对照。
- */
-export const TaskDrawerDemoShell = styled.div`
-  width: 840px;
-  height: 920px;
-  max-width: 100%;
-  overflow: hidden;
-  border-radius: 20px 0 0 20px;
-  background: #ffffff;
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.08);
-`;

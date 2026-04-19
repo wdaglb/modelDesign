@@ -8,8 +8,10 @@ import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.domain.ProjectTaskChangeLog;
+import io.github.modelDesign.project.domain.TaskType;
 import io.github.modelDesign.project.enums.ProjectTaskChangeOperationTypeEnum;
 import io.github.modelDesign.project.mapper.ProjectTaskChangeLogMapper;
+import io.github.modelDesign.project.mapper.TaskTypeMapper;
 import io.github.modelDesign.project.request.ProjectTaskChangeLogListRequest;
 import io.github.modelDesign.project.response.PageResponse;
 import io.github.modelDesign.project.response.ProjectTaskChangeItemVo;
@@ -63,6 +65,11 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
     private final TaskStatusConfigService taskStatusConfigService;
 
     /**
+     * 任务类型 Mapper。
+     */
+    private final TaskTypeMapper taskTypeMapper;
+
+    /**
      * 记录任务创建日志。
      *
      * @param task 任务实体
@@ -71,6 +78,7 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
         List<ProjectTaskChangeContentItem> changes = new ArrayList<>();
         changes.add(buildChangeItem("title", "任务标题", "-", formatText(task.getTitle())));
         changes.add(buildChangeItem("description", "任务描述", "-", formatText(task.getDescription())));
+        changes.add(buildChangeItem("typeId", "任务类型", "-", formatType(task.getTypeId())));
         changes.add(buildChangeItem("status", "任务状态", "-", formatStatus(task.getStatus())));
         changes.add(buildChangeItem("priority", "任务优先级", "-", formatPriority(task.getPriority())));
         changes.add(buildChangeItem("workDays", "预计工时", "-", formatWorkDays(task.getWorkDays())));
@@ -90,6 +98,7 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
         List<ProjectTaskChangeContentItem> changes = new ArrayList<>();
         appendChangeIfChanged(changes, "title", "任务标题", formatText(beforeTask.getTitle()), formatText(afterTask.getTitle()));
         appendChangeIfChanged(changes, "description", "任务描述", formatText(beforeTask.getDescription()), formatText(afterTask.getDescription()));
+        appendChangeIfChanged(changes, "typeId", "任务类型", formatType(beforeTask.getTypeId()), formatType(afterTask.getTypeId()));
         appendChangeIfChanged(changes, "status", "任务状态", formatStatus(beforeTask.getStatus()), formatStatus(afterTask.getStatus()));
         appendChangeIfChanged(changes, "priority", "任务优先级", formatPriority(beforeTask.getPriority()), formatPriority(afterTask.getPriority()));
         appendChangeIfChanged(changes, "workDays", "预计工时", formatWorkDays(beforeTask.getWorkDays()), formatWorkDays(afterTask.getWorkDays()));
@@ -339,6 +348,26 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
             return text;
         }
         return status;
+    }
+
+    /**
+     * 格式化任务类型展示文案。
+     *
+     * 任务类型允许被删除，因此这里在查不到类型时回退为带编号的占位文本，
+     * 以便历史变更日志仍然能指出当时引用的类型记录。
+     *
+     * @param typeId 类型 ID
+     * @return 展示文本
+     */
+    private String formatType(Long typeId) {
+        if (typeId == null) {
+            return "-";
+        }
+        TaskType taskType = taskTypeMapper.selectById(typeId);
+        if (taskType == null || !StringUtils.hasText(taskType.getName())) {
+            return "类型#" + typeId;
+        }
+        return taskType.getName();
     }
 
     private String formatPriority(String priority) {

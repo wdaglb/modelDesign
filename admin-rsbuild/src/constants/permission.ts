@@ -58,6 +58,7 @@ export const PERMISSION_RESOURCE = {
   projectTaskDelete: '/project/task/deleted',
   projectTaskMemberManage: '/project/task/member/*',
   projectTaskStatusSave: '/project/task-status/save',
+  projectTaskTypeManage: '/project/task-type/manage',
   projectTaskTagManage: '/project/task/tag/*',
 } as const;
 

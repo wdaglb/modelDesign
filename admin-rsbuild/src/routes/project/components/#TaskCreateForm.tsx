@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Col, DatePicker, Form, Input, InputNumber, Row, Select } from 'antd';
 import dayjs from 'dayjs';
 
-import { ApiProject, ApiProjectTask } from '@/api';
+import { ApiProject, ApiProjectTask, ApiProjectTaskType } from '@/api';
 import type { Project } from '@/api/modules/project.types';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
+import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import {
   TaskPriority,
   TaskPriorityOptions,
@@ -81,6 +82,10 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
     queryKey: [...queryKey.project.list(), 'task-create'],
     queryFn: () => ApiProject.getList({ current: 1, pageSize: 999 }),
   });
+  const { data: typeConfigs = [] } = useQuery({
+    queryKey: queryKey.project.taskTypeList(),
+    queryFn: () => ApiProjectTaskType.getList(),
+  });
 
   const projectOptions = (projectListData?.items ?? []).map(
     (item: Project) => ({
@@ -135,6 +140,32 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
       },
     ];
   }, [props.statusConfigs, props.task?.status]);
+  const typeOptions = useMemo(() => {
+    const options = typeConfigs.map((item: ProjectTaskType) => {
+      return {
+        label: item.name,
+        value: item.id,
+      };
+    });
+
+    let taskTypeExists = true;
+    if (props.task?.typeId !== undefined) {
+      taskTypeExists = typeConfigs.some((item) => item.id === props.task?.typeId);
+    }
+
+    if (taskTypeExists || props.task?.typeId === undefined) {
+      return options;
+    }
+
+    return [
+      ...options,
+      {
+        label: `${props.task.typeName || `类型#${props.task.typeId}`}（历史类型）`,
+        value: props.task.typeId,
+        disabled: true,
+      },
+    ];
+  }, [props.task?.typeId, props.task?.typeName, typeConfigs]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -145,6 +176,23 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
       window.clearTimeout(timer);
     };
   }, [form]);
+
+  useEffect(() => {
+    if (props.task?.typeId !== undefined) {
+      return;
+    }
+
+    if (form.getFieldValue('typeId') !== undefined) {
+      return;
+    }
+
+    const firstTypeId = typeConfigs[0]?.id;
+    if (firstTypeId === undefined) {
+      return;
+    }
+
+    form.setFieldValue('typeId', firstTypeId);
+  }, [form, props.task?.typeId, typeConfigs]);
 
   return (
     <KModal.Form
@@ -159,6 +207,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
         title: props.task?.title,
         description: props.task?.description,
         assigneeId: props.task?.assigneeId ?? props.defaultAssigneeId,
+        typeId: props.task?.typeId ?? typeConfigs[0]?.id,
         status: props.task?.status ?? TaskStatus.Todo,
         priority: props.task?.priority ?? TaskPriority.Low,
         workDays: props.task?.workDays,
@@ -171,6 +220,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
         const params = {
           title: values.title,
           description: values.description,
+          typeId: values.typeId,
           status: values.status,
           priority: values.priority,
           workDays: values.workDays,
@@ -282,6 +332,17 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
 
               <Form.Item name={'assigneeId'} label={'负责人'}>
                 <UserSelect />
+              </Form.Item>
+
+              <Form.Item
+                name={'typeId'}
+                label={'类型'}
+                rules={[{ required: true, message: '请选择任务类型' }]}
+              >
+                <Select
+                  placeholder={'请选择任务类型'}
+                  options={typeOptions}
+                />
               </Form.Item>
 
               <Form.Item

@@ -412,6 +412,7 @@ export function buildEditPayload(
   return {
     title: patch.title ?? task.title,
     description: patch.description ?? task.description,
+    typeId: patch.typeId ?? (task.typeId as number),
     status: patch.status ?? task.status,
     priority: patch.priority ?? task.priority,
     workDays: patch.workDays ?? task.workDays,

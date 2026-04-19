@@ -15,6 +15,7 @@ export interface TaskEditFormValues {
   projectId: number;
   startTime?: Dayjs;
   status: TaskStatusCode;
+  typeId?: number;
   title: string;
   workDays?: number;
 }
@@ -75,6 +76,7 @@ export function buildTaskEditInitialValues(
     title: task.title,
     description: task.description,
     assigneeId: task.assigneeId,
+    typeId: task.typeId,
     status: task.status,
     priority: task.priority,
     workDays: task.workDays,
@@ -103,6 +105,7 @@ export function buildTaskEditPayload(
     parentTaskId: task.parentTaskId,
     title: values.title,
     description: values.description,
+    typeId: values.typeId as number,
     status: values.status,
     priority: values.priority,
     workDays: values.workDays,

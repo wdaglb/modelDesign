@@ -266,6 +266,18 @@ export const PERMISSION_GROUP_SHORTCUTS: PermissionGroupShortcut[] = [
     apiResources: ['/project/task-status/list', '/project/task-status/save'],
     description: '项目任务状态配置实际调用的接口。',
   },
+  {
+    code: 'PROJECT_TASK_TYPE_DEPENDENCIES',
+    name: '项目任务类型管理依赖接口',
+    triggerResources: [PERMISSION_RESOURCE.projectTaskTypeManage],
+    apiResources: [
+      '/project/task-type/list',
+      '/project/task-type/create',
+      '/project/task-type/edit',
+      '/project/task-type/deleted',
+    ],
+    description: '项目任务类型管理实际调用的接口。',
+  },
 ];
 
 /**

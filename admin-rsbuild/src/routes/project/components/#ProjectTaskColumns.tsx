@@ -105,6 +105,15 @@ export function createProjectTaskColumns(
       },
     },
     {
+      title: '类型',
+      dataIndex: 'typeName',
+      key: 'typeName',
+      width: 120,
+      render: (value: ProjectTaskItem['typeName']) => {
+        return value || '-';
+      },
+    },
+    {
       title: '负责人',
       dataIndex: 'assignee',
       key: 'assignee',
