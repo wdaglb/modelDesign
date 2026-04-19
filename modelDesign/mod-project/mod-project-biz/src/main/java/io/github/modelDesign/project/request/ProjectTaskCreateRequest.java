@@ -58,6 +58,13 @@ public class ProjectTaskCreateRequest {
     private String description;
 
     /**
+     * 任务类型 ID。
+     */
+    @Schema(description = "任务类型 ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "任务类型不能为空")
+    private Long typeId;
+
+    /**
      * 任务状态编码。
      */
     @Schema(description = "任务状态编码", allowableValues = {"todo", "inProgress", "pendingTest", "pendingRelease", "done", "canceled"}, requiredMode = Schema.RequiredMode.REQUIRED)

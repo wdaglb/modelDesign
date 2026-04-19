@@ -101,6 +101,8 @@ export interface CreateProjectTaskParams {
   title: string;
   /** 任务描述。 */
   description?: string;
+  /** 任务类型 ID。 */
+  typeId: number;
   /** 任务状态。 */
   status: TaskStatusCode;
   /** 任务优先级。 */
@@ -125,6 +127,8 @@ export interface EditProjectTaskParams {
   title: string;
   /** 任务描述。 */
   description?: string;
+  /** 任务类型 ID。 */
+  typeId: number;
   /** 任务状态。 */
   status: TaskStatusCode;
   /** 任务优先级。 */
@@ -151,6 +155,8 @@ export interface ProjectTaskListParams {
   pageSize?: number;
   /** 标题关键字。 */
   title?: string;
+  /** 任务类型 ID。 */
+  typeId?: number;
   /** 任务状态。 */
   status?: TaskStatusCode;
   /** 任务优先级。 */
@@ -197,6 +203,8 @@ export interface ProjectTaskDetail {
   description?: string;
   /** 最新动态摘要。 */
   latestDynamicSummary?: string;
+  typeId?: number;
+  typeName?: string;
   status: TaskStatusCode;
   priority: TaskPriority;
   workDays?: number;

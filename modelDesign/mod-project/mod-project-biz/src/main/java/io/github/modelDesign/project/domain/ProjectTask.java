@@ -36,6 +36,11 @@ public class ProjectTask extends BaseEntity {
     private String description;
 
     /**
+     * 任务类型 ID。
+     */
+    private Long typeId;
+
+    /**
      * 任务状态。
      */
     private String status;

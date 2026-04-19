@@ -40,6 +40,7 @@ export function buildQuickCreateSubtaskPayload(
     projectId: parentTask.projectId,
     parentTaskId: parentTask.id,
     title: title.trim(),
+    typeId: parentTask.typeId as number,
     status,
     priority: parentTask.priority,
     assigneeId: parentTask.assigneeId,

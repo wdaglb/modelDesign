@@ -189,6 +189,10 @@ public class ProjectTaskReadService {
         long current = request.getCurrent();
         long pageSize = request.getPageSize();
         String title = normalizeKeyword(request.getTitle());
+        Long typeId = request.getTypeId();
+        if (typeId != null) {
+            typeId = projectTaskGuardService.validateTypeId(typeId);
+        }
         String status = normalizeValue(request.getStatus());
         if (StringUtils.hasText(status)) {
             status = projectTaskGuardService.validateStatus(status);
@@ -201,6 +205,7 @@ public class ProjectTaskReadService {
                 .eq(ProjectTask::getProjectId, request.getProjectId())
                 .eq(ProjectTask::getDeleted, 0)
                 .like(StringUtils.hasText(title), ProjectTask::getTitle, title)
+                .eq(typeId != null, ProjectTask::getTypeId, typeId)
                 .eq(StringUtils.hasText(status), ProjectTask::getStatus, status)
                 .eq(StringUtils.hasText(priority), ProjectTask::getPriority, priority)
                 .eq(request.getAssigneeId() != null, ProjectTask::getAssigneeId, request.getAssigneeId())

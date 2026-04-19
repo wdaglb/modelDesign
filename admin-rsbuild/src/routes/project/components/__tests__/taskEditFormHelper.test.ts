@@ -17,6 +17,8 @@ const task: ProjectTaskDetail = {
   taskNo: 'TASK-1001',
   title: '原始标题',
   description: '原始说明',
+  typeId: 501,
+  typeName: '任务',
   status: 'todo',
   priority: 'high',
   assigneeId: 301,
@@ -33,6 +35,7 @@ describe('taskEditFormHelper', () => {
     expect(initialValues.projectId).toBe(task.projectId);
     expect(initialValues.title).toBe(task.title);
     expect(initialValues.description).toBe(task.description);
+    expect(initialValues.typeId).toBe(task.typeId);
     expect(initialValues.startTime?.format('YYYY-MM-DD HH:mm:ss')).toBe(
       task.startTime,
     );
@@ -45,6 +48,7 @@ describe('taskEditFormHelper', () => {
         projectId: task.projectId,
         title: '新标题',
         description: '新说明',
+        typeId: 502,
         status: 'inProgress',
         priority: 'medium',
         assigneeId: undefined,
@@ -56,6 +60,7 @@ describe('taskEditFormHelper', () => {
     expect(payload.startTime).toBe(task.startTime);
     expect(payload.dueTime).toBe(task.dueTime);
     expect(payload.assigneeId).toBe(0);
+    expect(payload.typeId).toBe(502);
   });
 
   it('full 模式应使用表单中的排期字段', () => {
@@ -65,6 +70,7 @@ describe('taskEditFormHelper', () => {
         projectId: task.projectId,
         title: '新标题',
         description: '新说明',
+        typeId: 503,
         status: 'done',
         priority: 'low',
         assigneeId: 302,
@@ -78,6 +84,7 @@ describe('taskEditFormHelper', () => {
     expect(payload.startTime).toBe('2026-05-01 09:00:00');
     expect(payload.dueTime).toBe('2026-05-03 18:00:00');
     expect(payload.assigneeId).toBe(302);
+    expect(payload.typeId).toBe(503);
   });
 
   it('应校验 0.5 人天步进规则', () => {

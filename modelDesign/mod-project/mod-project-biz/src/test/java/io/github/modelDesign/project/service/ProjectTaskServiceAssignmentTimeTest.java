@@ -63,6 +63,7 @@ class ProjectTaskServiceAssignmentTimeTest {
         project.setId(101L);
         project.setTenantId(1001L);
         when(projectService.requireProject(101L)).thenReturn(project);
+        when(projectTaskGuardService.validateTypeId(9001L)).thenReturn(9001L);
         when(projectTaskGuardService.validateStatus("todo")).thenReturn("todo");
         when(projectTaskGuardService.normalizeIdList(any())).thenReturn(Collections.emptyList());
         when(projectTaskGuardService.normalizeDescription(any())).thenReturn("创建任务描述");
@@ -86,6 +87,7 @@ class ProjectTaskServiceAssignmentTimeTest {
         request.setProjectId(101L);
         request.setTitle("新增任务");
         request.setDescription("创建任务描述");
+        request.setTypeId(9001L);
         request.setStatus("todo");
         request.setPriority("medium");
         request.setAssigneeId(7001L);
@@ -97,6 +99,7 @@ class ProjectTaskServiceAssignmentTimeTest {
         ProjectTask savedTask = taskCaptor.getValue();
         assertEquals(7001L, savedTask.getAssigneeId());
         assertEquals(assignedAt, savedTask.getAssigneeAssignedAt());
+        assertEquals(9001L, savedTask.getTypeId());
         verify(projectTaskTimeMetricsSupport)
                 .resolveAssigneeAssignedAtOnCreate(eq(7001L), any(LocalDateTime.class));
     }
@@ -151,6 +154,7 @@ class ProjectTaskServiceAssignmentTimeTest {
         project.setId(101L);
         project.setTenantId(1001L);
         when(projectService.requireProject(101L)).thenReturn(project);
+        when(projectTaskGuardService.validateTypeId(9002L)).thenReturn(9002L);
         when(projectTaskGuardService.validateStatus("inProgress")).thenReturn("inProgress");
         when(projectTaskGuardService.normalizeDescription(any())).thenReturn("编辑后描述");
         when(projectTaskDependencyService.findPredecessorIdsByTaskId(5001L))
@@ -168,6 +172,7 @@ class ProjectTaskServiceAssignmentTimeTest {
         ProjectTaskEditRequest request = new ProjectTaskEditRequest();
         request.setTitle("编辑后任务");
         request.setDescription("编辑后描述");
+        request.setTypeId(9002L);
         request.setStatus("inProgress");
         request.setPriority("high");
         request.setAssigneeId(7002L);
@@ -179,6 +184,7 @@ class ProjectTaskServiceAssignmentTimeTest {
         ProjectTask updatedTask = taskCaptor.getValue();
         assertEquals(7002L, updatedTask.getAssigneeId());
         assertEquals(reassignedAt, updatedTask.getAssigneeAssignedAt());
+        assertEquals(9002L, updatedTask.getTypeId());
         verify(projectTaskTimeMetricsSupport).resolveAssigneeAssignedAtOnEdit(
                 eq(7001L),
                 eq(7002L),
@@ -236,6 +242,7 @@ class ProjectTaskServiceAssignmentTimeTest {
         project.setId(101L);
         project.setTenantId(1001L);
         when(projectService.requireProject(101L)).thenReturn(project);
+        when(projectTaskGuardService.validateTypeId(9003L)).thenReturn(9003L);
         when(projectTaskGuardService.validateStatus("todo")).thenReturn("todo");
         when(projectTaskGuardService.normalizeDescription(any())).thenReturn("编辑后描述");
         when(projectTaskDependencyService.findPredecessorIdsByTaskId(9001L))
@@ -259,6 +266,7 @@ class ProjectTaskServiceAssignmentTimeTest {
         ProjectTaskEditRequest request = new ProjectTaskEditRequest();
         request.setTitle("编辑后任务");
         request.setDescription("编辑后描述");
+        request.setTypeId(9003L);
         request.setStatus("todo");
         request.setPriority("medium");
         request.setAssigneeId(null);

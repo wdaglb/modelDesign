@@ -41,6 +41,12 @@ public class ProjectTaskListRequest {
     private String title;
 
     /**
+     * 任务类型 ID。
+     */
+    @Schema(description = "任务类型 ID")
+    private Long typeId;
+
+    /**
      * 任务状态编码。
      */
     @Schema(description = "任务状态编码", allowableValues = {"todo", "inProgress", "pendingTest", "pendingRelease", "done", "canceled"})

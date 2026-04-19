@@ -9,6 +9,7 @@ import * as ApiProjectTaskChangeLog from './modules/project-task-change-log';
 import * as ApiProjectTaskDynamic from './modules/project-task-dynamic';
 import * as ApiProjectTask from './modules/project-task';
 import * as ApiProjectTaskStatus from './modules/project-task-status';
+import * as ApiProjectTaskType from './modules/project-task-type';
 import * as ApiMenu from './modules/menu';
 import * as ApiProject from './modules/project';
 import * as ApiQywork from './modules/qywork';
@@ -33,6 +34,7 @@ export {
   ApiProjectTaskDynamic,
   ApiProjectTask,
   ApiProjectTaskStatus,
+  ApiProjectTaskType,
   ApiQywork,
   ApiRole,
   ApiScheme,

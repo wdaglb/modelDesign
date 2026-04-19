@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -48,6 +49,13 @@ public class ProjectTaskEditRequest {
      */
     @Schema(description = "任务描述")
     private String description;
+
+    /**
+     * 任务类型 ID。
+     */
+    @Schema(description = "任务类型 ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "任务类型不能为空")
+    private Long typeId;
 
     /**
      * 任务状态编码。

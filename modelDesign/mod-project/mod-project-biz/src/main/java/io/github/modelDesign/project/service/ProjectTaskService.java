@@ -175,6 +175,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     @Transactional(rollbackFor = Exception.class)
     public ProjectTaskDetailVo create(ProjectTaskCreateRequest request) {
         Project project = projectService.requireProject(request.getProjectId());
+        Long typeId = projectTaskGuardService.validateTypeId(request.getTypeId());
         String status = projectTaskGuardService.validateStatus(request.getStatus());
         projectTaskGuardService.validatePriority(request.getPriority());
         projectTaskGuardService.validateWorkDays(request.getWorkDays());
@@ -193,6 +194,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setParentTaskId(request.getParentTaskId());
         task.setTitle(request.getTitle().trim());
         task.setDescription(projectTaskGuardService.normalizeDescription(request.getDescription()));
+        task.setTypeId(typeId);
         task.setStatus(status);
         task.setPriority(request.getPriority().trim());
         task.setWorkDays(request.getWorkDays());
@@ -231,6 +233,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         List<Long> beforePredecessorTaskIds = projectTaskDependencyService.findPredecessorIdsByTaskId(task.getId());
         List<Long> beforeTagIds = projectTaskTagBindingService.findTagIdsByTaskId(task.getId());
 
+        Long typeId = projectTaskGuardService.validateTypeId(request.getTypeId());
         String status = projectTaskGuardService.validateStatus(request.getStatus());
         projectTaskGuardService.validatePriority(request.getPriority());
         projectTaskGuardService.validateWorkDays(request.getWorkDays());
@@ -246,7 +249,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         projectTaskGuardService.validateCompleteStatusWithChildren(task.getId(), status);
 
         List<Long> targetTagIds = resolveEditRelationIds(beforeTagIds, request.getTagIds());
-        applyTaskUpdate(task, request, status, targetParentTaskId);
+        applyTaskUpdate(task, request, typeId, status, targetParentTaskId);
         updateById(task);
         syncNullableAssigneeFields(task);
 
@@ -340,7 +343,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         return currentIds;
     }
 
-    private void applyTaskUpdate(ProjectTask task, ProjectTaskEditRequest request, String status, Long parentTaskId) {
+    private void applyTaskUpdate(ProjectTask task, ProjectTaskEditRequest request, Long typeId, String status, Long parentTaskId) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime resolvedAssigneeAssignedAt = projectTaskTimeMetricsSupport.resolveAssigneeAssignedAtOnEdit(
                 task.getAssigneeId(),
@@ -351,6 +354,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setParentTaskId(parentTaskId);
         task.setTitle(request.getTitle().trim());
         task.setDescription(projectTaskGuardService.normalizeDescription(request.getDescription()));
+        task.setTypeId(typeId);
         task.setStatus(status);
         task.setPriority(request.getPriority().trim());
         task.setWorkDays(request.getWorkDays());
@@ -387,6 +391,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         target.setParentTaskId(source.getParentTaskId());
         target.setTitle(source.getTitle());
         target.setDescription(source.getDescription());
+        target.setTypeId(source.getTypeId());
         target.setStatus(source.getStatus());
         target.setPriority(source.getPriority());
         target.setCreatorId(source.getCreatorId());

@@ -4,6 +4,7 @@ import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.mapper.ProjectMapper;
 import io.github.modelDesign.project.mapper.ProjectTaskMapper;
+import io.github.modelDesign.project.mapper.TaskTypeMapper;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import org.junit.jupiter.api.Test;
 
@@ -31,6 +32,7 @@ class ProjectTaskViewAssemblerTest {
         ProjectTaskTagBindingService tagBindingService = mock(ProjectTaskTagBindingService.class);
         ProjectTaskDynamicService taskDynamicService = mock(ProjectTaskDynamicService.class);
         TaskStatusConfigService taskStatusConfigService = mock(TaskStatusConfigService.class);
+        TaskTypeMapper taskTypeMapper = mock(TaskTypeMapper.class);
         ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport = mock(ProjectTaskTimeMetricsSupport.class);
         ProjectTaskViewAssembler assembler = new ProjectTaskViewAssembler(
                 mock(io.github.modelDesign.auth.api.AuthUserApi.class),
@@ -40,6 +42,7 @@ class ProjectTaskViewAssemblerTest {
                 tagBindingService,
                 taskDynamicService,
                 taskStatusConfigService,
+                taskTypeMapper,
                 projectTaskTimeMetricsSupport
         );
 
@@ -47,6 +50,7 @@ class ProjectTaskViewAssemblerTest {
         task.setId(1L);
         task.setProjectId(10L);
         task.setTitle("补充项目编号");
+        task.setTypeId(901L);
         task.setStatus("todo");
         task.setPriority("medium");
 
@@ -56,6 +60,7 @@ class ProjectTaskViewAssemblerTest {
         project.setCode("TASK");
 
         when(projectMapper.selectBatchIds(any())).thenReturn(List.of(project));
+        when(taskTypeMapper.selectBatchIds(any())).thenReturn(Collections.emptyList());
         when(projectTaskMapper.selectList(any())).thenReturn(Collections.emptyList());
         when(dependencyService.findPredecessorIdMapByTaskIds(any()))
                 .thenReturn(Collections.emptyMap());

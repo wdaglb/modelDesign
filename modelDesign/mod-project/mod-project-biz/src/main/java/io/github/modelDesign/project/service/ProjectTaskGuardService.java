@@ -42,6 +42,11 @@ public class ProjectTaskGuardService {
     private final TaskStatusConfigService taskStatusConfigService;
 
     /**
+     * 任务类型服务。
+     */
+    private final TaskTypeService taskTypeService;
+
+    /**
      * 用户查询接口。
      */
     private final AuthUserApi authUserApi;
@@ -69,6 +74,16 @@ public class ProjectTaskGuardService {
      */
     public String validateStatus(String status) {
         return taskStatusConfigService.normalizeAndRequireStatusCode(status);
+    }
+
+    /**
+     * 校验任务类型并返回标准类型 ID。
+     *
+     * @param typeId 任务类型 ID
+     * @return 规范化类型 ID
+     */
+    public Long validateTypeId(Long typeId) {
+        return taskTypeService.validateTypeId(typeId);
     }
 
     /**
