@@ -34,6 +34,23 @@ export interface CurrentInfoVo {
   [property: string]: any;
 }
 
+export interface McpTokenVo {
+  /**
+   * MCP token。
+   */
+  token: string;
+
+  /**
+   * Authorization 请求头示例。
+   */
+  authorizationHeader: string;
+
+  /**
+   * 过期时间戳，单位毫秒。
+   */
+  expireTime: number;
+}
+
 /**
  * 登录响应。
  */

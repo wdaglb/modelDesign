@@ -28,6 +28,11 @@ public class TokenService {
      */
     public static final String REFRESH_TOKEN_TYPE = "REFRESH";
 
+    /**
+     * MCP token 类型。
+     */
+    public static final String MCP_TOKEN_TYPE = "MCP";
+
     private final AuthProperties authProperties;
 
     /**
@@ -59,6 +64,21 @@ public class TokenService {
                 authProperties.getRefreshTokenExpireSeconds(),
                 REFRESH_TOKEN_TYPE,
                 refreshTokenId
+        );
+    }
+
+    /**
+     * 生成 MCP token。
+     *
+     * @param currentAdmin 当前登录管理员
+     * @return MCP token
+     */
+    public String createMcpToken(CurrentAdmin currentAdmin) {
+        return createToken(
+                currentAdmin,
+                authProperties.getMcpTokenExpireSeconds(),
+                MCP_TOKEN_TYPE,
+                null
         );
     }
 
@@ -101,6 +121,18 @@ public class TokenService {
     }
 
     /**
+     * 解析 MCP token 声明。
+     *
+     * @param token MCP token
+     * @return JWT 声明
+     */
+    public Claims parseMcpClaims(String token) {
+        Claims claims = parseClaims(token);
+        validateTokenType(claims, MCP_TOKEN_TYPE);
+        return claims;
+    }
+
+    /**
      * 获取 access token 过期时间戳。
      *
      * @return 过期时间戳，单位毫秒
@@ -118,6 +150,16 @@ public class TokenService {
     public long getRefreshExpireTime() {
         return System.currentTimeMillis()
                 + authProperties.getRefreshTokenExpireSeconds() * 1000;
+    }
+
+    /**
+     * 获取 MCP token 过期时间戳。
+     *
+     * @return 过期时间戳，单位毫秒
+     */
+    public long getMcpExpireTime() {
+        return System.currentTimeMillis()
+                + authProperties.getMcpTokenExpireSeconds() * 1000;
     }
 
     private SecretKey getSecretKey() {
@@ -146,6 +188,9 @@ public class TokenService {
                 .claim("loginId", currentAdmin.getLoginId())
                 .claim("tenantId", currentAdmin.getTenantId())
                 .claim("username", currentAdmin.getUsername())
+                .claim("nickname", currentAdmin.getNickname())
+                .claim("avatarId", currentAdmin.getAvatarId())
+                .claim("loginIp", currentAdmin.getLoginIp())
                 .claim("tokenType", tokenType)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expireAt))

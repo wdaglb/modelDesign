@@ -32,6 +32,6 @@ public class ChatController {
     @Operation(summary = "发送 AI 对话消息")
     @PostMapping("/messages")
     public String messages(@RequestBody String message) {
-        return this.chatService.test2(message);
+        return this.chatService.message(message);
     }
 }

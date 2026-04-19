@@ -18,6 +18,10 @@
         </dependency>
         <dependency>
             <groupId>io.github.modelDesign</groupId>
+            <artifactId>mod-project-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.modelDesign</groupId>
             <artifactId>mod-auth-api</artifactId>
         </dependency>
         <dependency>

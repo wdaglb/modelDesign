@@ -24,6 +24,14 @@ public class AuthProperties {
     private long refreshTokenExpireSeconds = 30L * 24 * 60 * 60;
 
     /**
+     * MCP token 有效期，单位秒。
+     *
+     * 这里单独拆出一份时长配置，避免外部 MCP 客户端和浏览器 access token
+     * 使用完全相同的生命周期。
+     */
+    private long mcpTokenExpireSeconds = 30L * 24 * 60 * 60;
+
+    /**
      * session 前缀。
      */
     private String sessionKeyPrefix = "auth:admin:token:";

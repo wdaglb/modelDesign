@@ -11,6 +11,8 @@ import io.github.modelDesign.auth.enums.LoginFailureReasonEnum;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
 import io.github.modelDesign.auth.request.RefreshTokenRequest;
 import io.github.modelDesign.auth.request.RegisterRequest;
+import io.github.modelDesign.auth.response.McpTokenVo;
+import io.github.modelDesign.auth.session.AuthContext;
 import io.github.modelDesign.auth.response.UserLoginVo;
 import io.github.modelDesign.auth.session.AuthSession;
 import io.github.modelDesign.auth.session.CurrentAdmin;
@@ -35,6 +37,37 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * 认证服务测试。
  */
 class AuthServiceTest {
+    /**
+     * 当前登录用户应能拿到 MCP token。
+     */
+    @Test
+    void getCurrentMcpTokenShouldReturnTokenForCurrentUser() {
+        FakeTokenService tokenService = new FakeTokenService();
+        tokenService.mcpTokenToReturn = "mcp-token";
+        tokenService.mcpExpireTimeToReturn = 999999L;
+        AuthService authService = new AuthService(
+                new FakeUserService(),
+                new FakeSessionRepository(),
+                new FakeTenantService(),
+                tokenService,
+                new FakeUserLoginHistoryService(),
+                new FakeLoginClientInfoResolver()
+        );
+
+        AuthContext.set(CurrentAdmin.builder()
+                .userId(2L)
+                .tenantId(1L)
+                .username("alice")
+                .build());
+
+        McpTokenVo result = authService.getCurrentMcpToken();
+
+        assertEquals("mcp-token", result.getToken());
+        assertEquals("Bearer mcp-token", result.getAuthorizationHeader());
+        assertEquals(999999L, result.getExpireTime());
+        AuthContext.clear();
+    }
+
     /**
      * 用户不存在时应抛出原有错误文案，并写入失败审计。
      */
@@ -915,6 +948,16 @@ class AuthServiceTest {
          */
         private long refreshExpireTimeToReturn = 2L;
 
+        /**
+         * 固定返回的 MCP token。
+         */
+        private String mcpTokenToReturn = "mcp-token";
+
+        /**
+         * 固定返回的 MCP token 过期时间。
+         */
+        private long mcpExpireTimeToReturn = 3L;
+
         FakeTokenService() {
             super(new AuthProperties());
         }
@@ -938,6 +981,16 @@ class AuthServiceTest {
         @Override
         public long getRefreshExpireTime() {
             return refreshExpireTimeToReturn;
+        }
+
+        @Override
+        public String createMcpToken(CurrentAdmin currentAdmin) {
+            return mcpTokenToReturn;
+        }
+
+        @Override
+        public long getMcpExpireTime() {
+            return mcpExpireTimeToReturn;
         }
     }
 

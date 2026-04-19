@@ -11,6 +11,7 @@ import * as ApiProjectTask from './modules/project-task';
 import * as ApiProjectTaskStatus from './modules/project-task-status';
 import * as ApiProjectTaskType from './modules/project-task-type';
 import * as ApiMenu from './modules/menu';
+import * as ApiMcpConfig from './modules/mcp-config';
 import * as ApiProject from './modules/project';
 import * as ApiQywork from './modules/qywork';
 import * as ApiRole from './modules/role';
@@ -24,6 +25,7 @@ export {
   ApiFile,
   ApiFileAccessConfig,
   ApiMenu,
+  ApiMcpConfig,
   ApiPassport,
   ApiPermissionGroup,
   ApiPermissionResource,

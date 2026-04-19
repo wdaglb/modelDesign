@@ -8,6 +8,7 @@ import io.github.modelDesign.auth.request.RegisterRequest;
 import io.github.modelDesign.auth.request.UpdateCurrentProfileRequest;
 import io.github.modelDesign.auth.response.CurrentInfoVo;
 import io.github.modelDesign.auth.response.LoginHistoryVo;
+import io.github.modelDesign.auth.response.McpTokenVo;
 import io.github.modelDesign.auth.response.CurrentPermissionVo;
 import io.github.modelDesign.auth.response.UserLoginVo;
 import io.github.modelDesign.auth.service.AuthService;
@@ -141,6 +142,17 @@ public class PassportController {
     @GetMapping("/login_history")
     public List<LoginHistoryVo> loginHistory() {
         return authService.getLoginHistory();
+    }
+
+    /**
+     * 获取当前登录用户的 MCP token。
+     *
+     * @return MCP token
+     */
+    @Operation(summary = "获取当前登录用户的 MCP token")
+    @GetMapping("/mcp_token")
+    public McpTokenVo mcpToken() {
+        return authService.getCurrentMcpToken();
     }
 
     /**

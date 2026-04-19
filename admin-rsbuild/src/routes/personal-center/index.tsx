@@ -11,10 +11,16 @@ import useAuthStore from '@/store/auth.ts';
 
 import AccountSummary from './#AccountSummary';
 import BasicInfoTab from './#BasicInfoTab';
+import McpConfigTab from './#McpConfigTab';
 import SecurityTab from './#SecurityTab';
 import ThirdPartyTab from './#ThirdPartyTab';
 
-const personalCenterTabValues = ['basic', 'third-party', 'security'] as const;
+const personalCenterTabValues = [
+  'basic',
+  'mcp-config',
+  'third-party',
+  'security',
+] as const;
 
 type PersonalCenterTabKey = (typeof personalCenterTabValues)[number];
 
@@ -121,6 +127,11 @@ const buildTabItems = (
       children: <BasicInfoTab currentInfo={currentInfo} onUpdated={onUpdated} />,
     },
     {
+      key: 'mcp-config',
+      label: 'MCP 配置',
+      children: <McpConfigTab />,
+    },
+    {
       key: 'third-party',
       label: '第三方账号',
       children: <ThirdPartyTab />,
@@ -136,6 +147,9 @@ const buildTabItems = (
 const resolveTabKey = (value: string): PersonalCenterTabKey => {
   if (value === 'third-party') {
     return 'third-party';
+  }
+  if (value === 'mcp-config') {
+    return 'mcp-config';
   }
   if (value === 'security') {
     return 'security';

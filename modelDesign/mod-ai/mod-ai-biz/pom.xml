@@ -17,6 +17,14 @@
             <artifactId>common</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.github.modelDesign</groupId>
+            <artifactId>mod-auth-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.modelDesign</groupId>
+            <artifactId>mod-project-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-agent-framework</artifactId>
             <version>1.1.2.0</version>
@@ -24,6 +32,11 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
+            <version>1.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
             <version>1.1.3</version>
         </dependency>
     </dependencies>

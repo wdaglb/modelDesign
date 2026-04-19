@@ -3,6 +3,7 @@ import { md5 } from 'js-md5';
 import {
   CurrentInfoVo,
   LoginHistoryVo,
+  McpTokenVo,
   PassportLoginVo,
   PassportCurrentPermission,
   RefreshTokenParams,
@@ -20,6 +21,15 @@ export interface ChangePasswordParams {
  */
 export const getCurrentUser = () => {
   return request<CurrentInfoVo>('/passport/current_info', {
+    method: 'get',
+  });
+};
+
+/**
+ * 获取当前登录用户的 MCP token。
+ */
+export const getMcpToken = () => {
+  return request<McpTokenVo>('/passport/mcp_token', {
     method: 'get',
   });
 };

@@ -12,6 +12,7 @@
     <artifactId>mod-project</artifactId>
     <packaging>pom</packaging>
     <modules>
+        <module>mod-project-api</module>
         <module>mod-project-biz</module>
     </modules>
 

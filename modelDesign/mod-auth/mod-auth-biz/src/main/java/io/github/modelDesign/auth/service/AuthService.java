@@ -14,6 +14,7 @@ import io.github.modelDesign.auth.request.RegisterRequest;
 import io.github.modelDesign.auth.request.UpdateCurrentProfileRequest;
 import io.github.modelDesign.auth.response.CurrentInfoVo;
 import io.github.modelDesign.auth.response.LoginHistoryVo;
+import io.github.modelDesign.auth.response.McpTokenVo;
 import io.github.modelDesign.auth.response.UserLoginVo;
 import io.github.modelDesign.auth.session.AuthContext;
 import io.github.modelDesign.auth.session.AuthSession;
@@ -279,6 +280,21 @@ public class AuthService {
                 currentAdmin.getUserId(),
                 currentAdmin.getTenantId()
         );
+    }
+
+    /**
+     * 获取当前登录用户的 MCP token。
+     *
+     * @return MCP token
+     */
+    public McpTokenVo getCurrentMcpToken() {
+        CurrentAdmin currentAdmin = requireCurrentAdmin();
+        String token = tokenService.createMcpToken(currentAdmin);
+        return McpTokenVo.builder()
+                .token(token)
+                .authorizationHeader("Bearer " + token)
+                .expireTime(tokenService.getMcpExpireTime())
+                .build();
     }
 
     /**

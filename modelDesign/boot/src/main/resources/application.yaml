@@ -1,3 +1,43 @@
+
+model-design:
+  ai:
+    # AI 总开关：默认 false，需要时通过环境变量 MODEL_DESIGN_AI_ENABLED=true 开启
+    enabled: false
+    mcp:
+      # MCP 工具开关：与 AI 总开关拆开，允许 AI 对话开启但不注册 MCP 工具
+      enabled: true
+      server-name: model-design-task-mcp
+      transport-type: streamable-http
+      endpoint: http://127.0.0.1:9999/ai/mcp
+      description: 用于个人中心展示的 MCP 接入配置。
+  auth:
+    jwt-secret: ${AUTH_JWT_SECRET:change-this-jwt-secret-change-this-jwt-secret}
+    access-token-expire-seconds: ${AUTH_ACCESS_TOKEN_EXPIRE_SECONDS:${AUTH_TOKEN_EXPIRE_SECONDS:7200}}
+    refresh-token-expire-seconds: ${AUTH_REFRESH_TOKEN_EXPIRE_SECONDS:2592000}
+    mcp-token-expire-seconds: ${AUTH_MCP_TOKEN_EXPIRE_SECONDS:2592000}
+    session-key-prefix: ${AUTH_SESSION_KEY_PREFIX:auth:admin:token:}
+    login-audit-retention-days: ${AUTH_LOGIN_AUDIT_RETENTION_DAYS:90}
+    login-audit-cleanup-cron: ${AUTH_LOGIN_AUDIT_CLEANUP_CRON:0 30 3 * * *}
+  qywork:
+    base-url: ${QYWORK_BASE_URL:https://qyapi.weixin.qq.com}
+    access-token-cache-key-prefix: ${QYWORK_ACCESS_TOKEN_CACHE_KEY_PREFIX:qywork:access-token:}
+    access-token-refresh-advance-seconds: ${QYWORK_ACCESS_TOKEN_REFRESH_ADVANCE_SECONDS:300}
+  system:
+    file:
+      storage-path: ${MODEL_DESIGN_FILE_STORAGE_PATH:./storage/}
+      thumbnail:
+        enabled: ${MODEL_DESIGN_FILE_THUMBNAIL_ENABLED:true}
+        width: ${MODEL_DESIGN_FILE_THUMBNAIL_WIDTH:200}
+        height: ${MODEL_DESIGN_FILE_THUMBNAIL_HEIGHT:200}
+    message:
+      kafka:
+        push-topic: ${MODEL_DESIGN_SYSTEM_MESSAGE_PUSH_TOPIC:model-design.system-message.push}
+        push-dlt-topic: ${MODEL_DESIGN_SYSTEM_MESSAGE_PUSH_DLT_TOPIC:model-design.system-message.push.dlt}
+        retry-max-attempts: ${MODEL_DESIGN_SYSTEM_MESSAGE_RETRY_MAX_ATTEMPTS:3}
+        retry-backoff-seconds: ${MODEL_DESIGN_SYSTEM_MESSAGE_RETRY_BACKOFF_SECONDS:300}
+        republish-interval-seconds: ${MODEL_DESIGN_SYSTEM_MESSAGE_REPUBLISH_INTERVAL_SECONDS:30}
+        republish-batch-size: ${MODEL_DESIGN_SYSTEM_MESSAGE_REPUBLISH_BATCH_SIZE:100}
+
 spring:
   application:
     name: modelDesign-ai
@@ -17,6 +57,16 @@ spring:
       chat:
         options:
           model: ${MODEL_NAME:MiniMax-M2.7}
+    mcp:
+      server:
+        enabled: true
+        stdio: false
+        name: model-design-task-mcp
+        version: 1.0.0
+        instructions: 提供项目任务查询、开始任务、完成任务等工具能力。
+        protocol: STREAMABLE
+        streamable-http:
+          mcp-endpoint: /ai/mcp
   datasource:
     url: jdbc:postgresql://127.0.0.1:5432/model_design?sslmode=disable
     username: postgres
@@ -92,37 +142,6 @@ dromara:
         domain: ''
         base-path: 'system-file/'
         storage-path: ${MODEL_DESIGN_FILE_STORAGE_PATH:./storage/}
-
-model-design:
-  ai:
-    # AI 总开关：默认 false，需要时通过环境变量 MODEL_DESIGN_AI_ENABLED=true 开启
-    enabled: ${MODEL_DESIGN_AI_ENABLED:false}
-  auth:
-    jwt-secret: ${AUTH_JWT_SECRET:change-this-jwt-secret-change-this-jwt-secret}
-    access-token-expire-seconds: ${AUTH_ACCESS_TOKEN_EXPIRE_SECONDS:${AUTH_TOKEN_EXPIRE_SECONDS:7200}}
-    refresh-token-expire-seconds: ${AUTH_REFRESH_TOKEN_EXPIRE_SECONDS:2592000}
-    session-key-prefix: ${AUTH_SESSION_KEY_PREFIX:auth:admin:token:}
-    login-audit-retention-days: ${AUTH_LOGIN_AUDIT_RETENTION_DAYS:90}
-    login-audit-cleanup-cron: ${AUTH_LOGIN_AUDIT_CLEANUP_CRON:0 30 3 * * *}
-  qywork:
-    base-url: ${QYWORK_BASE_URL:https://qyapi.weixin.qq.com}
-    access-token-cache-key-prefix: ${QYWORK_ACCESS_TOKEN_CACHE_KEY_PREFIX:qywork:access-token:}
-    access-token-refresh-advance-seconds: ${QYWORK_ACCESS_TOKEN_REFRESH_ADVANCE_SECONDS:300}
-  system:
-    file:
-      storage-path: ${MODEL_DESIGN_FILE_STORAGE_PATH:./storage/}
-      thumbnail:
-        enabled: ${MODEL_DESIGN_FILE_THUMBNAIL_ENABLED:true}
-        width: ${MODEL_DESIGN_FILE_THUMBNAIL_WIDTH:200}
-        height: ${MODEL_DESIGN_FILE_THUMBNAIL_HEIGHT:200}
-    message:
-      kafka:
-        push-topic: ${MODEL_DESIGN_SYSTEM_MESSAGE_PUSH_TOPIC:model-design.system-message.push}
-        push-dlt-topic: ${MODEL_DESIGN_SYSTEM_MESSAGE_PUSH_DLT_TOPIC:model-design.system-message.push.dlt}
-        retry-max-attempts: ${MODEL_DESIGN_SYSTEM_MESSAGE_RETRY_MAX_ATTEMPTS:3}
-        retry-backoff-seconds: ${MODEL_DESIGN_SYSTEM_MESSAGE_RETRY_BACKOFF_SECONDS:300}
-        republish-interval-seconds: ${MODEL_DESIGN_SYSTEM_MESSAGE_REPUBLISH_INTERVAL_SECONDS:30}
-        republish-batch-size: ${MODEL_DESIGN_SYSTEM_MESSAGE_REPUBLISH_BATCH_SIZE:100}
 
 logging:
   level:
