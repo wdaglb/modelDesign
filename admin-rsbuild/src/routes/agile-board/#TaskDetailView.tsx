@@ -7,6 +7,10 @@ import {
   DatePicker,
   Dropdown,
   Input,
+  type InputRef,
+  Mentions,
+  Modal,
+  Tag,
   Tabs,
   Typography,
   message,
@@ -28,6 +32,7 @@ import {
 } from '@/api/modules/project-task.types';
 import type { User } from '@/api/modules/user';
 import { KMarkdownPreview } from '@/components';
+import { resolveTaskTypeTagTone } from '@/components/business/task-card/TaskCard';
 import queryKey from '@/constants/queryKey';
 import useDebounce from '@/hooks/useDebounce';
 import { copyTextToClipboard } from '@/utils';
@@ -56,12 +61,7 @@ import {
   TaskDetailPrimaryChip,
   TaskDetailPrimaryChipLabel,
   TaskDetailPrimaryChipValue,
-  TaskDetailSubtaskCell,
-  TaskDetailSubtaskHeadRow,
   TaskDetailSubtaskHint,
-  TaskDetailSubtaskRow,
-  TaskDetailSubtaskTable,
-  TaskDetailSubtaskTitleCell,
   TaskDetailSubtaskToolbar,
   TaskDetailTabsShell,
   TaskDetailTimelineBody,
@@ -73,6 +73,7 @@ import {
   buildQuickCreateSubtaskPayload,
   resolveInitialSubtaskStatus,
 } from './#taskDrawerSubtaskHelper';
+import type { TaskPreviewDrawerTabKey } from './#previewDrawerService';
 import {
   buildTaskDetailTypeMenuItems,
   resolveTaskDetailTypeText,
@@ -85,18 +86,158 @@ import {
   type TaskDetailScheduleRangeField,
   type TaskDetailScheduleRangeValue,
 } from './#taskDetailScheduleHelper';
+import TaskDetailSubtaskTableSection, {
+  type TaskDetailSubtaskEditableField,
+  type TaskDetailSubtaskEditingCell,
+} from './#TaskDetailSubtaskTable';
 import {
   buildEditPayload,
+  normalizeAssigneeValue,
+  normalizeDateValue,
+  normalizeTaskStatus,
   resolvePopupContainer,
 } from '@/routes/project/components/#projectTaskHelper';
 import { buildBoardStatusOptions } from './#helper';
 
 const RECENT_USERS_KEY = 'userSelect:recentUsers';
 const RECENT_USERS_MAX = 10;
+const DYNAMIC_MENTION_PATTERN =
+  /@[^\s@，。；、,.!?！？:："“”"'‘’<>\[\]{}]+(?:（[^）\s]+）|\([^)\s]+\))?/g;
+
+/**
+ * 组装动态 @ 用户时插入到正文中的文本。
+ *
+ * 当前后端动态接口仍然只保存纯文本内容，因此这里优先兼顾可读性与弱唯一性：
+ * - 有昵称且昵称与用户名不同：插入“昵称（用户名）”
+ * - 其他情况：回退为用户名
+ *
+ * 这样可以避免重名昵称场景下正文完全无法区分，同时又不引入新的后端结构。
+ *
+ * @param user 用户信息
+ * @return Mentions 组件要插入的文本
+ */
+function buildDynamicMentionValue(user: User) {
+  const nickname = user.nickname?.trim();
+  const username = user.username.trim();
+  if (nickname && nickname !== username) {
+    return `${nickname}（${username}）`;
+  }
+  return username;
+}
+
+/**
+ * 将用户列表转换为动态 @ 用户下拉候选项。
+ *
+ * 这里复用统一用户搜索接口返回的数据，不额外定义新的视图模型，
+ * 让动态输入与系统内其他用户搜索场景保持一致的数据来源。
+ *
+ * @param users 用户列表
+ * @return Mentions 候选项
+ */
+function buildDynamicMentionOptions(users: User[]) {
+  return users.map((user) => {
+    const mentionValue = buildDynamicMentionValue(user);
+
+    return {
+      key: String(user.id),
+      value: mentionValue,
+      label: `${mentionValue} · ID ${user.id}`,
+    };
+  });
+}
+
+/**
+ * 根据当前正文与已选择的 mention 用户，反推出本次发布仍然有效的用户 ID。
+ *
+ * 这里不直接信任“曾经选中过谁”，而是以正文里是否仍然存在对应的 @ 文本为准，
+ * 避免用户手动删除 mention 文本后，后台仍收到过期的通知目标。
+ *
+ * @param content 当前动态正文
+ * @param mentionedUsers 当前编辑态记录的 mention 用户
+ * @return 仍然有效的用户 ID 集合
+ */
+function resolveDynamicMentionedUserIds(
+  content: string,
+  mentionedUsers: User[],
+) {
+  const mentionedUserIds = new Set<number>();
+
+  for (const user of mentionedUsers) {
+    const mentionText = `@${buildDynamicMentionValue(user)}`;
+    if (!content.includes(mentionText)) {
+      continue;
+    }
+    mentionedUserIds.add(user.id);
+  }
+
+  return Array.from(mentionedUserIds);
+}
+
+/**
+ * 将动态正文解析为普通文本与 @ 用户片段。
+ *
+ * 目前任务动态仍以纯文本存储，因此只能依赖文本规则识别 mention。
+ * 这里优先匹配当前输入组件实际插入的“@昵称（用户名）”格式，同时兼容常见的“@用户名”。
+ *
+ * @param content 动态正文
+ * @return 可直接渲染的节点片段
+ */
+function renderDynamicContentWithMentionHighlight(content: string) {
+  const nodes: JSX.Element[] = [];
+  let startIndex = 0;
+
+  for (const match of content.matchAll(DYNAMIC_MENTION_PATTERN)) {
+    const matchedText = match[0];
+    const matchedIndex = match.index;
+
+    if (matchedIndex === undefined) {
+      continue;
+    }
+
+    if (matchedIndex > startIndex) {
+      nodes.push(
+        <Typography.Text key={`text-${startIndex}`}>
+          {content.slice(startIndex, matchedIndex)}
+        </Typography.Text>,
+      );
+    }
+
+    nodes.push(
+      <Tag
+        key={`mention-${matchedIndex}`}
+        color={'processing'}
+        style={{ marginInlineEnd: 4 }}
+      >
+        {matchedText}
+      </Tag>,
+    );
+    startIndex = matchedIndex + matchedText.length;
+  }
+
+  if (!nodes.length) {
+    return content;
+  }
+
+  if (startIndex < content.length) {
+    nodes.push(
+      <Typography.Text key={`text-${startIndex}`}>
+        {content.slice(startIndex)}
+      </Typography.Text>,
+    );
+  }
+
+  return nodes;
+}
 
 interface TaskDetailViewProps {
   /**
-   * 打开完整编辑任务。
+   * 抽屉首次打开时默认激活的 Tab。
+   */
+  initialTabKey?: TaskPreviewDrawerTabKey;
+  /**
+   * 打开关联任务详情。
+   *
+   * 当前用于在主任务详情里继续打开子任务详情抽屉，保持详情链路一致。
    */
   onEditTask: (task: ProjectTaskDetail) => Promise<void>;
 
@@ -145,7 +286,9 @@ interface TaskDetailViewProps {
  * 不再叠加旧版 panel，避免同一信息在两个层级重复出现。
  */
 const TaskDetailView = (props: TaskDetailViewProps) => {
-  const [activeTabKey, setActiveTabKey] = useState('detail');
+  const [activeTabKey, setActiveTabKey] = useState<TaskPreviewDrawerTabKey>(
+    props.initialTabKey ?? 'detail',
+  );
   const [openDropdown, setOpenDropdown] = useState<string>();
   const [savingField, setSavingField] = useState<string>();
   const [assigneeKeyword, setAssigneeKeyword] = useState('');
@@ -155,8 +298,17 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
   const [creatingSubtask, setCreatingSubtask] = useState(false);
   const [dynamicContent, setDynamicContent] = useState('');
   const [creatingDynamic, setCreatingDynamic] = useState(false);
+  const [deletingSubtaskId, setDeletingSubtaskId] = useState<number>();
+  const [editingSubtaskCell, setEditingSubtaskCell] =
+    useState<TaskDetailSubtaskEditingCell | null>(null);
+  const [dynamicMentionUsers, setDynamicMentionUsers] = useState<User[]>([]);
+  const [dynamicMentionKeyword, setDynamicMentionKeyword] = useState<
+    string | undefined
+  >(undefined);
   const scheduleClosingBySaveRef = useRef(false);
   const scheduleEditedFieldRef = useRef<TaskDetailScheduleRangeField>();
+  const subtaskTitleInputRef = useRef<InputRef | null>(null);
+  const shouldRefocusSubtaskInputRef = useRef(false);
   const debouncedAssigneeKeyword = useDebounce(assigneeKeyword, 300);
   const trimmedAssigneeKeyword = debouncedAssigneeKeyword.trim();
   const isAssigneeSearching = trimmedAssigneeKeyword.length > 0;
@@ -187,6 +339,23 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
         pageSize: 20,
       }),
     enabled: props.previewDynamics === undefined,
+  });
+
+  const dynamicMentionUserQuery = useQuery({
+    queryKey: ['taskDetailDynamicMentionSearch', dynamicMentionKeyword],
+    queryFn: () => {
+      const trimmedKeyword = dynamicMentionKeyword?.trim();
+
+      return ApiUser.getPageList({
+        keyword: trimmedKeyword || undefined,
+        current: 1,
+        pageSize: 10,
+      });
+    },
+    enabled:
+      props.previewDynamics === undefined &&
+      dynamicMentionKeyword !== undefined,
+    placeholderData: (previousData) => previousData,
   });
 
   const assigneeQuery = useQuery({
@@ -246,6 +415,32 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
 
     return items;
   }, [dynamicQuery.data?.items, props.previewDynamics]);
+  const dynamicMentionOptions = useMemo(() => {
+    const users = dynamicMentionUserQuery.data?.items;
+    if (!users) {
+      return [];
+    }
+
+    return buildDynamicMentionOptions(users);
+  }, [dynamicMentionUserQuery.data?.items]);
+  const dynamicMentionUserMap = useMemo(() => {
+    const users = dynamicMentionUserQuery.data?.items;
+    const nextMap = new Map<string, User>();
+
+    if (!users) {
+      return nextMap;
+    }
+
+    for (const user of users) {
+      nextMap.set(buildDynamicMentionValue(user), user);
+    }
+
+    return nextMap;
+  }, [dynamicMentionUserQuery.data?.items]);
+  let dynamicMentionNotFoundContent = '未找到可插入的用户';
+  if (dynamicMentionUserQuery.isFetching) {
+    dynamicMentionNotFoundContent = '搜索用户中...';
+  }
 
   const taskNumberText = resolveTaskNumberText(props.task);
   const taskShareUrl = buildAgileBoardTaskShareUrl(
@@ -257,12 +452,37 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
   const typeText = useMemo(() => {
     return resolveTaskDetailTypeText(props.task, taskTypeQuery.data);
   }, [props.task, taskTypeQuery.data]);
+  /**
+   * 标题区的类型标签需要与敏捷面板任务卡片保持一致的视觉语义。
+   *
+   * 当任务还未设置类型时，仍然保留一个中性 Tag，避免用户失去
+   * 在标题区直接感知并修改类型的入口。
+   */
+  const titleTypeTone = useMemo(() => {
+    if (typeText === '未设置') {
+      return {
+        background: '#f5f5f5',
+        borderColor: '#d9d9d9',
+        textColor: '#595959',
+      };
+    }
+
+    return resolveTaskTypeTagTone(typeText);
+  }, [typeText]);
   const scheduleRangeValue = useMemo(() => {
     return buildTaskDetailScheduleRangeValue({
       startTime: draftStartTime,
       dueTime: draftDueTime,
     });
   }, [draftDueTime, draftStartTime]);
+
+  /**
+   * 同一抽屉在切换任务或切换默认入口时，应回到预期的起始 Tab。
+   */
+  useEffect(() => {
+    setActiveTabKey(props.initialTabKey ?? 'detail');
+  }, [props.initialTabKey, props.task.id]);
+
   const statusOptions = useMemo(() => {
     return buildBoardStatusOptions(props.statusConfigs, props.task.status);
   }, [props.statusConfigs, props.task.status]);
@@ -322,6 +542,58 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
       };
     });
   }, [statusOptions]);
+  let titleTypeTagNode = null;
+  if (titleTypeTone) {
+    titleTypeTagNode = (
+      <Dropdown
+        trigger={['click']}
+        open={openDropdown === 'type'}
+        menu={{
+          items: typeMenuItems,
+          selectable: true,
+          selectedKeys: typeSelectedKeys,
+          onClick: async ({ key, domEvent }) => {
+            domEvent.preventDefault();
+            domEvent.stopPropagation();
+
+            const nextTypeId = Number(key);
+            if (Number.isNaN(nextTypeId)) {
+              setOpenDropdown(undefined);
+              return;
+            }
+
+            if (props.task.typeId === nextTypeId) {
+              setOpenDropdown(undefined);
+              return;
+            }
+
+            await saveQuickField('typeId', {
+              typeId: nextTypeId,
+            });
+          },
+        }}
+        onOpenChange={(open) => {
+          if (open) {
+            setOpenDropdown('type');
+            return;
+          }
+          setOpenDropdown(undefined);
+        }}
+      >
+        <Tag
+          style={{
+            marginInlineEnd: 0,
+            cursor: 'pointer',
+            background: titleTypeTone.background,
+            borderColor: titleTypeTone.borderColor,
+            color: titleTypeTone.textColor,
+          }}
+        >
+          {typeText}
+        </Tag>
+      </Dropdown>
+    );
+  }
   const subtaskCount = subtaskItems.length;
   const initialSubtaskStatus = useMemo(() => {
     return resolveInitialSubtaskStatus(props.statusConfigs);
@@ -354,6 +626,18 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
       message.success('任务编号已复制');
     } catch {
       message.error('任务编号复制失败，请稍后重试');
+    }
+  };
+
+  /**
+   * 复制任务标题，方便用户在详情抽屉内直接复用标题文案。
+   */
+  const copyTaskTitle = async () => {
+    try {
+      await copyTextToClipboard(props.task.title);
+      message.success('任务标题已复制');
+    } catch {
+      message.error('任务标题复制失败，请稍后重试');
     }
   };
 
@@ -400,6 +684,27 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     resetScheduleDraft();
   }, [props.task.dueTime, props.task.startTime]);
 
+  /**
+   * 子任务快捷创建成功后重新聚焦输入框，便于用户连续录入多条子任务。
+   *
+   * 这里不能在创建成功分支里直接 focus，因为提交期间输入框处于 disabled，
+   * 需要等 `creatingSubtask` 回落后再执行聚焦。
+   */
+  useEffect(() => {
+    if (creatingSubtask) {
+      return;
+    }
+
+    if (!shouldRefocusSubtaskInputRef.current) {
+      return;
+    }
+
+    shouldRefocusSubtaskInputRef.current = false;
+    window.requestAnimationFrame(() => {
+      subtaskTitleInputRef.current?.focus();
+    });
+  }, [creatingSubtask]);
+
   const handleQuickCreateSubtask = async () => {
     if (!canQuickCreateSubtask || !initialSubtaskStatus) {
       return;
@@ -416,6 +721,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
         ),
       );
       setSubtaskTitle('');
+      shouldRefocusSubtaskInputRef.current = true;
       message.success('子任务创建成功');
       await Promise.all([
         subtaskQuery.refetch(),
@@ -428,6 +734,213 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     } finally {
       setCreatingSubtask(false);
     }
+  };
+
+  /**
+   * 开始编辑子任务快捷字段。
+   *
+   * @param taskId 子任务 ID
+   * @param field 快捷字段名
+   */
+  const startEditSubtaskCell = (
+    taskId: number,
+    field: TaskDetailSubtaskEditableField,
+  ) => {
+    if (savingField) {
+      return;
+    }
+
+    setEditingSubtaskCell({
+      taskId,
+      field,
+    });
+  };
+
+  /**
+   * 关闭子任务快捷编辑态。
+   */
+  const closeEditingSubtaskCell = () => {
+    setEditingSubtaskCell(null);
+  };
+
+  /**
+   * 保存子任务快捷字段。
+   *
+   * 子任务列表接口返回的是列表视图模型，不保证包含编辑接口需要的完整字段。
+   * 这里先补拉一次详情，再基于完整快照合成 patch，避免把未回传字段覆盖为空。
+   *
+   * @param task 子任务列表项
+   * @param field 字段名
+   * @param patch 变更补丁
+   */
+  const saveSubtaskField = async (
+    task: ProjectTaskDetail,
+    field: TaskDetailSubtaskEditableField,
+    patch: Parameters<typeof buildEditPayload>[1],
+  ) => {
+    const savingKey = `${task.id}:${field}`;
+    setSavingField(savingKey);
+
+    try {
+      const detailTask = await ApiProjectTask.getDetail(task.id);
+
+      await ApiProjectTask.edit(
+        task.id,
+        buildEditPayload(detailTask, patch),
+      );
+      message.success('子任务已更新');
+      closeEditingSubtaskCell();
+      await Promise.all([subtaskQuery.refetch(), props.onTaskUpdated()]);
+    } catch (error) {
+      message.error('子任务更新失败，请稍后重试');
+      throw error;
+    } finally {
+      setSavingField(undefined);
+    }
+  };
+
+  /**
+   * 保存子任务标题。
+   *
+   * @param task 子任务
+   * @param value 标题
+   */
+  const handleSubtaskTitleSave = async (
+    task: ProjectTaskDetail,
+    value: string,
+  ) => {
+    const normalizedValue = value.trim();
+
+    if (!normalizedValue || normalizedValue === task.title.trim()) {
+      closeEditingSubtaskCell();
+      return;
+    }
+
+    await saveSubtaskField(task, 'title', {
+      title: normalizedValue,
+    });
+  };
+
+  /**
+   * 保存子任务状态。
+   *
+   * @param task 子任务
+   * @param value 新状态
+   */
+  const handleSubtaskStatusSave = async (
+    task: ProjectTaskDetail,
+    value?: string | number,
+  ) => {
+    const nextStatus = normalizeTaskStatus(value);
+
+    if (!nextStatus || nextStatus === task.status) {
+      closeEditingSubtaskCell();
+      return;
+    }
+
+    await saveSubtaskField(task, 'status', {
+      status: nextStatus,
+    });
+  };
+
+  /**
+   * 保存子任务负责人。
+   *
+   * @param task 子任务
+   * @param value 负责人值
+   */
+  const handleSubtaskAssigneeSave = async (
+    task: ProjectTaskDetail,
+    value?: string | number,
+  ) => {
+    const nextAssigneeId = normalizeAssigneeValue(value);
+    let nextAssigneePayload = nextAssigneeId;
+
+    if (nextAssigneeId === task.assigneeId) {
+      closeEditingSubtaskCell();
+      return;
+    }
+
+    if (value === undefined) {
+      nextAssigneePayload = 0;
+    }
+
+    await saveSubtaskField(task, 'assigneeId', {
+      assigneeId: nextAssigneePayload,
+    });
+  };
+
+  /**
+   * 保存子任务截止时间。
+   *
+   * @param task 子任务
+   * @param value 截止时间
+   */
+  const handleSubtaskDueTimeSave = async (
+    task: ProjectTaskDetail,
+    value?: string,
+  ) => {
+    const normalizedValue = normalizeDateValue(value);
+    const currentValue = normalizeDateValue(task.dueTime);
+
+    if (normalizedValue === currentValue) {
+      closeEditingSubtaskCell();
+      return;
+    }
+
+    await saveSubtaskField(task, 'dueTime', {
+      dueTime: normalizedValue,
+    });
+  };
+
+  /**
+   * 打开子任务详情。
+   *
+   * 详情态承载子任务操作入口，因此这里交给外层继续打开任务详情抽屉，
+   * 避免“查看详情”错误跳转到完整编辑表单。
+   *
+   * @param task 子任务
+   */
+  const handleOpenSubtaskDetail = async (task: ProjectTaskDetail) => {
+    await props.onEditTask(task);
+  };
+
+  /**
+   * 删除子任务并刷新详情态数据。
+   *
+   * 删除成功后需要同步回刷子任务列表和主任务详情，避免抽屉内计数与最新状态残留。
+   *
+   * @param task 子任务
+   */
+  const handleDeleteSubtask = async (task: ProjectTaskDetail) => {
+    if (props.previewSubtasks !== undefined) {
+      return;
+    }
+
+    Modal.confirm({
+      title: '确认删除子任务？',
+      content: `删除后不可恢复，子任务「${task.title}」将被移除。`,
+      okText: '删除',
+      cancelText: '取消',
+      okButtonProps: {
+        danger: true,
+      },
+      onOk: async () => {
+        setDeletingSubtaskId(task.id);
+
+        try {
+          await ApiProjectTask.deleted([task.id]);
+          message.success('子任务删除成功');
+          closeEditingSubtaskCell();
+          await Promise.all([subtaskQuery.refetch(), props.onTaskUpdated()]);
+        } catch (error) {
+          message.error('子任务删除失败，请稍后重试');
+          throw error;
+        } finally {
+          setDeletingSubtaskId(undefined);
+        }
+      },
+    });
   };
 
   /**
@@ -449,11 +962,18 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     setCreatingDynamic(true);
 
     try {
+      const mentionedUserIds = resolveDynamicMentionedUserIds(
+        normalizedContent,
+        dynamicMentionUsers,
+      );
       await ApiProjectTaskDynamic.create({
         taskId: props.task.id,
         content: normalizedContent,
+        mentionedUserIds,
       });
       setDynamicContent('');
+      setDynamicMentionUsers([]);
+      setDynamicMentionKeyword(undefined);
       message.success('任务动态已发布');
       await dynamicQuery.refetch();
     } catch (error) {
@@ -555,7 +1075,25 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                   复制编号
                 </Button>
               </TaskDetailIdRow>
-              <TaskDetailEntityTitle>{props.task.title}</TaskDetailEntityTitle>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}
+              >
+                {titleTypeTagNode}
+                <TaskDetailEntityTitle
+                  $clickable
+                  title={'点击复制任务标题'}
+                  onClick={async () => {
+                    await copyTaskTitle();
+                  }}
+                >
+                  {props.task.title}
+                </TaskDetailEntityTitle>
+              </div>
             </TaskDetailEntityTitleStack>
 
             <TaskDetailChipRow>
@@ -629,49 +1167,6 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                   <TaskDetailChip>
                     <TaskDetailChipLabel>优先级</TaskDetailChipLabel>
                     <TaskDetailChipValue>{priorityText}</TaskDetailChipValue>
-                  </TaskDetailChip>
-                </span>
-              </Dropdown>
-
-              <Dropdown
-                trigger={['click']}
-                open={openDropdown === 'type'}
-                menu={{
-                  items: typeMenuItems,
-                  selectable: true,
-                  selectedKeys: typeSelectedKeys,
-                  onClick: async ({ key, domEvent }) => {
-                    domEvent.preventDefault();
-                    domEvent.stopPropagation();
-
-                    const nextTypeId = Number(key);
-                    if (Number.isNaN(nextTypeId)) {
-                      setOpenDropdown(undefined);
-                      return;
-                    }
-
-                    if (props.task.typeId === nextTypeId) {
-                      setOpenDropdown(undefined);
-                      return;
-                    }
-
-                    await saveQuickField('typeId', {
-                      typeId: nextTypeId,
-                    });
-                  },
-                }}
-                onOpenChange={(open) => {
-                  if (open) {
-                    setOpenDropdown('type');
-                    return;
-                  }
-                  setOpenDropdown(undefined);
-                }}
-              >
-                <span style={{ display: 'inline-flex' }}>
-                  <TaskDetailChip>
-                    <TaskDetailChipLabel>类型</TaskDetailChipLabel>
-                    <TaskDetailChipValue>{typeText}</TaskDetailChipValue>
                   </TaskDetailChip>
                 </span>
               </Dropdown>
@@ -845,7 +1340,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
             <Tabs
               activeKey={activeTabKey}
               onChange={(nextKey) => {
-                setActiveTabKey(nextKey);
+                setActiveTabKey(nextKey as TaskPreviewDrawerTabKey);
               }}
               items={[
                 {
@@ -873,6 +1368,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                             style={{ display: 'flex', gap: 8, minWidth: 320 }}
                           >
                             <Input
+                              ref={subtaskTitleInputRef}
                               value={subtaskTitle}
                               disabled={
                                 creatingSubtask ||
@@ -898,12 +1394,24 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                             </Button>
                           </div>
                         </TaskDetailSubtaskToolbar>
-                        {renderSubtaskTable({
-                          items: subtaskItems,
-                          statusConfigs: props.statusConfigs,
-                          isLoading: subtaskQuery.isLoading,
-                          isError: subtaskQuery.isError,
-                        })}
+                        <TaskDetailSubtaskTableSection
+                          deletingTaskId={deletingSubtaskId}
+                          disabled={props.previewSubtasks !== undefined}
+                          editingCell={editingSubtaskCell}
+                          isError={subtaskQuery.isError}
+                          isLoading={subtaskQuery.isLoading}
+                          items={subtaskItems}
+                          onDelete={handleDeleteSubtask}
+                          onOpenDetail={handleOpenSubtaskDetail}
+                          savingCellKey={savingField}
+                          statusConfigs={props.statusConfigs}
+                          onAssigneeSave={handleSubtaskAssigneeSave}
+                          onCloseEditingCell={closeEditingSubtaskCell}
+                          onDueTimeSave={handleSubtaskDueTimeSave}
+                          onStartEditCell={startEditSubtaskCell}
+                          onStatusSave={handleSubtaskStatusSave}
+                          onTitleSave={handleSubtaskTitleSave}
+                        />
                       </TaskDetailPanelCard>
                     </TaskDetailDrawerStack>
                   ),
@@ -927,18 +1435,47 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                               width: '100%',
                             }}
                           >
-                            <Input.TextArea
+                            <Mentions
                               value={dynamicContent}
                               disabled={props.previewDynamics !== undefined}
                               rows={4}
                               maxLength={1000}
+                              prefix={['@']}
+                              options={dynamicMentionOptions}
                               placeholder={
-                                '输入本次进度说明，例如：已完成联调，等待测试回归'
+                                '输入本次进度说明，输入 @ 可自动搜索并插入用户'
                               }
-                              onChange={(event) => {
-                                setDynamicContent(event.target.value);
+                              notFoundContent={
+                                dynamicMentionNotFoundContent
+                              }
+                              onChange={(value) => {
+                                setDynamicContent(value);
+                              }}
+                              onSearch={(text, prefix) => {
+                                if (prefix !== '@') {
+                                  return;
+                                }
+                                setDynamicMentionKeyword(text);
+                              }}
+                              onSelect={(option: { value: string }) => {
+                                const selectedUser = dynamicMentionUserMap.get(
+                                  option.value,
+                                );
+                                if (!selectedUser) {
+                                  return;
+                                }
+
+                                setDynamicMentionUsers((previousUsers) => {
+                                  const nextUsers = previousUsers.filter(
+                                    (item) => item.id !== selectedUser.id,
+                                  );
+                                  return [...nextUsers, selectedUser];
+                                });
                               }}
                             />
+                            <Typography.Text type={'secondary'}>
+                              输入 @ 可搜索用户，选中后会把用户标识插入到动态正文。
+                            </Typography.Text>
                             <div
                               style={{
                                 display: 'flex',
@@ -1053,67 +1590,6 @@ function renderMarkdownPreview(description?: string) {
 }
 
 /**
- * 渲染子任务表格。
- *
- * @param items 子任务列表
- * @param isLoading 是否加载中
- * @param isError 是否加载失败
- * @param statusConfigs 状态配置
- * @return 预览节点
- */
-function renderSubtaskTable(options: {
-  isError: boolean;
-  isLoading: boolean;
-  items: ProjectTaskDetail[];
-  statusConfigs: TaskStatusConfig[];
-}) {
-  if (options.isLoading) {
-    return (
-      <Typography.Text type={'secondary'}>子任务加载中...</Typography.Text>
-    );
-  }
-
-  if (options.isError) {
-    return (
-      <Alert type={'error'} showIcon message={'子任务加载失败，请稍后重试。'} />
-    );
-  }
-
-  if (!options.items.length) {
-    return <Typography.Text type={'secondary'}>暂无子任务</Typography.Text>;
-  }
-
-  return (
-    <TaskDetailSubtaskTable>
-      <TaskDetailSubtaskHeadRow>
-        <div>子任务</div>
-        <div>状态</div>
-        <div>负责人</div>
-        <div>截止时间</div>
-      </TaskDetailSubtaskHeadRow>
-      {options.items.map((item) => {
-        return (
-          <TaskDetailSubtaskRow key={item.id}>
-            <TaskDetailSubtaskTitleCell>
-              {item.title}
-            </TaskDetailSubtaskTitleCell>
-            <TaskDetailSubtaskCell>
-              {getBoardStatusText(item.status, options.statusConfigs)}
-            </TaskDetailSubtaskCell>
-            <TaskDetailSubtaskCell>
-              {getTaskAssigneeText(item)}
-            </TaskDetailSubtaskCell>
-            <TaskDetailSubtaskCell>
-              {formatDueDate(item.dueTime)}
-            </TaskDetailSubtaskCell>
-          </TaskDetailSubtaskRow>
-        );
-      })}
-    </TaskDetailSubtaskTable>
-  );
-}
-
-/**
  * 渲染变更日志时间线。
  *
  * @param items 变更日志
@@ -1203,8 +1679,16 @@ function renderDynamicTimeline(options: {
             <TaskDetailTimelineTitle>
               {`${item.createdAt} · ${item.operatorName}`}
             </TaskDetailTimelineTitle>
-            <TaskDetailTimelineBody style={{ whiteSpace: 'pre-wrap' }}>
-              {item.content}
+            <TaskDetailTimelineBody
+              style={{
+                whiteSpace: 'pre-wrap',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 4,
+                alignItems: 'center',
+              }}
+            >
+              {renderDynamicContentWithMentionHighlight(item.content)}
             </TaskDetailTimelineBody>
           </TaskDetailTimelineItem>
         );
@@ -1229,24 +1713,6 @@ function buildChangeLogSummary(item: ProjectTaskChangeLogItem) {
       return `${change.label}：${change.beforeValue || '-'} → ${change.afterValue || '-'}`;
     })
     .join('；');
-}
-
-/**
- * 格式化截止时间展示。
- *
- * @param dueTime 截止时间
- * @return 文本
- */
-function formatDueDate(dueTime?: string) {
-  if (!dueTime) {
-    return '-';
-  }
-
-  if (dueTime.length >= 10) {
-    return dueTime.slice(5, 10);
-  }
-
-  return dueTime;
 }
 
 /**

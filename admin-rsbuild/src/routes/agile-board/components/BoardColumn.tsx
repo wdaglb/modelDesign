@@ -3,21 +3,13 @@ import { useDroppable } from '@dnd-kit/core';
 import {
   memo,
   useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
   type ReactNode,
 } from 'react';
-import {
-  TaskPriority,
-  type TaskStatusCode,
-} from '@/api/modules/project-task.types';
+import { TaskPriority } from '@/api/modules/project-task.types';
 
 import { getColumnDragId, getColumnSubtitle } from '../#helper';
 import type { AgileBoardColumnMeta, AgileBoardTask } from '../#types';
 import AgileBoardTaskCard from './AgileBoardTaskCard';
-import SubtaskList from './SubtaskList';
 import {
   ColumnBadge,
   ColumnBody,
@@ -28,6 +20,9 @@ import {
   ColumnSurface,
   ColumnTitle,
   EmptyDropZone,
+  TaskActionButton,
+  TaskActionMeta,
+  TaskActionRow,
   TaskItem,
   TaskList,
 } from '../styles/column.styled';
@@ -35,20 +30,28 @@ import {
 interface AgileBoardColumnProps {
   column: AgileBoardColumnMeta;
   disabled?: boolean;
+  onOpenSubtasks: (task: AgileBoardTask) => Promise<void>;
   onPreview: (task: AgileBoardTask) => Promise<void>;
   tasks: AgileBoardTask[];
-  subtaskMap: Map<number, AgileBoardTask[]>;
-  completedStatusSet: ReadonlySet<TaskStatusCode>;
   onPriorityChange: (
     task: AgileBoardTask,
     priority: TaskPriority,
   ) => Promise<void>;
 }
 
-const TASK_CARD_ESTIMATED_HEIGHT = 124;
-const TASK_CARD_GAP = 10;
-const TASK_ROW_ESTIMATED_HEIGHT = TASK_CARD_ESTIMATED_HEIGHT + TASK_CARD_GAP;
-const TASK_OVERSCAN_COUNT = 4;
+/**
+ * 判断当前任务是否需要展示子任务入口。
+ *
+ * @param task 当前任务
+ * @returns 是否展示子任务入口
+ */
+function shouldShowTaskAction(task: AgileBoardTask) {
+  if ((task.childTaskCount ?? 0) > 0) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * 敏捷面板列容器。
@@ -59,15 +62,7 @@ const AgileBoardColumn = memo((props: AgileBoardColumnProps) => {
   });
   const columnSubtitle = getColumnSubtitle(props.column.isHistory);
   const canDrop = Boolean(isOver && !props.disabled);
-  const bodyRef = useRef<HTMLDivElement | null>(null);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [bodyHeight, setBodyHeight] = useState(0);
   let subtitleNode: ReactNode = null;
-
-  /**
-   * 数据量较小时保持完整渲染，避免引入不必要的计算开销。
-   */
-  const isVirtualEnabled = props.tasks.length > 40;
 
   if (columnSubtitle) {
     subtitleNode = (
@@ -76,27 +71,40 @@ const AgileBoardColumn = memo((props: AgileBoardColumnProps) => {
   }
 
   /**
-   * 统一渲染单个任务节点，便于普通渲染和虚拟渲染复用。
+   * 统一渲染单个任务节点，避免完整渲染模式下再拆分多套卡片分支。
    */
   const renderTaskItem = useCallback(
     (task: AgileBoardTask) => {
-      const subtasks = props.subtaskMap.get(task.id) ?? [];
-      let subtaskNode: ReactNode = null;
+      const childTaskCount = task.childTaskCount ?? 0;
+      let taskActionNode: ReactNode = null;
 
-      if (subtasks.length > 0) {
-        subtaskNode = (
-          <SubtaskList
-            disabled={props.disabled}
-            subtasks={subtasks}
-            completedStatusSet={props.completedStatusSet}
-            onPreview={props.onPreview}
-            onPriorityChange={props.onPriorityChange}
-          />
+      if (shouldShowTaskAction(task)) {
+        taskActionNode = (
+          <TaskActionRow>
+            <TaskActionMeta type="secondary">
+              子任务 {childTaskCount} 项
+            </TaskActionMeta>
+            <TaskActionButton
+              type="link"
+              size="small"
+              disabled={props.disabled}
+              onClick={async (event) => {
+                event.stopPropagation();
+                await props.onOpenSubtasks(task);
+              }}
+            >
+              查看子任务
+            </TaskActionButton>
+          </TaskActionRow>
         );
       }
 
       return (
-        <TaskItem key={task.id} data-task-item="true">
+        <TaskItem
+          key={task.id}
+          data-task-item="true"
+          data-task-item-id={String(task.id)}
+        >
           <AgileBoardTaskCard
             accentColor={props.column.accentColor}
             task={task}
@@ -104,163 +112,34 @@ const AgileBoardColumn = memo((props: AgileBoardColumnProps) => {
             onPreview={props.onPreview}
             onPriorityChange={props.onPriorityChange}
           />
-          {subtaskNode}
+          {taskActionNode}
         </TaskItem>
       );
     },
     [
       props.column.accentColor,
       props.disabled,
+      props.onOpenSubtasks,
       props.onPreview,
       props.onPriorityChange,
-      props.subtaskMap,
-      props.completedStatusSet,
     ],
   );
-
-  /**
-   * 监听列滚动容器高度，计算虚拟窗口大小。
-   */
-  useEffect(() => {
-    if (!isVirtualEnabled) {
-      return;
-    }
-
-    const container = bodyRef.current;
-
-    if (!container) {
-      return;
-    }
-
-    const updateBodyHeight = () => {
-      setBodyHeight(container.clientHeight);
-    };
-
-    updateBodyHeight();
-
-    const resizeObserver = new ResizeObserver(() => {
-      updateBodyHeight();
-    });
-
-    resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [isVirtualEnabled]);
-
-  /**
-   * 切换到非虚拟模式时重置滚动状态，防止残留偏移。
-   */
-  useEffect(() => {
-    if (isVirtualEnabled) {
-      return;
-    }
-
-    setScrollTop(0);
-    setBodyHeight(0);
-  }, [isVirtualEnabled]);
-
-  /**
-   * 列滚动事件。
-   */
-  const handleBodyScroll = useCallback(() => {
-    if (!isVirtualEnabled) {
-      return;
-    }
-
-    const container = bodyRef.current;
-
-    if (!container) {
-      return;
-    }
-
-    setScrollTop(container.scrollTop);
-  }, [isVirtualEnabled]);
-
-  /**
-   * 根据当前滚动位置计算可见区间与上下占位高度。
-   */
-  const visibleRange = useMemo(() => {
-    const fallback = {
-      startIndex: 0,
-      endIndex: props.tasks.length,
-      topPlaceholderHeight: 0,
-      bottomPlaceholderHeight: 0,
-    };
-
-    if (!isVirtualEnabled || bodyHeight <= 0) {
-      return fallback;
-    }
-
-    const visibleCount = Math.ceil(bodyHeight / TASK_ROW_ESTIMATED_HEIGHT);
-    const visibleStart = Math.floor(scrollTop / TASK_ROW_ESTIMATED_HEIGHT);
-    const startIndex = Math.max(0, visibleStart - TASK_OVERSCAN_COUNT);
-    const endIndex = Math.min(
-      props.tasks.length,
-      visibleStart + visibleCount + TASK_OVERSCAN_COUNT,
-    );
-    const topPlaceholderHeight = startIndex * TASK_ROW_ESTIMATED_HEIGHT;
-    const bottomPlaceholderHeight =
-      (props.tasks.length - endIndex) * TASK_ROW_ESTIMATED_HEIGHT;
-
-    return {
-      startIndex,
-      endIndex,
-      topPlaceholderHeight,
-      bottomPlaceholderHeight,
-    };
-  }, [bodyHeight, isVirtualEnabled, props.tasks.length, scrollTop]);
-
-  /**
-   * 按可见区间裁剪任务列表，减少大数据量下的渲染节点数。
-   */
-  const visibleTasks = useMemo(() => {
-    if (!isVirtualEnabled) {
-      return props.tasks;
-    }
-
-    return props.tasks.slice(visibleRange.startIndex, visibleRange.endIndex);
-  }, [isVirtualEnabled, props.tasks, visibleRange.endIndex, visibleRange.startIndex]);
 
   let taskListNode: ReactNode = null;
 
   if (props.tasks.length > 0) {
-    if (isVirtualEnabled) {
-      taskListNode = (
-        <TaskList data-virtualized="true">
-          {visibleRange.topPlaceholderHeight > 0 && (
-            <TaskItem
-              aria-hidden="true"
-              style={{
-                height: visibleRange.topPlaceholderHeight,
-              }}
-            />
-          )}
-          {visibleTasks.map((task) => {
-            return renderTaskItem(task);
-          })}
-          {visibleRange.bottomPlaceholderHeight > 0 && (
-            <TaskItem
-              aria-hidden="true"
-              style={{
-                height: visibleRange.bottomPlaceholderHeight,
-              }}
-            />
-          )}
-        </TaskList>
-      );
-    }
-
-    if (!isVirtualEnabled) {
-      taskListNode = (
-        <TaskList>
-          {props.tasks.map((task) => {
-            return renderTaskItem(task);
-          })}
-        </TaskList>
-      );
-    }
+    /**
+     * 改回完整渲染后，让 `TaskList` 重新承担普通 flex 列表职责：
+     * 这样列内滚动行为完全交给浏览器原生布局，不再维护可见区间、
+     * 占位块和滚动节流状态，避免虚拟列表带来的高度估算误差。
+     */
+    taskListNode = (
+      <TaskList>
+        {props.tasks.map((task) => {
+          return renderTaskItem(task);
+        })}
+      </TaskList>
+    );
   }
 
   return (
@@ -285,7 +164,7 @@ const AgileBoardColumn = memo((props: AgileBoardColumnProps) => {
           </ColumnHeader>
         }
       >
-        <ColumnBody ref={bodyRef} onScroll={handleBodyScroll}>
+        <ColumnBody>
           {props.tasks.length === 0 && (
             <EmptyDropZone $accentColor={props.column.accentColor}>
               <Empty

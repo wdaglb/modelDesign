@@ -4,7 +4,20 @@ import type { OpenProps } from '@/components/KDrawer/types.ts';
 
 import TaskPreviewDrawer from './#TaskPreviewDrawer';
 
+/**
+ * 任务详情抽屉默认激活的 Tab。
+ */
+export type TaskPreviewDrawerTabKey =
+  | 'detail'
+  | 'subtask'
+  | 'dynamic'
+  | 'changeLog';
+
 interface OpenTaskPreviewDrawerOptions {
+  /**
+   * 抽屉首次打开时默认激活的 Tab。
+   */
+  initialTabKey?: TaskPreviewDrawerTabKey;
   onEdit: (task: ProjectTaskDetail) => Promise<void>;
   onTaskUpdated: () => Promise<void>;
   statusConfigs: TaskStatusConfig[];
@@ -48,6 +61,7 @@ export async function openTaskPreviewDrawer(
         statusConfigs={options.statusConfigs}
         onTaskUpdated={options.onTaskUpdated}
         onEdit={options.onEdit}
+        initialTabKey={options.initialTabKey}
       />
     ),
   });

@@ -488,9 +488,7 @@ const TaskCard = (props: TaskCardProps) => {
   let metaProjectNode: ReactNode = null;
   if (taskNumberText) {
     metaProjectNode = (
-      <Tooltip title={projectText}>
-        <TaskMetaText type="secondary">{projectText}</TaskMetaText>
-      </Tooltip>
+      <TaskMetaText type="secondary">{projectText}</TaskMetaText>
     );
   }
 
@@ -500,12 +498,8 @@ const TaskCard = (props: TaskCardProps) => {
       <TaskMetaList>
         {metaProjectNode}
         <TaskMetaText type="secondary">{workDaysText}</TaskMetaText>
-        <Tooltip title={assigneeText}>
-          <TaskMetaText type="secondary">{assigneeText}</TaskMetaText>
-        </Tooltip>
-        <Tooltip title={dueTimeText}>
-          <TaskMetaText type="secondary">{dueTimeText}</TaskMetaText>
-        </Tooltip>
+        <TaskMetaText type="secondary">{assigneeText}</TaskMetaText>
+        <TaskMetaText type="secondary">{dueTimeText}</TaskMetaText>
       </TaskMetaList>
     );
   }
@@ -556,6 +550,7 @@ const TaskCard = (props: TaskCardProps) => {
               $compact={Boolean(props.compact)}
               $isSubtask={Boolean(props.isSubtask)}
               $isCompletedSubtask={isCompletedSubtask}
+              title={props.task.title}
             >
               {props.task.title}
             </TaskTitleText>

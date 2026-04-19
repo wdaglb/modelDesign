@@ -143,6 +143,35 @@ describe('TaskCard', () => {
     expect(screen.getByText('补充任务编号展示')).toBeTruthy();
   });
 
+  it('任务标题会补充原生 title，便于查看完整文案', () => {
+    render(<TaskCard task={baseTask} />);
+
+    const titleNode = screen.getByText('补充任务编号展示');
+    const titleElement = titleNode.closest('[title]');
+
+    expect(titleElement).toBeTruthy();
+    expect(titleElement?.getAttribute('title')).toBe('补充任务编号展示');
+  });
+
+  it('默认卡片顶部内边距大于左右内边距，保证顶部留白更充足', () => {
+    const { container } = render(<TaskCard task={baseTask} />);
+
+    const cardBody = container.querySelector('.ant-card-body');
+
+    expect(cardBody).toBeTruthy();
+
+    if (!cardBody) {
+      return;
+    }
+
+    const cardBodyStyle = window.getComputedStyle(cardBody);
+
+    expect(cardBodyStyle.paddingTop).toBe('20px');
+    expect(cardBodyStyle.paddingRight).toBe('16px');
+    expect(cardBodyStyle.paddingBottom).toBe('16px');
+    expect(cardBodyStyle.paddingLeft).toBe('16px');
+  });
+
   it('常见类型会映射到固定深色标签', () => {
     expect(resolveTaskTypeTagTone('需求')).toEqual({
       background: '#7c3aed',

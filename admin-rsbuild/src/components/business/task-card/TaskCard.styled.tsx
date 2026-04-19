@@ -25,12 +25,24 @@ function resolveTaskCardCursor(isOverlay: boolean, disabled: boolean) {
   return 'pointer';
 }
 
+/**
+ * 解析任务卡片主体内边距。
+ *
+ * 说明：
+ * - 当前需求只增大卡片“顶部”留白，让顶部告警、编号和优先级区域更透气；
+ * - 左右与底部尽量沿用原节奏，避免同时放大整张卡片高度；
+ * - 紧凑态与子任务态也保留同样的顶部增强，但增幅比默认态更克制。
+ *
+ * @param isCompact 是否紧凑态
+ * @param isSubtask 是否子任务态
+ * @returns CSS padding 字符串
+ */
 function resolveTaskCardPadding(isCompact: boolean, isSubtask: boolean) {
   if (isCompact || isSubtask) {
-    return 12;
+    return '14px 12px 12px';
   }
 
-  return 16;
+  return '20px 16px 16px';
 }
 
 function resolveTitleFontSize(isCompact: boolean, isSubtask: boolean) {
@@ -90,7 +102,7 @@ export const TaskCardContainer = styled(Card)<{
 
   .ant-card-body {
     padding: ${(props) =>
-      resolveTaskCardPadding(props.$compact, props.$isSubtask)}px;
+      resolveTaskCardPadding(props.$compact, props.$isSubtask)};
   }
 `;
 

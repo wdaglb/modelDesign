@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DndContext } from '@dnd-kit/core';
 
@@ -7,7 +7,6 @@ import type {
   AgileBoardColumnMeta,
   AgileBoardTask,
 } from '@/routes/agile-board/#types';
-import type { TaskStatusCode } from '@/api/modules/project-task.types';
 import BoardColumn from '@/routes/agile-board/components/BoardColumn';
 
 const column: AgileBoardColumnMeta = {
@@ -28,32 +27,18 @@ const parentTask = {
   dueTime: '2026-04-07',
   projectName: '火星项目',
   workDays: 3,
+  childTaskCount: 2,
 } as AgileBoardTask;
 
-const childTask = {
+const noSubtaskParentTask = {
   ...parentTask,
-  id: 102,
-  title: '子任务 A',
-} as AgileBoardTask;
-
-const completedStatusSet = new Set<TaskStatusCode>(['done']);
-const emptyCompletedStatusSet = new Set<TaskStatusCode>();
-const completedChildTask = {
-  ...childTask,
-  id: 103,
-  status: 'done',
-  title: '已完成子任务标题很长很长很长很长很长',
-} as AgileBoardTask;
-
-const todoChildTask = {
-  ...childTask,
-  id: 104,
-  status: 'todo',
-  title: '未完成子任务标题很长很长很长很长很长',
+  id: 105,
+  title: '无子任务入口隐藏',
+  childTaskCount: 0,
 } as AgileBoardTask;
 
 /**
- * 生成指定数量的任务数据，用于验证大列表虚拟渲染。
+ * 生成指定数量的任务数据，用于验证列内完整渲染。
  */
 function createTasks(count: number): AgileBoardTask[] {
   return Array.from({ length: count }).map((_, index) => {
@@ -65,64 +50,15 @@ function createTasks(count: number): AgileBoardTask[] {
   });
 }
 
-/**
- * 注入列虚拟渲染依赖的 ResizeObserver mock。
- */
-function mockResizeObserver(height: number) {
-  class ResizeObserverMock {
-    private callback: ResizeObserverCallback;
-
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = callback;
-    }
-
-    observe(target: Element) {
-      Object.defineProperty(target, 'clientHeight', {
-        configurable: true,
-        value: height,
-      });
-      this.callback([], this as unknown as ResizeObserver);
-    }
-
-    disconnect() {
-      /** 空实现 */
-    }
-
-    unobserve() {
-      /** 空实现 */
-    }
-  }
-
-  vi.stubGlobal('ResizeObserver', ResizeObserverMock);
-}
-
-/**
- * 恢复列虚拟渲染依赖的 ResizeObserver mock。
- */
-function restoreResizeObserver() {
-  vi.unstubAllGlobals();
-}
-
-/**
- * 计算指定任务在虚拟渲染中的估算滚动偏移。
- */
-function getTaskScrollTop(index: number) {
-  const taskRowEstimatedHeight = 134;
-  return index * taskRowEstimatedHeight;
-}
-
 describe('BoardColumn', () => {
-  it('任务量较大时启用列内虚拟渲染并按滚动更新可见任务', () => {
-    mockResizeObserver(320);
-
+  it('任务量较大时仍然完整渲染全部任务，不再使用虚拟滚动', () => {
     const tasks = createTasks(80);
     const { container } = render(
       <DndContext>
         <BoardColumn
           column={column}
           tasks={tasks}
-          subtaskMap={new Map()}
-          completedStatusSet={completedStatusSet}
+          onOpenSubtasks={vi.fn()}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -130,45 +66,22 @@ describe('BoardColumn', () => {
     );
 
     const virtualTaskList = container.querySelector('[data-virtualized="true"]');
+    const renderedTaskItems = container.querySelectorAll('[data-task-item="true"]');
 
-    expect(virtualTaskList).toBeTruthy();
+    expect(virtualTaskList).toBeNull();
+    expect(renderedTaskItems.length).toBe(80);
     expect(screen.getByText('任务-1')).toBeDefined();
-    expect(screen.queryByText('任务-70')).toBeNull();
-
-    const columnBody = container.querySelector('div.ant-card-body > div');
-
-    expect(columnBody).toBeTruthy();
-
-    if (!columnBody) {
-      restoreResizeObserver();
-      return;
-    }
-
-    Object.defineProperty(columnBody, 'scrollTop', {
-      configurable: true,
-      value: getTaskScrollTop(60),
-      writable: true,
-    });
-
-    fireEvent.scroll(columnBody);
-
-    expect(screen.getByText('任务-61')).toBeDefined();
-    expect(screen.queryByText('任务-1')).toBeNull();
-
-    restoreResizeObserver();
+    expect(screen.getByText('任务-80')).toBeDefined();
   });
 
-  it('任务量较小时保持完整渲染', () => {
-    mockResizeObserver(320);
-
+  it('任务量较小时保持普通 flex 列表结构', () => {
     const tasks = createTasks(10);
     const { container } = render(
       <DndContext>
         <BoardColumn
           column={column}
           tasks={tasks}
-          subtaskMap={new Map()}
-          completedStatusSet={completedStatusSet}
+          onOpenSubtasks={vi.fn()}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -180,8 +93,34 @@ describe('BoardColumn', () => {
     expect(virtualTaskList).toBeNull();
     expect(screen.getByText('任务-1')).toBeDefined();
     expect(screen.getByText('任务-10')).toBeDefined();
+  });
 
-    restoreResizeObserver();
+  it('列滚动容器保留底部留白，避免最后一张卡片贴底被遮挡', () => {
+    const tasks = createTasks(10);
+    const { container } = render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={tasks}
+          onOpenSubtasks={vi.fn()}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    const columnBody = container.querySelector('div.ant-card-body > div');
+
+    expect(columnBody).toBeTruthy();
+
+    if (!columnBody) {
+      return;
+    }
+
+    const columnBodyStyle = window.getComputedStyle(columnBody);
+
+    expect(columnBodyStyle.paddingBottom).toBe('16px');
+    expect(columnBodyStyle.boxSizing).toBe('border-box');
   });
 
   it('列无数据时展示 Empty 说明', () => {
@@ -190,8 +129,7 @@ describe('BoardColumn', () => {
         <BoardColumn
           column={column}
           tasks={[]}
-          subtaskMap={new Map()}
-          completedStatusSet={completedStatusSet}
+          onOpenSubtasks={vi.fn()}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -207,8 +145,7 @@ describe('BoardColumn', () => {
         <BoardColumn
           column={column}
           tasks={[parentTask]}
-          subtaskMap={new Map()}
-          completedStatusSet={completedStatusSet}
+          onOpenSubtasks={vi.fn()}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
@@ -226,129 +163,79 @@ describe('BoardColumn', () => {
     const shellStyle = window.getComputedStyle(taskRoot.parentElement);
 
     expect(shellStyle.borderTopWidth).toBe('1px');
+    expect(shellStyle.overflow).toBe('hidden');
     expect(shellStyle.boxShadow).not.toBe('none');
-  });
 
-  it('父任务无子任务时不渲染子任务区', () => {
-    const { container } = render(
-      <DndContext>
-        <BoardColumn
-          column={column}
-          tasks={[parentTask]}
-          subtaskMap={new Map()}
-          completedStatusSet={completedStatusSet}
-          onPreview={vi.fn()}
-          onPriorityChange={vi.fn()}
-        />
-      </DndContext>,
-    );
+    const cardElement = taskRoot.querySelector('.ant-card');
 
-    expect(container.querySelector('[data-subtask-list="true"]')).toBeNull();
-    expect(screen.queryByText('暂无子任务')).toBeNull();
-  });
+    expect(cardElement).toBeTruthy();
 
-  it('父任务有子任务时默认收起子任务内容', () => {
-    const { container } = render(
-      <DndContext>
-        <BoardColumn
-          column={column}
-          tasks={[parentTask]}
-          subtaskMap={new Map([[parentTask.id, [childTask]]])}
-          completedStatusSet={emptyCompletedStatusSet}
-          onPreview={vi.fn()}
-          onPriorityChange={vi.fn()}
-        />
-      </DndContext>,
-    );
-
-    expect(screen.getByRole('button', { name: '展开子任务' })).toBeDefined();
-    expect(container.querySelector('[data-subtask-list="true"]')).toBeNull();
-    expect(screen.queryByText('子任务 A')).toBeNull();
-  });
-
-  it('子任务列表支持展开与收起', async () => {
-    const user = userEvent.setup();
-    const { container } = render(
-      <DndContext>
-        <BoardColumn
-          column={column}
-          tasks={[parentTask]}
-          subtaskMap={new Map([[parentTask.id, [childTask]]])}
-          completedStatusSet={emptyCompletedStatusSet}
-          onPreview={vi.fn()}
-          onPriorityChange={vi.fn()}
-        />
-      </DndContext>,
-    );
-
-    await user.click(screen.getByRole('button', { name: '展开子任务' }));
-
-    expect(container.querySelector('[data-subtask-list="true"]')).toBeTruthy();
-    expect(screen.getByText('子任务 A')).toBeDefined();
-
-    await user.click(screen.getByRole('button', { name: '收起子任务' }));
-
-    expect(container.querySelector('[data-subtask-list="true"]')).toBeNull();
-    expect(screen.queryByText('子任务 A')).toBeNull();
-  }, 10000);
-
-  it('子任务列表使用更明显的左侧缩进', async () => {
-    const user = userEvent.setup();
-    const { container } = render(
-      <DndContext>
-        <BoardColumn
-          column={column}
-          tasks={[parentTask]}
-          subtaskMap={new Map([[parentTask.id, [childTask]]])}
-          completedStatusSet={emptyCompletedStatusSet}
-          onPreview={vi.fn()}
-          onPriorityChange={vi.fn()}
-        />
-      </DndContext>,
-    );
-
-    await user.click(screen.getByRole('button', { name: '展开子任务' }));
-
-    const subtaskList = container.querySelector('[data-subtask-list="true"]');
-
-    expect(subtaskList).toBeTruthy();
-
-    if (!subtaskList) {
+    if (!cardElement) {
       return;
     }
 
-    const subtaskStyle = window.getComputedStyle(subtaskList);
+    const cardStyle = window.getComputedStyle(cardElement);
 
-    expect(subtaskStyle.paddingLeft).toBe('24px');
+    expect(cardStyle.overflow).toBe('hidden');
   });
 
-  it('已完成子任务卡片添加完成态标记，未完成子任务保持默认标记', async () => {
-    const user = userEvent.setup();
-    const { container } = render(
+  it('会展示子任务入口行', () => {
+    render(
       <DndContext>
         <BoardColumn
           column={column}
           tasks={[parentTask]}
-          subtaskMap={new Map([[parentTask.id, [completedChildTask, todoChildTask]]])}
-          completedStatusSet={completedStatusSet}
+          onOpenSubtasks={vi.fn()}
           onPreview={vi.fn()}
           onPriorityChange={vi.fn()}
         />
       </DndContext>,
     );
 
-    await user.click(screen.getByRole('button', { name: '展开子任务' }));
+    expect(screen.getByText('子任务 2 项')).toBeDefined();
+    expect(screen.getByRole('button', { name: '查看子任务' })).toBeDefined();
+  });
 
-    const completedSubtaskRoots = container.querySelectorAll(
-      '[data-task-card-completed-subtask="true"]',
-    );
-    const allSubtaskRoots = container.querySelectorAll(
-      '[data-task-card-subtask="true"]',
+  it('子任务数量为 0 时不展示子任务入口', () => {
+    render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={[noSubtaskParentTask]}
+          onOpenSubtasks={vi.fn()}
+          onPreview={vi.fn()}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
     );
 
-    expect(allSubtaskRoots.length).toBe(2);
-    expect(completedSubtaskRoots.length).toBe(1);
-    expect(screen.getByText(completedChildTask.title)).toBeDefined();
-    expect(screen.getByText(todoChildTask.title)).toBeDefined();
+    expect(screen.queryByText('子任务 0 项')).toBeNull();
+    expect(screen.queryByRole('button', { name: '查看子任务' })).toBeNull();
+  });
+
+  it('点击子任务入口时会打开独立查看区域而不是触发卡片预览', async () => {
+    const user = userEvent.setup();
+    const onOpenSubtasks = vi.fn<(_: AgileBoardTask) => Promise<void>>()
+      .mockResolvedValue(undefined);
+    const onPreview = vi.fn<(_: AgileBoardTask) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    render(
+      <DndContext>
+        <BoardColumn
+          column={column}
+          tasks={[parentTask]}
+          onOpenSubtasks={onOpenSubtasks}
+          onPreview={onPreview}
+          onPriorityChange={vi.fn()}
+        />
+      </DndContext>,
+    );
+
+    await user.click(screen.getByRole('button', { name: '查看子任务' }));
+
+    expect(onOpenSubtasks).toHaveBeenCalledTimes(1);
+    expect(onOpenSubtasks).toHaveBeenCalledWith(parentTask);
+    expect(onPreview).not.toHaveBeenCalled();
   });
 });

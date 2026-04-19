@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 创建任务动态请求。
  */
@@ -26,4 +28,10 @@ public class ProjectTaskDynamicCreateRequest {
     @NotBlank(message = "动态内容不能为空")
     @Size(max = 1000, message = "动态内容长度不能超过 1000 个字符")
     private String content;
+
+    /**
+     * 被 @ 的用户 ID 集合。
+     */
+    @Schema(description = "被 @ 的用户 ID 集合")
+    private List<Long> mentionedUserIds;
 }

@@ -1,4 +1,4 @@
-import { Badge, Card, Typography } from 'antd';
+import { Badge, Button, Card, Typography } from 'antd';
 import styled from 'styled-components';
 
 function resolveColumnBorder(accentColor: string, isOver: boolean) {
@@ -19,11 +19,12 @@ function resolveColumnShadow(accentColor: string, isOver: boolean) {
  * 列外层容器。
  */
 export const ColumnFrame = styled.div`
-  min-width: 280px;
+  flex: 0 0 280px;
   width: 280px;
   height: 100%;
   min-height: 0;
   padding: 2px;
+  contain: layout paint;
   transition: all 0.2s ease;
 `;
 
@@ -42,6 +43,7 @@ export const ColumnSurface = styled(Card)<{
   border: ${(props) => resolveColumnBorder(props.$accentColor, props.$isOver)};
   box-shadow: ${(props) => resolveColumnShadow(props.$accentColor, props.$isOver)};
   overflow: hidden;
+  contain: layout paint;
 
   .ant-card-head {
     min-height: 0;
@@ -108,6 +110,18 @@ export const ColumnBadge = styled(Badge)`
 export const ColumnBody = styled.div`
   flex: 1;
   min-height: 0;
+  /**
+   * 最后一张任务卡片需要可滚动到“完整露出”的位置。
+   *
+   * 说明：
+   * - 列容器本身有圆角与裁切，滚动到底部时如果没有额外留白，
+   *   最后一张卡片会紧贴容器底边，视觉上像是被遮住一截；
+   * - 这里把底部留白放在真正的滚动容器里，而不是外层 Card body，
+   *   这样浏览器会把这段空间计算进可滚动区域，保证最后一张卡片
+   *   能完整滚入可视区。
+   */
+  padding-bottom: 16px;
+  box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
@@ -141,4 +155,32 @@ export const TaskList = styled.div`
  */
 export const TaskItem = styled.div`
   width: 100%;
+  contain: layout paint;
+`;
+
+/**
+ * 任务附加操作行。
+ */
+export const TaskActionRow = styled.div`
+  min-height: 28px;
+  margin-top: 8px;
+  padding-inline: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+/**
+ * 子任务入口文案。
+ */
+export const TaskActionMeta = styled(Typography.Text)`
+  font-size: 12px;
+`;
+
+/**
+ * 子任务查看按钮。
+ */
+export const TaskActionButton = styled(Button)`
+  padding-inline: 0;
 `;

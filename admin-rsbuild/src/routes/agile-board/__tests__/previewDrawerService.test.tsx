@@ -39,6 +39,7 @@ describe('openTaskPreviewDrawer', () => {
     await openTaskPreviewDrawer(drawer, {
       taskId: 1001,
       statusConfigs,
+      initialTabKey: 'subtask',
       onEdit,
       onTaskUpdated,
     });
@@ -46,7 +47,7 @@ describe('openTaskPreviewDrawer', () => {
     expect(drawer.open).toHaveBeenCalledTimes(1);
 
     const openProps = drawer.open.mock.calls[0]?.[0];
-    expect(openProps.title).toBe('任务预览');
+    expect(openProps.title).toBe('任务详情');
     expect(openProps.size).toBe(840);
     expect(openProps.styles).toEqual({
       body: {
@@ -59,6 +60,7 @@ describe('openTaskPreviewDrawer', () => {
     const drawerChildren = openProps.children as ReactElement;
     expect(drawerChildren.props.taskId).toBe(1001);
     expect(drawerChildren.props.statusConfigs).toBe(statusConfigs);
+    expect(drawerChildren.props.initialTabKey).toBe('subtask');
     expect(drawerChildren.props.onEdit).toBe(onEdit);
     expect(drawerChildren.props.onTaskUpdated).toBe(onTaskUpdated);
   });

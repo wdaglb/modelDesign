@@ -5,6 +5,7 @@ import io.github.modelDesign.auth.api.AuthCurrentUserApi;
 import io.github.modelDesign.auth.api.AuthUserApi;
 import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
+import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.domain.ProjectTaskDynamic;
 import io.github.modelDesign.project.mapper.ProjectTaskDynamicMapper;
@@ -13,16 +14,21 @@ import io.github.modelDesign.project.request.ProjectTaskDynamicCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskDynamicListRequest;
 import io.github.modelDesign.project.response.PageResponse;
 import io.github.modelDesign.project.response.ProjectTaskDynamicItemVo;
+import io.github.modelDesign.system.api.SystemMessageApi;
+import io.github.modelDesign.system.api.dto.SystemMessagePublishCommand;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,12 +47,14 @@ class ProjectTaskDynamicServiceTest {
                 mock(ProjectTaskDynamicMapper.class);
         ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
         ProjectService projectService = mock(ProjectService.class);
+        SystemMessageApi systemMessageApi = mock(SystemMessageApi.class);
         ProjectTaskDynamicService service = new ProjectTaskDynamicService(
                 authCurrentUserApi,
                 authUserApi,
                 projectTaskDynamicMapper,
                 projectTaskMapper,
-                projectService
+                projectService,
+                systemMessageApi
         );
 
         ProjectTask task = new ProjectTask();
@@ -80,6 +88,97 @@ class ProjectTaskDynamicServiceTest {
         assertEquals("产品经理", result.getOperatorName());
         assertEquals("2026-04-19 12:30:45", result.getCreatedAt());
         verify(projectTaskDynamicMapper).insert(any(ProjectTaskDynamic.class));
+        verify(systemMessageApi, never()).publish(any(SystemMessagePublishCommand.class));
+    }
+
+    /**
+     * 创建动态时若包含被提及用户，应发送系统消息且跳过自己与无效用户。
+     */
+    @Test
+    void createShouldPublishMentionMessage() {
+        AuthCurrentUserApi authCurrentUserApi = mock(AuthCurrentUserApi.class);
+        AuthUserApi authUserApi = mock(AuthUserApi.class);
+        ProjectTaskDynamicMapper projectTaskDynamicMapper =
+                mock(ProjectTaskDynamicMapper.class);
+        ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
+        ProjectService projectService = mock(ProjectService.class);
+        SystemMessageApi systemMessageApi = mock(SystemMessageApi.class);
+        ProjectTaskDynamicService service = new ProjectTaskDynamicService(
+                authCurrentUserApi,
+                authUserApi,
+                projectTaskDynamicMapper,
+                projectTaskMapper,
+                projectService,
+                systemMessageApi
+        );
+
+        ProjectTask task = new ProjectTask();
+        task.setId(501L);
+        task.setProjectId(101L);
+        task.setTitle("完善任务动态提醒");
+        when(projectTaskMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(task);
+
+        Project project = new Project();
+        project.setId(101L);
+        project.setTenantId(1001L);
+        when(projectService.requireProject(101L)).thenReturn(project);
+        when(authCurrentUserApi.getCurrentUser()).thenReturn(
+                AuthCurrentUserDto.builder()
+                        .userId(7001L)
+                        .nickname("产品经理")
+                        .build()
+        );
+        when(authUserApi.getUserMapByIds(any())).thenAnswer(invocation -> {
+            Iterable<Long> ids = invocation.getArgument(0);
+            java.util.LinkedHashMap<Long, AuthUserSimpleDto> userMap =
+                    new java.util.LinkedHashMap<>();
+            for (Long id : ids) {
+                if (id == 7001L) {
+                    userMap.put(
+                            7001L,
+                            AuthUserSimpleDto.builder()
+                                    .id(7001L)
+                                    .nickname("产品经理")
+                                    .build()
+                    );
+                    continue;
+                }
+                if (id == 7002L) {
+                    userMap.put(
+                            7002L,
+                            AuthUserSimpleDto.builder()
+                                    .id(7002L)
+                                    .nickname("张三")
+                                    .build()
+                    );
+                }
+            }
+            return userMap;
+        });
+        doAnswer(invocation -> {
+            ProjectTaskDynamic item = invocation.getArgument(0);
+            item.setId(9002L);
+            item.setCreateTime(LocalDateTime.of(2026, 4, 19, 13, 0, 0));
+            return 1;
+        }).when(projectTaskDynamicMapper).insert(any(ProjectTaskDynamic.class));
+
+        ProjectTaskDynamicCreateRequest request = new ProjectTaskDynamicCreateRequest();
+        request.setTaskId(501L);
+        request.setContent("@张三（zhangsan） 已同步阻塞原因，请帮忙跟进。");
+        request.setMentionedUserIds(List.of(7002L, 7001L, 9999L, 7002L));
+
+        service.create(request);
+
+        ArgumentCaptor<SystemMessagePublishCommand> commandCaptor =
+                ArgumentCaptor.forClass(SystemMessagePublishCommand.class);
+        verify(systemMessageApi).publish(commandCaptor.capture());
+        SystemMessagePublishCommand command = commandCaptor.getValue();
+        assertEquals("你在任务动态中被提及", command.getTitle());
+        assertEquals(1001L, command.getTenantId());
+        assertEquals("/agile-board/?taskId=501", command.getRedirectUrl());
+        assertEquals(List.of(7002L), command.getReceiverUserIds());
+        assertTrue(command.getContent().contains("任务【完善任务动态提醒】的动态中"));
+        assertTrue(command.getContent().contains("产品经理提及了你"));
     }
 
     /**
@@ -93,12 +192,14 @@ class ProjectTaskDynamicServiceTest {
                 mock(ProjectTaskDynamicMapper.class);
         ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
         ProjectService projectService = mock(ProjectService.class);
+        SystemMessageApi systemMessageApi = mock(SystemMessageApi.class);
         ProjectTaskDynamicService service = new ProjectTaskDynamicService(
                 authCurrentUserApi,
                 authUserApi,
                 projectTaskDynamicMapper,
                 projectTaskMapper,
-                projectService
+                projectService,
+                systemMessageApi
         );
 
         ProjectTask task = new ProjectTask();
@@ -162,12 +263,14 @@ class ProjectTaskDynamicServiceTest {
                 mock(ProjectTaskDynamicMapper.class);
         ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
         ProjectService projectService = mock(ProjectService.class);
+        SystemMessageApi systemMessageApi = mock(SystemMessageApi.class);
         ProjectTaskDynamicService service = new ProjectTaskDynamicService(
                 authCurrentUserApi,
                 authUserApi,
                 projectTaskDynamicMapper,
                 projectTaskMapper,
-                projectService
+                projectService,
+                systemMessageApi
         );
 
         ProjectTaskDynamic newest = new ProjectTaskDynamic();

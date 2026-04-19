@@ -5,9 +5,9 @@
 .superpowers/
 .claude/skills/**/__pycache__/
 .codex/skills/**/__pycache__/
-*.pen
 storage
 .omx/
 docker-data/
 .env.docker
-.gitnexus
+.gitnexus/
+.playwright-cli/

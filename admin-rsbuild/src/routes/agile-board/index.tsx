@@ -16,7 +16,6 @@ import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
 import {
   TaskPriority,
   type ProjectTaskDetail,
-  type TaskStatusCode,
 } from '@/api/modules/project-task.types';
 import { RequestError } from '@/api/types';
 import { useKDrawer } from '@/components/KDrawer';
@@ -27,7 +26,10 @@ import useDebounce from '@/hooks/useDebounce';
 import { AgileBoardTaskCardPreview } from './components/AgileBoardTaskCard';
 import AgileBoardColumn from './components/BoardColumn';
 import AgileBoardToolbar from './components/BoardToolbar';
-import { openTaskPreviewDrawer } from './#previewDrawerService';
+import {
+  openTaskPreviewDrawer,
+  type TaskPreviewDrawerTabKey,
+} from './#previewDrawerService';
 import useBoardAutoRefresh from './#useBoardAutoRefresh';
 import {
   buildAgileBoardColumns,
@@ -36,7 +38,6 @@ import {
   filterBoardParentTasks,
   getTaskDragId,
   groupBoardTasks,
-  groupBoardSubtasks,
   handleBoardTitleSearch,
   resolveDropStatus,
 } from './#helper';
@@ -94,37 +95,10 @@ function RouteComponent() {
   const parentTasks = useMemo(() => {
     return filterBoardParentTasks(boardTasks);
   }, [boardTasks]);
-  /**
-   * 稳定父任务 ID 顺序，避免子任务批量查询键在同集合下反复抖动。
-   */
-  const parentTaskIds = useMemo(() => {
-    return [...parentTasks]
-      .sort((leftTask, rightTask) => leftTask.id - rightTask.id)
-      .map((task) => task.id);
-  }, [parentTasks]);
-  const { data: childrenBatch } = useQuery({
-    queryKey: queryKey.project.taskChildrenBatch(parentTaskIds),
-    queryFn: () => ApiProjectTask.getChildrenBatch(parentTaskIds),
-    enabled: parentTaskIds.length > 0,
-  });
   const { data: statusConfigs = [] } = useQuery({
     queryKey: queryKey.project.taskStatusList(),
     queryFn: () => ApiProjectTaskStatus.getList(),
   });
-  /**
-   * 完成态状态集合，用于子任务卡片展示完成样式。
-   */
-  const completedStatusSet = useMemo(() => {
-    const statusSet = new Set<TaskStatusCode>();
-
-    statusConfigs.forEach((statusConfig) => {
-      if (statusConfig.isCompleted) {
-        statusSet.add(statusConfig.code);
-      }
-    });
-
-    return statusSet;
-  }, [statusConfigs]);
   const projectOptions = useMemo(() => {
     const items = projectListData?.items;
 
@@ -145,15 +119,6 @@ function RouteComponent() {
     () => groupBoardTasks(parentTasks, agileBoardColumns),
     [parentTasks, agileBoardColumns],
   );
-  const subtaskMap = useMemo(() => {
-    let subtasks: AgileBoardTask[] = [];
-
-    if (childrenBatch) {
-      subtasks = childrenBatch as AgileBoardTask[];
-    }
-
-    return groupBoardSubtasks(subtasks);
-  }, [childrenBatch]);
   const hasFilters = useMemo(() => {
     return Boolean(
       filters.title ||
@@ -210,9 +175,6 @@ function RouteComponent() {
         queryKey: queryKey.project.taskList(),
       }),
       queryClient.invalidateQueries({
-        queryKey: ['projectTaskChildrenBatch'],
-      }),
-      queryClient.invalidateQueries({
         queryKey: queryKey.todo.list(),
       }),
     ]);
@@ -225,9 +187,6 @@ function RouteComponent() {
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: queryKey.project.taskBoard(),
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ['projectTaskChildrenBatch'],
       }),
       queryClient.invalidateQueries({
         queryKey: queryKey.todo.list(),
@@ -393,6 +352,7 @@ function RouteComponent() {
     async (
       task: ProjectTaskDetail,
       options?: {
+        initialTabKey?: TaskPreviewDrawerTabKey;
         syncSearchOnOpen?: boolean;
       },
     ) => {
@@ -404,6 +364,7 @@ function RouteComponent() {
       if (options && options.syncSearchOnOpen === false) {
         syncSearchOnOpen = false;
       }
+      const initialTabKey = options?.initialTabKey;
 
       setPreviewTaskId(task.id);
 
@@ -415,6 +376,7 @@ function RouteComponent() {
         await openTaskPreviewDrawer(drawer, {
           taskId: task.id,
           statusConfigs,
+          initialTabKey,
           onTaskUpdated: invalidateBoardQueries,
           onEdit: async (detailTask) => {
             await openTaskForm(detailTask);
@@ -484,6 +446,18 @@ function RouteComponent() {
   const handleTitleSearchChange = useCallback((value: string) => {
     setTitleSearchInput(value);
   }, []);
+
+  /**
+   * 直接打开任务详情抽屉中的子任务区域，替代看板卡片内联子任务展开。
+   */
+  const handleOpenSubtasks = useCallback(
+    async (task: AgileBoardTask) => {
+      await openTaskPreview(task, {
+        initialTabKey: 'subtask',
+      });
+    },
+    [openTaskPreview],
+  );
 
   /**
    * 项目筛选变化事件。
@@ -612,14 +586,13 @@ function RouteComponent() {
                 return (
                   <AgileBoardColumn
                     key={column.status}
-                    column={column}
-                    disabled={updatingTaskId !== undefined}
-                    tasks={groupedTasks[column.status]}
-                    subtaskMap={subtaskMap}
-                    completedStatusSet={completedStatusSet}
-                    onPreview={openTaskPreview}
-                    onPriorityChange={handlePriorityChange}
-                  />
+                  column={column}
+                  disabled={updatingTaskId !== undefined}
+                  tasks={groupedTasks[column.status]}
+                  onOpenSubtasks={handleOpenSubtasks}
+                  onPreview={openTaskPreview}
+                  onPriorityChange={handlePriorityChange}
+                />
                 );
               })}
             </BoardColumnsGrid>

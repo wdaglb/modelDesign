@@ -70,6 +70,13 @@ export interface CreateProjectTaskDynamicParams {
    * 动态内容。
    */
   content: string;
+
+  /**
+   * 被 @ 的用户 ID 集合。
+   *
+   * 当前仅用于发布动态时触发系统消息通知，不参与动态正文展示。
+   */
+  mentionedUserIds?: number[];
 }
 
 /**

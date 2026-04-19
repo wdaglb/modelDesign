@@ -1,5 +1,6 @@
 import Plus from '~icons/mdi/plus';
 import Delete from '~icons/mdi/delete';
+import Eye from '~icons/mdi/eye-outline';
 import DragHorizontal from '~icons/mdi/drag-horizontal';
 import ShieldEdit from '~icons/mdi/shield-edit-outline';
 import AccountKey from '~icons/mdi/account-key-outline';
@@ -14,6 +15,7 @@ import Subtasks from '~icons/mdi/subtasks';
 const Icons = {
   Plus,
   Delete,
+  Eye,
   DragHorizontal,
   ShieldEdit,
   AccountKey,

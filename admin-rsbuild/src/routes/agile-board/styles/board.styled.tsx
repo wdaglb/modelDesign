@@ -58,15 +58,12 @@ export const BoardColumnsScroller = styled.div`
  * 列网格布局。
  */
 export const BoardColumnsGrid = styled.div<{ $columnCount: number }>`
-  display: grid;
+  display: flex;
   height: 100%;
   min-height: 0;
   gap: 16px;
   align-items: stretch;
-  grid-template-columns: ${(props) => {
-    const columnCount = Math.max(props.$columnCount, 1);
-    return `repeat(${columnCount}, minmax(280px, 1fr))`;
-  }};
+  width: max-content;
   min-width: ${(props) => {
     const columnCount = Math.max(props.$columnCount, 1);
     return `${columnCount * 296}px`;

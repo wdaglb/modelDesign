@@ -27,6 +27,30 @@ function normalizeTaskText(value: string | null | undefined) {
 }
 
 /**
+ * 规整敏捷面板卡片使用的截止时间文本。
+ *
+ * 说明：
+ * - 敏捷面板卡片只保留日期，不展示时分秒；
+ * - 其它详情页与编辑页仍沿用原始时间字符串，本适配仅作用于卡片层展示。
+ *
+ * @param value 原始截止时间
+ * @returns 仅保留日期的截止时间文本
+ */
+function normalizeBoardDueTimeText(value: string | null | undefined) {
+  const normalizedValue = normalizeTaskText(value);
+
+  if (!normalizedValue) {
+    return undefined;
+  }
+
+  if (normalizedValue.length >= 10) {
+    return normalizedValue.slice(0, 10);
+  }
+
+  return normalizedValue;
+}
+
+/**
  * 将敏捷看板任务映射为通用任务卡片数据结构。
  *
  * 默认文案说明：
@@ -55,11 +79,14 @@ export function mapAgileBoardTaskToTaskCardTask(
     projectName: normalizeTaskText(task.projectName),
     typeName: normalizeTaskText(task.typeName),
     title: task.title,
-    latestDynamicSummary: normalizeTaskText(task.latestDynamicSummary),
+    /**
+     * 敏捷面板卡片不展示最新动态摘要，避免同列卡片出现不同高度。
+     */
+    latestDynamicSummary: undefined,
     priority: task.priority,
     workDays: task.workDays,
     assignee: normalizeTaskText(task.assignee),
-    dueTime: normalizeTaskText(task.dueTime),
+    dueTime: normalizeBoardDueTimeText(task.dueTime),
     isCompleted: options?.isCompleted,
   };
 }

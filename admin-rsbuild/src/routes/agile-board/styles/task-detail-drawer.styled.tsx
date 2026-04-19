@@ -88,12 +88,30 @@ export const TaskDetailIdRow = styled.div`
 /**
  * 实体主标题。
  */
-export const TaskDetailEntityTitle = styled.h3`
+export const TaskDetailEntityTitle = styled.h3<{ $clickable?: boolean }>`
   margin: 0;
   color: #1d2129;
   font-size: 16px;
   font-weight: 600;
   line-height: 24px;
+  cursor: ${(props) => {
+    if (props.$clickable) {
+      return 'pointer';
+    }
+
+    return 'default';
+  }};
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: ${(props) => {
+      if (props.$clickable) {
+        return '#1677ff';
+      }
+
+      return '#1d2129';
+    }};
+  }
 `;
 
 /**
@@ -283,16 +301,6 @@ export const TaskEditFieldLabel = styled.div`
 `;
 
 /**
- * 编辑态富文本工具栏提示。
- */
-export const TaskEditToolbarHint = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-/**
  * 子任务表格容器。
  */
 export const TaskDetailSubtaskTable = styled.div`
@@ -327,7 +335,7 @@ export const TaskDetailSubtaskHint = styled.div`
  */
 export const TaskDetailSubtaskHeadRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 2fr) 120px 120px 120px;
+  grid-template-columns: minmax(0, 2fr) 120px 120px 120px 140px;
   gap: 12px;
   padding: 12px 16px;
   background: #f9fafb;
@@ -342,7 +350,7 @@ export const TaskDetailSubtaskHeadRow = styled.div`
  */
 export const TaskDetailSubtaskRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 2fr) 120px 120px 120px;
+  grid-template-columns: minmax(0, 2fr) 120px 120px 120px 140px;
   gap: 12px;
   align-items: center;
   padding: 14px 16px;

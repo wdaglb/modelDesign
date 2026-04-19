@@ -8,7 +8,6 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
     "/project/list",
     "/project/task-status/list",
     "/project/task/agile-board",
-    "/project/task/children/batch",
     "/project/task/detail",
     "/project/task/detail/by-code",
     "/project/task/edit"

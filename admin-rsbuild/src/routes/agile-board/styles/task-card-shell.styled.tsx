@@ -62,16 +62,39 @@ function resolveTaskCardShellShadow(props: TaskCardShellProps) {
  * 看板卡片容器。
  */
 export const TaskCardShell = styled.div<TaskCardShellProps>`
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  height: 100%;
+  min-height: 0;
   opacity: ${(props) => props.$opacity};
   border: 1px solid ${(props) => resolveTaskCardBorderColor(props)};
   border-radius: 12px;
+  overflow: hidden;
   box-shadow: ${(props) => resolveTaskCardShellShadow(props)};
   background: #ffffff;
   transition:
     opacity 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
+
+  > [data-task-card-root='true'] {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  > [data-task-card-root='true'] > .ant-card {
+    height: 100%;
+    border-radius: inherit;
+    overflow: hidden;
+  }
+
+  > [data-task-card-root='true'] > .ant-card > .ant-card-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 /**

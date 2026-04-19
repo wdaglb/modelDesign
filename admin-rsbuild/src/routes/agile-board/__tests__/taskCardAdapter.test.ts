@@ -64,7 +64,7 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
     expect(mapAgileBoardTaskToTaskCardTask(task).taskNumber).toBe('TASK-10');
   });
 
-  it('会映射最新动态摘要到任务卡片结构', () => {
+  it('敏捷面板卡片不映射最新动态摘要，避免卡片高度不一致', () => {
     const task: AgileBoardTask = {
       id: 11,
       projectId: 1,
@@ -75,7 +75,7 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
     };
 
     expect(mapAgileBoardTaskToTaskCardTask(task).latestDynamicSummary).toBe(
-      '已完成摘要映射',
+      undefined,
     );
   });
 
@@ -90,6 +90,19 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
     };
 
     expect(mapAgileBoardTaskToTaskCardTask(task).typeName).toBe('缺陷');
+  });
+
+  it('敏捷面板卡片截止时间只保留日期', () => {
+    const task: AgileBoardTask = {
+      id: 13,
+      projectId: 1,
+      title: '截止时间裁剪到日期',
+      status: 'todo',
+      priority: 'medium',
+      dueTime: '2026-04-20 18:00:00',
+    };
+
+    expect(mapAgileBoardTaskToTaskCardTask(task).dueTime).toBe('2026-04-20');
   });
 });
 

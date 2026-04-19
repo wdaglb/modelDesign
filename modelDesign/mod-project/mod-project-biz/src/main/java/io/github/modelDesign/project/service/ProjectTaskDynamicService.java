@@ -6,6 +6,7 @@ import io.github.modelDesign.auth.api.AuthUserApi;
 import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
 import io.github.modelDesign.common.exception.BusinessException;
+import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.domain.ProjectTaskDynamic;
 import io.github.modelDesign.project.mapper.ProjectTaskMapper;
@@ -14,6 +15,9 @@ import io.github.modelDesign.project.request.ProjectTaskDynamicCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskDynamicListRequest;
 import io.github.modelDesign.project.response.PageResponse;
 import io.github.modelDesign.project.response.ProjectTaskDynamicItemVo;
+import io.github.modelDesign.system.api.SystemMessageApi;
+import io.github.modelDesign.system.api.dto.SystemMessagePublishCommand;
+import io.github.modelDesign.system.api.dto.SystemMessageScopeType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -69,6 +73,11 @@ public class ProjectTaskDynamicService {
     private final ProjectService projectService;
 
     /**
+     * 系统消息发布接口。
+     */
+    private final SystemMessageApi systemMessageApi;
+
+    /**
      * 获取任务动态列表。
      *
      * @param request 列表请求
@@ -107,7 +116,7 @@ public class ProjectTaskDynamicService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ProjectTaskDynamicItemVo create(ProjectTaskDynamicCreateRequest request) {
-        requireTask(request.getTaskId());
+        ProjectTask task = requireTask(request.getTaskId());
         AuthCurrentUserDto currentUser = authCurrentUserApi.getCurrentUser();
         Long operatorId = currentUser.getUserId();
         if (operatorId == null || operatorId <= 0) {
@@ -122,6 +131,7 @@ public class ProjectTaskDynamicService {
         taskDynamic.setContent(normalizeContent(request.getContent()));
         taskDynamic.setOperatorId(operatorId);
         projectTaskDynamicMapper.insert(taskDynamic);
+        publishMentionMessage(task, taskDynamic.getContent(), currentUser, request.getMentionedUserIds());
 
         return ProjectTaskDynamicItemVo.builder()
                 .id(taskDynamic.getId())
@@ -272,6 +282,144 @@ public class ProjectTaskDynamicService {
             );
         }
         return normalizedContent;
+    }
+
+    /**
+     * 发布任务动态提及通知。
+     *
+     * 这里只处理“发布动态当下”的提醒，不做持久化 mention 关系。
+     * 这样可以在不修改库表的前提下，先把精准通知链路补齐。
+     *
+     * @param task 任务实体
+     * @param content 动态正文
+     * @param currentUser 当前操作人
+     * @param mentionedUserIds 被 @ 的用户 ID 集合
+     */
+    private void publishMentionMessage(
+            ProjectTask task,
+            String content,
+            AuthCurrentUserDto currentUser,
+            List<Long> mentionedUserIds) {
+        List<Long> normalizedReceiverUserIds = normalizeMentionedUserIds(
+                mentionedUserIds,
+                currentUser.getUserId()
+        );
+        if (normalizedReceiverUserIds.isEmpty()) {
+            return;
+        }
+
+        AuthUserSimpleDto currentOperator = authUserApi.getUserMapByIds(
+                List.of(currentUser.getUserId())
+        ).get(currentUser.getUserId());
+        String operatorName = resolveMentionOperatorName(currentUser, currentOperator);
+        Project project = projectService.requireProject(task.getProjectId());
+        SystemMessagePublishCommand command = SystemMessagePublishCommand.builder()
+                .scopeType(SystemMessageScopeType.USER)
+                .tenantId(project.getTenantId())
+                .receiverUserIds(normalizedReceiverUserIds)
+                .category("projectTask")
+                .title("你在任务动态中被提及")
+                .content(buildMentionMessageContent(task, operatorName, content))
+                .redirectUrl("/agile-board/?taskId=" + task.getId())
+                .build();
+        systemMessageApi.publish(command);
+    }
+
+    /**
+     * 规范化被提及用户 ID。
+     *
+     * 规则：
+     * 1. 去空、去重；
+     * 2. 过滤当前操作人自己；
+     * 3. 仅保留系统内真实存在的用户。
+     *
+     * @param mentionedUserIds 原始被提及用户 ID
+     * @param currentUserId 当前操作人 ID
+     * @return 可发送通知的用户 ID 集合
+     */
+    private List<Long> normalizeMentionedUserIds(
+            List<Long> mentionedUserIds,
+            Long currentUserId) {
+        if (mentionedUserIds == null || mentionedUserIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Long> normalizedUserIds = new LinkedHashSet<>();
+        for (Long mentionedUserId : mentionedUserIds) {
+            if (mentionedUserId == null || mentionedUserId <= 0) {
+                continue;
+            }
+            if (Objects.equals(mentionedUserId, currentUserId)) {
+                continue;
+            }
+            normalizedUserIds.add(mentionedUserId);
+        }
+        if (normalizedUserIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, AuthUserSimpleDto> userMap = authUserApi.getUserMapByIds(
+                normalizedUserIds
+        );
+        List<Long> result = new ArrayList<>();
+        for (Long userId : normalizedUserIds) {
+            if (userMap.containsKey(userId)) {
+                result.add(userId);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 构造提及通知正文。
+     *
+     * 为避免系统消息列表过长，这里只携带裁剪后的动态摘要。
+     *
+     * @param task 任务实体
+     * @param operatorName 操作人名称
+     * @param content 动态正文
+     * @return 系统消息正文
+     */
+    private String buildMentionMessageContent(
+            ProjectTask task,
+            String operatorName,
+            String content) {
+        return "任务【" + task.getTitle() + "】的动态中，"
+                + operatorName
+                + "提及了你："
+                + abbreviateContent(content);
+    }
+
+    /**
+     * 获取提及通知里的操作人名称。
+     *
+     * 优先使用用户主数据昵称，避免当前登录上下文昵称为空或过期时消息展示退化。
+     *
+     * @param currentUser 当前登录用户
+     * @param currentOperator 用户主数据
+     * @return 操作人名称
+     */
+    private String resolveMentionOperatorName(
+            AuthCurrentUserDto currentUser,
+            AuthUserSimpleDto currentOperator) {
+        if (currentOperator != null && StringUtils.hasText(currentOperator.getNickname())) {
+            return currentOperator.getNickname().trim();
+        }
+        return resolveCurrentOperatorName(currentUser);
+    }
+
+    /**
+     * 裁剪动态正文为系统消息摘要。
+     *
+     * @param content 动态正文
+     * @return 摘要内容
+     */
+    private String abbreviateContent(String content) {
+        String normalizedContent = content.replaceAll("\\s+", " ").trim();
+        if (normalizedContent.length() <= 80) {
+            return normalizedContent;
+        }
+        return normalizedContent.substring(0, 80) + "...";
     }
 
     /**
