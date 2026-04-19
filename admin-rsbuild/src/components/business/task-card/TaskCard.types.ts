@@ -9,6 +9,10 @@ export interface TaskCardTask {
   id: number;
   taskNumber?: string;
   projectName?: string;
+  /**
+   * 任务类型名称。
+   */
+  typeName?: string;
   title: string;
   /** 最新动态摘要。 */
   latestDynamicSummary?: string;

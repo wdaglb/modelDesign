@@ -16,6 +16,7 @@ import {
   ApiProjectTask,
   ApiProjectTaskChangeLog,
   ApiProjectTaskDynamic,
+  ApiProjectTaskType,
   ApiUser,
 } from '@/api';
 import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
@@ -72,6 +73,10 @@ import {
   buildQuickCreateSubtaskPayload,
   resolveInitialSubtaskStatus,
 } from './#taskDrawerSubtaskHelper';
+import {
+  buildTaskDetailTypeMenuItems,
+  resolveTaskDetailTypeText,
+} from './#taskDetailTypeHelper';
 import {
   buildTaskDetailSchedulePatch,
   buildTaskDetailScheduleRangeValue,
@@ -196,6 +201,13 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     placeholderData: (previousData) => previousData,
   });
 
+  const taskTypeQuery = useQuery({
+    queryKey: queryKey.project.taskTypeList(),
+    queryFn: () => ApiProjectTaskType.getList(),
+    enabled: openDropdown === 'type',
+    placeholderData: (previousData) => previousData,
+  });
+
   const subtaskItems = useMemo(() => {
     if (props.previewSubtasks !== undefined) {
       return props.previewSubtasks;
@@ -242,6 +254,9 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
   );
   const statusText = getBoardStatusText(props.task.status, props.statusConfigs);
   const priorityText = getTaskPriorityText(props.task.priority);
+  const typeText = useMemo(() => {
+    return resolveTaskDetailTypeText(props.task, taskTypeQuery.data);
+  }, [props.task, taskTypeQuery.data]);
   const scheduleRangeValue = useMemo(() => {
     return buildTaskDetailScheduleRangeValue({
       startTime: draftStartTime,
@@ -289,6 +304,16 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
       };
     });
   }, []);
+  const typeMenuItems = useMemo(() => {
+    return buildTaskDetailTypeMenuItems(props.task, taskTypeQuery.data);
+  }, [props.task, taskTypeQuery.data]);
+  const typeSelectedKeys = useMemo(() => {
+    if (props.task.typeId === undefined || props.task.typeId === null) {
+      return [];
+    }
+
+    return [String(props.task.typeId)];
+  }, [props.task.typeId]);
   const statusMenuItems = useMemo(() => {
     return statusOptions.map((item) => {
       return {
@@ -604,6 +629,49 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                   <TaskDetailChip>
                     <TaskDetailChipLabel>优先级</TaskDetailChipLabel>
                     <TaskDetailChipValue>{priorityText}</TaskDetailChipValue>
+                  </TaskDetailChip>
+                </span>
+              </Dropdown>
+
+              <Dropdown
+                trigger={['click']}
+                open={openDropdown === 'type'}
+                menu={{
+                  items: typeMenuItems,
+                  selectable: true,
+                  selectedKeys: typeSelectedKeys,
+                  onClick: async ({ key, domEvent }) => {
+                    domEvent.preventDefault();
+                    domEvent.stopPropagation();
+
+                    const nextTypeId = Number(key);
+                    if (Number.isNaN(nextTypeId)) {
+                      setOpenDropdown(undefined);
+                      return;
+                    }
+
+                    if (props.task.typeId === nextTypeId) {
+                      setOpenDropdown(undefined);
+                      return;
+                    }
+
+                    await saveQuickField('typeId', {
+                      typeId: nextTypeId,
+                    });
+                  },
+                }}
+                onOpenChange={(open) => {
+                  if (open) {
+                    setOpenDropdown('type');
+                    return;
+                  }
+                  setOpenDropdown(undefined);
+                }}
+              >
+                <span style={{ display: 'inline-flex' }}>
+                  <TaskDetailChip>
+                    <TaskDetailChipLabel>类型</TaskDetailChipLabel>
+                    <TaskDetailChipValue>{typeText}</TaskDetailChipValue>
                   </TaskDetailChip>
                 </span>
               </Dropdown>

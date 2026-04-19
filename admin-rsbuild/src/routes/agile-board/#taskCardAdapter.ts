@@ -53,6 +53,7 @@ export function mapAgileBoardTaskToTaskCardTask(
     id: task.id,
     taskNumber: resolveTaskNumberText(task),
     projectName: normalizeTaskText(task.projectName),
+    typeName: normalizeTaskText(task.typeName),
     title: task.title,
     latestDynamicSummary: normalizeTaskText(task.latestDynamicSummary),
     priority: task.priority,

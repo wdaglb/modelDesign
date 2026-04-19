@@ -34,6 +34,9 @@ vi.mock('@/api', () => {
       getList: vi.fn(),
       create: vi.fn(),
     },
+    ApiProjectTaskType: {
+      getList: vi.fn(),
+    },
     ApiUser: {
       getPageList: vi.fn(),
     },

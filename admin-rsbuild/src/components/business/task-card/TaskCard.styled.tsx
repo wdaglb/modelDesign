@@ -1,4 +1,4 @@
-import { Alert, Card, Space, Typography } from 'antd';
+import { Alert, Card, Space, Tag, Typography } from 'antd';
 import styled from 'styled-components';
 
 function resolveTaskCardShadow(isOverlay: boolean, disabled: boolean) {
@@ -217,6 +217,41 @@ export const TaskTitleText = styled(Typography.Text)<{
 
     return 'none';
   }};
+`;
+
+/**
+ * 任务标题行。
+ *
+ * 类型标签和标题共用同一行，避免标签插入后破坏卡片其它信息区域的垂直节奏。
+ */
+export const TaskTitleRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+`;
+
+/**
+ * 任务类型标签。
+ *
+ * 标签尺寸收敛到卡片标题行节奏内，避免在紧凑态里把两行标题挤成三行。
+ */
+export const TaskTypeTag = styled(Tag)<{
+  $background: string;
+  $borderColor: string;
+  $textColor: string;
+}>`
+  margin-inline-end: 0;
+  margin-top: 1px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border-color: ${(props) => props.$borderColor};
+  background: ${(props) => props.$background};
+  color: ${(props) => props.$textColor};
+  font-size: 12px;
+  line-height: 18px;
+  padding-inline: 8px;
 `;
 
 /**

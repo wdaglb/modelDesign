@@ -18,7 +18,9 @@ import {
   TaskMetaText,
   TaskNumberLink,
   TaskPrioritySlot,
+  TaskTitleRow,
   TaskTitleText,
+  TaskTypeTag,
 } from './TaskCard.styled';
 
 const TASK_CARD_COPY_TRIGGER_SELECTOR = '[data-task-card-copy-trigger="true"]';
@@ -27,6 +29,99 @@ interface CopyTaskNumberClickParams {
   event: MouseEvent<HTMLElement>;
   taskNumberText?: string;
 }
+
+interface TaskTypeTagTone {
+  /**
+   * 标签背景色。
+   */
+  background: string;
+
+  /**
+   * 标签边框色。
+   */
+  borderColor: string;
+
+  /**
+   * 标签文字色。
+   */
+  textColor: string;
+}
+
+const TASK_TYPE_TAG_TONE_PALETTE: TaskTypeTagTone[] = [
+  {
+    background: '#1d4ed8',
+    borderColor: '#1d4ed8',
+    textColor: '#fff',
+  },
+  {
+    background: '#7c3aed',
+    borderColor: '#7c3aed',
+    textColor: '#fff',
+  },
+  {
+    background: '#dc2626',
+    borderColor: '#dc2626',
+    textColor: '#fff',
+  },
+  {
+    background: '#0f766e',
+    borderColor: '#0f766e',
+    textColor: '#fff',
+  },
+  {
+    background: '#c2410c',
+    borderColor: '#c2410c',
+    textColor: '#fff',
+  },
+  {
+    background: '#0369a1',
+    borderColor: '#0369a1',
+    textColor: '#fff',
+  },
+  {
+    background: '#be185d',
+    borderColor: '#be185d',
+    textColor: '#fff',
+  },
+  {
+    background: '#334155',
+    borderColor: '#334155',
+    textColor: '#fff',
+  },
+];
+
+const TASK_TYPE_TAG_TONE_MAP: Record<string, TaskTypeTagTone> = {
+  任务: {
+    background: '#1d4ed8',
+    borderColor: '#1d4ed8',
+    textColor: '#fff',
+  },
+  需求: {
+    background: '#7c3aed',
+    borderColor: '#7c3aed',
+    textColor: '#fff',
+  },
+  缺陷: {
+    background: '#dc2626',
+    borderColor: '#dc2626',
+    textColor: '#fff',
+  },
+  优化: {
+    background: '#0f766e',
+    borderColor: '#0f766e',
+    textColor: '#fff',
+  },
+  测试: {
+    background: '#15803d',
+    borderColor: '#15803d',
+    textColor: '#fff',
+  },
+  设计: {
+    background: '#c2410c',
+    borderColor: '#c2410c',
+    textColor: '#fff',
+  },
+};
 
 /**
  * 任务卡片中项目名称展示文案。
@@ -139,6 +234,68 @@ function getTaskLatestDynamicSummary(task: TaskCardTask) {
 }
 
 /**
+ * 任务卡片中的类型展示文案。
+ *
+ * 类型是可选增强信息，仅在业务层明确传入时展示，避免通用卡片在非任务类型场景
+ * 下出现空标签或占位文案。
+ *
+ * @param task 当前任务数据
+ * @returns 类型文案
+ */
+function getTaskTypeText(task: TaskCardTask) {
+  if (!task.typeName) {
+    return undefined;
+  }
+
+  const normalizedTypeName = task.typeName.trim();
+  if (!normalizedTypeName) {
+    return undefined;
+  }
+
+  return normalizedTypeName;
+}
+
+/**
+ * 计算字符串哈希值，用于把未预设的类型稳定映射到颜色板。
+ *
+ * @param value 类型名称
+ * @returns 非负整数哈希值
+ */
+function getStableTextHash(value: string) {
+  let hash = 0;
+
+  for (const char of value) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+
+  return hash;
+}
+
+/**
+ * 解析任务类型标签配色。
+ *
+ * 优先对常见业务类型给固定颜色，避免用户频繁看到的标签颜色漂移；
+ * 对未知类型则退回到稳定哈希映射，保证同名类型跨卡片展示颜色一致。
+ *
+ * @param typeName 类型名称
+ * @returns 标签配色
+ */
+export function resolveTaskTypeTagTone(typeName: string): TaskTypeTagTone {
+  const normalizedTypeName = typeName.trim();
+  const presetTone = TASK_TYPE_TAG_TONE_MAP[normalizedTypeName];
+
+  if (presetTone) {
+    return presetTone;
+  }
+
+  const hash = getStableTextHash(normalizedTypeName);
+  const paletteIndex = hash % TASK_TYPE_TAG_TONE_PALETTE.length;
+  const fallbackTone = TASK_TYPE_TAG_TONE_PALETTE[paletteIndex];
+
+  return fallbackTone;
+}
+
+/**
  * 解析卡片内容间距。
  *
  * @param isCompact 是否为紧凑模式
@@ -228,6 +385,23 @@ const TaskCard = (props: TaskCardProps) => {
   const taskNumberText = getTaskNumberText(props.task);
   const taskNumberDisplayText = getTaskNumberDisplayText(props.task);
   const latestDynamicSummary = getTaskLatestDynamicSummary(props.task);
+  const taskTypeText = getTaskTypeText(props.task);
+  let taskTypeTone: TaskTypeTagTone | undefined;
+  if (taskTypeText) {
+    taskTypeTone = resolveTaskTypeTagTone(taskTypeText);
+  }
+  let taskTypeNode: ReactNode = null;
+  if (taskTypeText && taskTypeTone) {
+    taskTypeNode = (
+      <TaskTypeTag
+        $background={taskTypeTone.background}
+        $borderColor={taskTypeTone.borderColor}
+        $textColor={taskTypeTone.textColor}
+      >
+        {taskTypeText}
+      </TaskTypeTag>
+    );
+  }
   const stackSize = resolveCardStackSize(isCompact);
   const dataAttributes: Record<string, string> = {
     'data-task-card-root': 'true',
@@ -375,14 +549,17 @@ const TaskCard = (props: TaskCardProps) => {
             </TaskPrioritySlot>
           </TaskCardHeader>
 
-          <TaskTitleText
-            strong
-            $compact={Boolean(props.compact)}
-            $isSubtask={Boolean(props.isSubtask)}
-            $isCompletedSubtask={isCompletedSubtask}
-          >
-            {props.task.title}
-          </TaskTitleText>
+          <TaskTitleRow>
+            {taskTypeNode}
+            <TaskTitleText
+              strong
+              $compact={Boolean(props.compact)}
+              $isSubtask={Boolean(props.isSubtask)}
+              $isCompletedSubtask={isCompletedSubtask}
+            >
+              {props.task.title}
+            </TaskTitleText>
+          </TaskTitleRow>
 
           {metaNode}
         </TaskCardStack>

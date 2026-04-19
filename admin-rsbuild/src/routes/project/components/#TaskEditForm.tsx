@@ -405,6 +405,17 @@ const TaskEditForm = (props: TaskEditFormProps) => {
                 </div>
 
                 <div>
+                  <TaskEditFieldLabel>类型</TaskEditFieldLabel>
+                  <Form.Item
+                    name={'typeId'}
+                    rules={[{ required: true, message: '请选择任务类型' }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Select options={typeOptions} />
+                  </Form.Item>
+                </div>
+
+                <div>
                   <TaskEditFieldLabel>负责人</TaskEditFieldLabel>
                   <Form.Item name={'assigneeId'} style={{ marginBottom: 0 }}>
                     <UserSelect />

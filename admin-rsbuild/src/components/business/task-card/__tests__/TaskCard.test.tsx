@@ -4,7 +4,7 @@ import { message } from 'antd';
 
 import { copyTextToClipboard } from '@/utils';
 
-import TaskCard from '../TaskCard';
+import TaskCard, { resolveTaskTypeTagTone } from '../TaskCard';
 import type { TaskCardTask } from '../TaskCard.types';
 
 vi.mock('@/utils', () => {
@@ -17,6 +17,7 @@ const baseTask: TaskCardTask = {
   id: 101,
   taskNumber: 'TASK-101',
   projectName: '火星项目',
+  typeName: '需求',
   title: '补充任务编号展示',
   latestDynamicSummary: '已补充最新动态摘要展示',
   priority: 'high',
@@ -133,5 +134,35 @@ describe('TaskCard', () => {
     expect(screen.getByText('已补充最新动态摘要展示')).toBeTruthy();
     expect(screen.getByRole('alert')).toBeTruthy();
     expect(screen.queryByText('最新动态')).toBeNull();
+  });
+
+  it('标题前会展示任务类型标签', () => {
+    render(<TaskCard task={baseTask} />);
+
+    expect(screen.getByText('需求')).toBeTruthy();
+    expect(screen.getByText('补充任务编号展示')).toBeTruthy();
+  });
+
+  it('常见类型会映射到固定深色标签', () => {
+    expect(resolveTaskTypeTagTone('需求')).toEqual({
+      background: '#7c3aed',
+      borderColor: '#7c3aed',
+      textColor: '#fff',
+    });
+    expect(resolveTaskTypeTagTone('缺陷')).toEqual({
+      background: '#dc2626',
+      borderColor: '#dc2626',
+      textColor: '#fff',
+    });
+  });
+
+  it('未知类型会稳定映射到同一组颜色', () => {
+    const firstTone = resolveTaskTypeTagTone('架构');
+    const secondTone = resolveTaskTypeTagTone('架构');
+    const anotherTone = resolveTaskTypeTagTone('联调');
+
+    expect(firstTone).toEqual(secondTone);
+    expect(firstTone.textColor).toBe('#fff');
+    expect(anotherTone.textColor).toBe('#fff');
   });
 });

@@ -78,6 +78,19 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
       '已完成摘要映射',
     );
   });
+
+  it('会映射任务类型名称到卡片结构', () => {
+    const task: AgileBoardTask = {
+      id: 12,
+      projectId: 1,
+      title: '映射任务类型',
+      typeName: '缺陷',
+      status: 'todo',
+      priority: 'medium',
+    };
+
+    expect(mapAgileBoardTaskToTaskCardTask(task).typeName).toBe('缺陷');
+  });
 });
 
 describe('taskChildrenBatch', () => {
