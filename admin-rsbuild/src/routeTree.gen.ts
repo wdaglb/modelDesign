@@ -26,6 +26,7 @@ import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
 import { Route as SystemFileConfigIndexRouteImport } from './routes/system/file-config/index'
 import { Route as ProjectTaskTypeIndexRouteImport } from './routes/project/task-type/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
+import { Route as AgileBoardV2IndexRouteImport } from './routes/agile-board/v2/index'
 import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$projectId.tasks'
 import { Route as ProjectProjectIdTablesRouteImport } from './routes/project/$projectId.tables'
 import { Route as ProjectProjectIdMembersRouteImport } from './routes/project/$projectId.members'
@@ -117,6 +118,11 @@ const ProjectProjectIdIndexRoute = ProjectProjectIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProjectProjectIdRoute,
 } as any)
+const AgileBoardV2IndexRoute = AgileBoardV2IndexRouteImport.update({
+  id: '/agile-board/v2/',
+  path: '/agile-board/v2/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectProjectIdTasksRoute = ProjectProjectIdTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
+  '/agile-board/v2/': typeof AgileBoardV2IndexRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/project/task-type/': typeof ProjectTaskTypeIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
+  '/agile-board/v2': typeof AgileBoardV2IndexRoute
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
   '/project/task-type': typeof ProjectTaskTypeIndexRoute
   '/system/file-config': typeof SystemFileConfigIndexRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
+  '/agile-board/v2/': typeof AgileBoardV2IndexRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/project/task-type/': typeof ProjectTaskTypeIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
@@ -222,6 +231,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
+    | '/agile-board/v2/'
     | '/project/$projectId/'
     | '/project/task-type/'
     | '/system/file-config/'
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
+    | '/agile-board/v2'
     | '/project/$projectId'
     | '/project/task-type'
     | '/system/file-config'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
+    | '/agile-board/v2/'
     | '/project/$projectId/'
     | '/project/task-type/'
     | '/system/file-config/'
@@ -288,6 +300,7 @@ export interface RootRouteChildren {
   LoginIndexRoute: typeof LoginIndexRoute
   PersonalCenterIndexRoute: typeof PersonalCenterIndexRoute
   ProjectIndexRoute: typeof ProjectIndexRoute
+  AgileBoardV2IndexRoute: typeof AgileBoardV2IndexRoute
   ProjectTaskTypeIndexRoute: typeof ProjectTaskTypeIndexRoute
   SystemFileConfigIndexRoute: typeof SystemFileConfigIndexRoute
   SystemMenuIndexRoute: typeof SystemMenuIndexRoute
@@ -420,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectIdIndexRouteImport
       parentRoute: typeof ProjectProjectIdRoute
     }
+    '/agile-board/v2/': {
+      id: '/agile-board/v2/'
+      path: '/agile-board/v2'
+      fullPath: '/agile-board/v2/'
+      preLoaderRoute: typeof AgileBoardV2IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$projectId/tasks': {
       id: '/project/$projectId/tasks'
       path: '/tasks'
@@ -477,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginIndexRoute: LoginIndexRoute,
   PersonalCenterIndexRoute: PersonalCenterIndexRoute,
   ProjectIndexRoute: ProjectIndexRoute,
+  AgileBoardV2IndexRoute: AgileBoardV2IndexRoute,
   ProjectTaskTypeIndexRoute: ProjectTaskTypeIndexRoute,
   SystemFileConfigIndexRoute: SystemFileConfigIndexRoute,
   SystemMenuIndexRoute: SystemMenuIndexRoute,

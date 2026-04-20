@@ -1,4 +1,6 @@
-import { Button } from 'antd';
+import type { ReactNode, RefObject } from 'react';
+import { Button, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
 
 import {
   TaskPriority,
@@ -19,6 +21,8 @@ import {
 
 interface AgileBoardToolbarProps {
   assigneeId?: number;
+  extraActions?: ReactNode;
+  enterV2ButtonRef?: RefObject<HTMLDivElement | null>;
   hasFilters: boolean;
   priority?: TaskPriority;
   projectId?: number;
@@ -26,6 +30,8 @@ interface AgileBoardToolbarProps {
   titleSearchValue: string;
   onAssigneeChange: (value?: number) => void;
   onCreate: () => Promise<void>;
+  onEnterV2?: () => Promise<void>;
+  onEnterV2AndRemember?: () => Promise<void>;
   onPriorityChange: (value?: TaskPriority) => void;
   onProjectChange: (value?: number) => void;
   onReset: () => void;
@@ -36,6 +42,37 @@ interface AgileBoardToolbarProps {
  * 敏捷面板工具栏。
  */
 const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
+  let enterV2ButtonNode = null;
+
+  if (props.onEnterV2) {
+    const enterV2MenuItems: MenuProps['items'] = [];
+
+    if (props.onEnterV2AndRemember) {
+      enterV2MenuItems.push({
+        key: 'remember-v2',
+        label: '进入新版并记住',
+      });
+    }
+
+    enterV2ButtonNode = (
+      <div ref={props.enterV2ButtonRef}>
+        <Dropdown.Button
+          menu={{
+            items: enterV2MenuItems,
+            onClick: async (info) => {
+              if (info.key === 'remember-v2' && props.onEnterV2AndRemember) {
+                await props.onEnterV2AndRemember();
+              }
+            },
+          }}
+          onClick={props.onEnterV2}
+        >
+          进入新版
+        </Dropdown.Button>
+      </div>
+    );
+  }
+
   return (
     <ToolbarRoot>
       <ToolbarTitle>敏捷面板</ToolbarTitle>
@@ -97,6 +134,9 @@ const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
           >
             新建任务
           </Button>
+
+          {enterV2ButtonNode}
+          {props.extraActions}
         </ToolbarRow>
       </ToolbarSurface>
     </ToolbarRoot>

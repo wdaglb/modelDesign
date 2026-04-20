@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -10,7 +10,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { message } from 'antd';
+import { Tour, message } from 'antd';
 import { z } from 'zod';
 import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
 import {
@@ -41,6 +41,14 @@ import {
   handleBoardTitleSearch,
   resolveDropStatus,
 } from './#helper';
+import {
+  buildAgileBoardVersionSearch,
+  getPreferredAgileBoardVersionFromStorage,
+  hasSeenAgileBoardV2Tour,
+  markAgileBoardV2TourAsSeen,
+  savePreferredAgileBoardVersionToStorage,
+  shouldAutoRedirectToAgileBoardV2,
+} from './#boardVersionPreference';
 import type { AgileBoardFilterState, AgileBoardTask } from './#types';
 import {
   BoardColumnsGrid,
@@ -68,7 +76,12 @@ function RouteComponent() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const queryClient = useQueryClient();
+  const enterV2ButtonRef = useRef<HTMLDivElement>(null);
   const [activeTaskDragId, setActiveTaskDragId] = useState<string>();
+  const [preferredBoardVersion, setPreferredBoardVersion] = useState(() => {
+    return getPreferredAgileBoardVersionFromStorage();
+  });
+  const [isV2TourOpen, setIsV2TourOpen] = useState(false);
   const [filters, setFilters] = useState<AgileBoardFilterState>({
     title: '',
   });
@@ -127,6 +140,40 @@ function RouteComponent() {
       filters.priority !== undefined,
     );
   }, [filters]);
+
+  /**
+   * 当用户已明确记住 v2 时，进入旧版后自动跳到 v2。
+   *
+   * 这里保留 taskId，确保从分享链接或详情抽屉状态切换版本时不丢上下文。
+   */
+  useEffect(() => {
+    if (!shouldAutoRedirectToAgileBoardV2()) {
+      return;
+    }
+
+    void navigate({
+      to: '/agile-board/v2',
+      search: buildAgileBoardVersionSearch(search.taskId),
+      replace: true,
+    });
+  }, [navigate, search.taskId]);
+
+  /**
+   * 旧版首次进入时自动展示 v2 引导。
+   *
+   * 这里要求“未记住 v2 且未展示过 Tour”才打开，避免重复打扰。
+   */
+  useEffect(() => {
+    if (preferredBoardVersion === 'v2') {
+      return;
+    }
+
+    if (hasSeenAgileBoardV2Tour()) {
+      return;
+    }
+
+    setIsV2TourOpen(true);
+  }, [preferredBoardVersion]);
 
   const taskMap = useMemo(() => {
     const nextTaskMap = new Map<string, AgileBoardTask>();
@@ -511,6 +558,32 @@ function RouteComponent() {
   const handleCreateTask = useCallback(async () => {
     await openTaskForm();
   }, [openTaskForm]);
+
+  /**
+   * 跳转到 v2，并按需记住后续默认入口偏好。
+   */
+  const handleNavigateToV2 = useCallback(
+    async (rememberVersion: boolean) => {
+      if (rememberVersion) {
+        savePreferredAgileBoardVersionToStorage('v2');
+        setPreferredBoardVersion('v2');
+      }
+
+      await navigate({
+        to: '/agile-board/v2',
+        search: buildAgileBoardVersionSearch(search.taskId),
+      });
+    },
+    [navigate, search.taskId],
+  );
+
+  /**
+   * 关闭 v2 引导并记录为已展示，避免每次进入旧版都重复弹出。
+   */
+  const handleCloseV2Tour = useCallback(() => {
+    markAgileBoardV2TourAsSeen();
+    setIsV2TourOpen(false);
+  }, []);
   useEffect(() => {
     if (previewTaskId !== undefined) {
       return;
@@ -557,6 +630,19 @@ function RouteComponent() {
   }, [clearPreviewSearch, openTaskPreview, previewTaskId, search.taskId]);
   return (
     <BoardPageRoot>
+      <Tour
+        open={isV2TourOpen}
+        onClose={handleCloseV2Tour}
+        steps={[
+          {
+            title: '试试高性能新版面板',
+            target: () => enterV2ButtonRef.current,
+            description:
+              '点击“进入新版”可直接体验 v2；展开右侧下拉菜单可选择“进入新版并记住”，之后再访问旧版时会自动跳到 v2。',
+          },
+        ]}
+      />
+
       <BoardToolbarCard size="small">
         <AgileBoardToolbar
           hasFilters={hasFilters}
@@ -565,7 +651,14 @@ function RouteComponent() {
           priority={filters.priority}
           projectOptions={projectOptions}
           titleSearchValue={titleSearchInput}
+          enterV2ButtonRef={enterV2ButtonRef}
           onCreate={handleCreateTask}
+          onEnterV2={async () => {
+            await handleNavigateToV2(false);
+          }}
+          onEnterV2AndRemember={async () => {
+            await handleNavigateToV2(true);
+          }}
           onTitleSearchChange={handleTitleSearchChange}
           onProjectChange={handleProjectChange}
           onAssigneeChange={handleAssigneeChange}
