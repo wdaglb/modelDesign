@@ -1761,6 +1761,14 @@ function renderDynamicTimeline(options: {
  * @return 摘要文本
  */
 function buildChangeLogSummary(item: ProjectTaskChangeLogItem) {
+  /**
+   * 创建任务属于“初始化记录”，这里按产品要求收敛为单条摘要，
+   * 避免把初始字段逐项渲染成“字段变更”，误导用户认为发生了逐字段编辑。
+   */
+  if (item.operationType === 'create') {
+    return item.operationText;
+  }
+
   if (!item.changes.length) {
     return item.operationText;
   }

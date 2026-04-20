@@ -77,6 +77,7 @@ function RouteComponent() {
   const search = Route.useSearch();
   const queryClient = useQueryClient();
   const enterV2ButtonRef = useRef<HTMLDivElement>(null);
+  const sharedPreviewOpeningTaskIdRef = useRef<number>();
   const [activeTaskDragId, setActiveTaskDragId] = useState<string>();
   const [preferredBoardVersion, setPreferredBoardVersion] = useState(() => {
     return getPreferredAgileBoardVersionFromStorage();
@@ -585,13 +586,28 @@ function RouteComponent() {
     setIsV2TourOpen(false);
   }, []);
   useEffect(() => {
+    if (search.taskId === undefined) {
+      /**
+       * 地址栏中的 taskId 被清除后，同步释放进行中标记，
+       * 避免下次通过链接再次进入时被旧状态误判为已在打开。
+       */
+      sharedPreviewOpeningTaskIdRef.current = undefined;
+      return;
+    }
+
     if (previewTaskId !== undefined) {
       return;
     }
 
-    if (search.taskId === undefined) {
+    /**
+     * 分享任务的自动打开流程会先请求详情，再异步打开抽屉。
+     * 在这段窗口期内，若 effect 因依赖变化再次执行，就会重复请求同一个详情接口。
+     */
+    if (sharedPreviewOpeningTaskIdRef.current === search.taskId) {
       return;
     }
+
+    sharedPreviewOpeningTaskIdRef.current = search.taskId;
 
     let cancelled = false;
 
@@ -611,6 +627,7 @@ function RouteComponent() {
           return;
         }
 
+        sharedPreviewOpeningTaskIdRef.current = undefined;
         await clearPreviewSearch();
 
         if (error instanceof RequestError && error.code === 404) {

@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Dropdown, Space, message } from 'antd';
 import type { MenuProps } from 'antd';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
 import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
 import {
@@ -66,6 +66,7 @@ function RouteComponent() {
     title: '',
   });
   const [previewTaskId, setPreviewTaskId] = useState<number>();
+  const sharedPreviewOpeningTaskIdRef = useRef<number>();
   const [titleSearchInput, setTitleSearchInput] = useState('');
   const debouncedTitleSearchValue = useDebounce(titleSearchInput, 400);
   const params = useMemo(() => buildBoardQueryParams(filters), [filters]);
@@ -257,13 +258,28 @@ function RouteComponent() {
    * 页面支持通过 query 参数直接打开任务详情，便于从通知或分享链接跳转。
    */
   useEffect(() => {
+    if (search.taskId === undefined) {
+      /**
+       * 移除 taskId 后立即清空进行中标记，
+       * 让后续再次通过分享链接进入时仍可触发一次自动打开。
+       */
+      sharedPreviewOpeningTaskIdRef.current = undefined;
+      return;
+    }
+
     if (previewTaskId !== undefined) {
       return;
     }
 
-    if (search.taskId === undefined) {
+    /**
+     * v2 页面同样存在“先拉详情、再开抽屉”的窗口期，
+     * 需要阻止同一个 taskId 在 effect 重跑时重复请求详情。
+     */
+    if (sharedPreviewOpeningTaskIdRef.current === search.taskId) {
       return;
     }
+
+    sharedPreviewOpeningTaskIdRef.current = search.taskId;
 
     let cancelled = false;
 
@@ -283,6 +299,7 @@ function RouteComponent() {
           return;
         }
 
+        sharedPreviewOpeningTaskIdRef.current = undefined;
         await clearPreviewSearch();
 
         if (error instanceof RequestError && error.code === 404) {

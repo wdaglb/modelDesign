@@ -5,6 +5,7 @@ import type { ReactElement } from 'react';
 import { message, Modal } from 'antd';
 
 import { ApiProjectTask, ApiProjectTaskDynamic, ApiUser } from '@/api';
+import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
 import type { ProjectTaskDynamicItem } from '@/api/modules/project-task-dynamic';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
@@ -161,6 +162,32 @@ const previewDynamicsWithMention: ProjectTaskDynamicItem[] = [
   },
 ];
 
+const previewCreateChangeLogs: ProjectTaskChangeLogItem[] = [
+  {
+    id: 11,
+    taskId: 1001,
+    operationType: 'create',
+    operationText: '创建任务',
+    operatorId: 7003,
+    operatorName: '王五',
+    createdAt: '2026-04-19 12:00:00',
+    changes: [
+      {
+        field: 'title',
+        label: '任务标题',
+        beforeValue: '-',
+        afterValue: '抽屉时间范围测试',
+      },
+      {
+        field: 'priority',
+        label: '任务优先级',
+        beforeValue: '-',
+        afterValue: '高',
+      },
+    ],
+  },
+];
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(copyTextToClipboard).mockResolvedValue(undefined);
@@ -233,6 +260,27 @@ describe('TaskDetailView', () => {
     const mentionTag = screen.getByText('@张三（zhangsan）');
     expect(mentionTag.closest('.ant-tag')).toBeTruthy();
     expect(screen.getByText('2026-04-19 11:00:00 · 李四')).toBeDefined();
+  });
+
+  it('创建任务日志应展示为单条摘要而不是逐字段变更', () => {
+    renderWithQuery(
+      <TaskDetailView
+        task={task}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={previewCreateChangeLogs}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('变更日志 1'));
+
+    expect(screen.getByText('创建任务')).toBeDefined();
+    expect(screen.queryByText(/任务标题：- → 抽屉时间范围测试/)).toBeNull();
+    expect(screen.queryByText(/任务优先级：- → 高/)).toBeNull();
   });
 
   it('支持以子任务 Tab 作为默认入口', () => {
