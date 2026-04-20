@@ -27,4 +27,11 @@ public class AuthUserSimpleDto {
      * 头像文件 ID。
      */
     private String avatarId;
+
+    /**
+     * 是否禁用。
+     *
+     * `true` 表示禁用，`false` 表示启用。
+     */
+    private Boolean isDisable;
 }

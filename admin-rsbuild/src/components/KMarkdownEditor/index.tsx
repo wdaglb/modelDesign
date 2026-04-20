@@ -17,6 +17,7 @@ import {
 import type {
   KMarkdownEditorProps,
   KMarkdownPreviewProps,
+  MarkdownTodoTogglePayload,
   MarkdownImageUploadResult,
 } from './types';
 
@@ -207,6 +208,23 @@ interface RenderEditorContentProps {
   value: string;
 }
 
+/**
+ * 构造 Markdown 编辑器外层样式。
+ *
+ * 这里只覆盖最外层容器的边框与圆角，使其直接复用 Ant Design
+ * 的容器设计语言，不扩大到工具栏、分栏线和交互态，避免超出本次最小改动范围。
+ */
+function buildMarkdownEditorStyle(height: number | string) {
+  return {
+    height,
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: 'var(--ant-colorBorder, #d9d9d9)',
+    borderRadius: 'var(--ant-borderRadius, 8px)',
+    backgroundColor: 'var(--ant-colorBgContainer, #fff)',
+  };
+}
+
 function renderEditorContent(props: RenderEditorContentProps) {
   if (props.disabled) {
     return <KMarkdownPreview height={props.height} value={props.value} />;
@@ -219,7 +237,7 @@ function renderEditorContent(props: RenderEditorContentProps) {
       language="zh-CN"
       preview={props.previewEnabled}
       placeholder={props.placeholder}
-      style={{ height: props.height }}
+      style={buildMarkdownEditorStyle(props.height)}
       toolbars={props.toolbars}
       onChange={(nextValue) => {
         props.emitChange(nextValue);
@@ -259,6 +277,7 @@ function handleUploadError(error: unknown) {
 export type {
   KMarkdownEditorProps,
   KMarkdownPreviewProps,
+  MarkdownTodoTogglePayload,
   MarkdownImageUploadResult,
 } from './types';
 

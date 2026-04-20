@@ -58,8 +58,25 @@ vi.mock('@/components', async (importOriginal) => {
 
   return {
     ...actual,
-    KMarkdownPreview: (props: { value?: string }) => {
-      return <div>{props.value}</div>;
+    KMarkdownPreview: (props: {
+      value?: string;
+      onTodoToggle?: (payload: { nextValue: string }) => void | Promise<void>;
+    }) => {
+      return (
+        <div>
+          <div>{props.value}</div>
+          <button
+            type={'button'}
+            onClick={() => {
+              void props.onTodoToggle?.({
+                nextValue: '- [x] 已完成事项',
+              });
+            }}
+          >
+            切换待办
+          </button>
+        </div>
+      );
     },
   };
 });
@@ -436,6 +453,46 @@ describe('TaskDetailView', () => {
     fireEvent.click(subtaskStatusText as HTMLElement);
 
     expect(await screen.findByText('处理中')).toBeDefined();
+  });
+
+  it('点击 markdown 待办事项后应立即保存任务详情', async () => {
+    const onTaskUpdated = vi.fn().mockResolvedValue(undefined);
+
+    vi.mocked(ApiProjectTask.edit).mockResolvedValue({
+      ...task,
+      description: '- [x] 已完成事项',
+    });
+
+    renderWithQuery(
+      <TaskDetailView
+        task={{
+          ...task,
+          description: '- [ ] 未完成事项',
+        }}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={onTaskUpdated}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '切换待办' }));
+
+    await waitFor(() => {
+      expect(ApiProjectTask.edit).toHaveBeenCalledWith(
+        task.id,
+        expect.objectContaining({
+          description: '- [x] 已完成事项',
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(onTaskUpdated).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('支持在子任务 Tab 中进入负责人与截止时间快捷编辑态', async () => {

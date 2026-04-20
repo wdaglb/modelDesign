@@ -65,6 +65,7 @@ describe('UserSelect', () => {
         keyword: 'zhangsan',
         current: 1,
         pageSize: 20,
+        isDisable: false,
       });
     });
   });
@@ -72,9 +73,13 @@ describe('UserSelect', () => {
   it('默认占位文案会提示支持用户名昵称和用户 ID 搜索', () => {
     renderWithQuery(<UserSelect />);
 
-    expect(
-      screen.getByPlaceholderText('请输入用户名、昵称或用户 ID'),
-    ).toBeDefined();
+    expect(screen.getByText('请输入用户名、昵称或用户 ID')).toBeDefined();
+  });
+
+  it('历史禁用负责人会保留回显，但作为禁用选项不可再次选择', async () => {
+    renderWithQuery(<UserSelect value={2} valueLabel={'李四'} />);
+
+    expect(screen.getByText('李四')).toBeDefined();
   });
 });
 

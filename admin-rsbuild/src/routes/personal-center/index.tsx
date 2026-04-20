@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, Skeleton, Space, Tabs } from 'antd';
@@ -62,8 +62,29 @@ function RouteComponent() {
     if (!currentInfoQuery.data) {
       return;
     }
+
+    /**
+     * 查询结果需要回写到全局鉴权态，供侧边栏等全局区域复用。
+     * 去重逻辑已经下沉到 auth store，这里只负责把最新 query 结果同步过去，
+     * 避免页面层再次维护一套重复比较规则。
+     */
     setCurrentInfo(currentInfoQuery.data);
   }, [currentInfoQuery.data, setCurrentInfo]);
+
+  /**
+   * 基础信息页签保存成功后，同时刷新 query 缓存和全局鉴权态。
+   * 使用稳定回调可以减少 Tabs 子树的非必要重建。
+   */
+  const handleCurrentInfoUpdated = useCallback(
+    (nextCurrentInfo: CurrentInfoVo) => {
+      queryClient.setQueryData(
+        queryKey.passport.currentInfo(),
+        nextCurrentInfo,
+      );
+      setCurrentInfo(nextCurrentInfo);
+    },
+    [queryClient, setCurrentInfo],
+  );
 
   if (currentInfoQuery.isLoading && !currentInfoQuery.data) {
     return (
@@ -93,13 +114,7 @@ function RouteComponent() {
       <Card styles={{ body: { padding: 20 } }}>
         <Tabs
           activeKey={search.tab}
-          items={buildTabItems(currentInfoQuery.data, (nextCurrentInfo) => {
-            queryClient.setQueryData(
-              queryKey.passport.currentInfo(),
-              nextCurrentInfo,
-            );
-            setCurrentInfo(nextCurrentInfo);
-          })}
+          items={buildTabItems(currentInfoQuery.data, handleCurrentInfoUpdated)}
           onChange={(nextKey) => {
             navigate({
               search: (previous) => {

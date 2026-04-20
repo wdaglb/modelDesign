@@ -78,6 +78,13 @@ export interface UserPageParams {
    * 按租户 ID 筛选。
    */
   tenantId?: number;
+
+  /**
+   * 是否禁用。
+   *
+   * 用于区分“用户管理需要展示全部用户”和“任务负责人只允许启用用户”这两类场景。
+   */
+  isDisable?: boolean;
 }
 
 /**

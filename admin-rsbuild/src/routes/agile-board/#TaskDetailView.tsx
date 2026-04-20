@@ -299,6 +299,9 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
   const [dynamicContent, setDynamicContent] = useState('');
   const [creatingDynamic, setCreatingDynamic] = useState(false);
   const [deletingSubtaskId, setDeletingSubtaskId] = useState<number>();
+  const [detailDescription, setDetailDescription] = useState(
+    props.task.description || '',
+  );
   const [editingSubtaskCell, setEditingSubtaskCell] =
     useState<TaskDetailSubtaskEditingCell | null>(null);
   const [dynamicMentionUsers, setDynamicMentionUsers] = useState<User[]>([]);
@@ -341,6 +344,10 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     enabled: props.previewDynamics === undefined,
   });
 
+  useEffect(() => {
+    setDetailDescription(props.task.description || '');
+  }, [props.task.description, props.task.id]);
+
   const dynamicMentionUserQuery = useQuery({
     queryKey: ['taskDetailDynamicMentionSearch', dynamicMentionKeyword],
     queryFn: () => {
@@ -365,6 +372,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
         keyword: trimmedAssigneeKeyword,
         current: 1,
         pageSize: 20,
+        isDisable: false,
       }),
     enabled: openDropdown === 'assignee' && isAssigneeSearching,
     placeholderData: (previousData) => previousData,
@@ -492,7 +500,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     if (isAssigneeSearching) {
       users = assigneeQuery.data?.items ?? [];
     } else {
-      users = getRecentUsers();
+      users = getRecentUsers().filter((item) => !item.isDisable);
     }
 
     const options: Array<{ id?: number; label: string }> = [
@@ -514,8 +522,23 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
       });
     });
 
+    if (
+      props.task.assigneeId !== undefined &&
+      !options.some((item) => item.id === props.task.assigneeId)
+    ) {
+      options.push({
+        id: props.task.assigneeId,
+        label: props.task.assignee || `用户 #${props.task.assigneeId}`,
+      });
+    }
+
     return options;
-  }, [assigneeQuery.data?.items, isAssigneeSearching]);
+  }, [
+    assigneeQuery.data?.items,
+    isAssigneeSearching,
+    props.task.assignee,
+    props.task.assigneeId,
+  ]);
   const priorityOptions = useMemo(() => {
     return TaskPriorityOptions.map((item) => {
       return {
@@ -1007,6 +1030,27 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     }
   };
 
+  /**
+   * 保存详情区 Markdown 待办切换结果。
+   *
+   * 这里保持“预览交互在组件内、持久化在页面层”的职责边界：
+   * - 组件内部产出切换后的完整 Markdown
+   * - 详情页负责即时保存、失败回滚与刷新外层数据
+   */
+  const handleMarkdownTodoToggle = async (nextValue: string) => {
+    const previousValue = detailDescription;
+    setDetailDescription(nextValue);
+
+    try {
+      await saveQuickField('description', {
+        description: nextValue,
+      });
+    } catch (error) {
+      setDetailDescription(previousValue);
+      throw error;
+    }
+  };
+
   const isSavingField = (field: string) => {
     return savingField === `${props.task.id}:${field}`;
   };
@@ -1234,7 +1278,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                                   : '1px solid transparent',
                                 background: selected ? '#e6f4ff' : '#f8fafc',
                                 color: '#1d2129',
-                                cursor: 'pointer',
+                                cursor: selected ? 'default' : 'pointer',
                               }}
                               onClick={async () => {
                                 if (props.task.assigneeId === option.id) {
@@ -1349,7 +1393,10 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                   children: (
                     <TaskDetailDrawerStack>
                       <TaskDetailPanelCard size={'small'}>
-                        {renderMarkdownPreview(props.task.description)}
+                        {renderMarkdownPreview({
+                          description: detailDescription,
+                          onTodoToggle: handleMarkdownTodoToggle,
+                        })}
                       </TaskDetailPanelCard>
                     </TaskDetailDrawerStack>
                   ),
@@ -1578,15 +1625,25 @@ function renderDateRange(startTime?: string, dueTime?: string) {
 /**
  * 渲染 Markdown 预览内容。
  *
- * @param description 描述内容
+ * @param options 预览参数
  * @return 预览节点
  */
-function renderMarkdownPreview(description?: string) {
-  if (!description) {
+function renderMarkdownPreview(options: {
+  description?: string;
+  onTodoToggle?: (nextValue: string) => Promise<void>;
+}) {
+  if (!options.description) {
     return <Typography.Text type={'secondary'}>暂无任务说明</Typography.Text>;
   }
 
-  return <KMarkdownPreview value={description} />;
+  return (
+    <KMarkdownPreview
+      value={options.description}
+      onTodoToggle={async (payload) => {
+        await options.onTodoToggle?.(payload.nextValue);
+      }}
+    />
+  );
 }
 
 /**

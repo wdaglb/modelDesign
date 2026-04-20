@@ -141,8 +141,12 @@ public class ProjectTaskGuardService {
             return;
         }
         Map<Long, AuthUserSimpleDto> userMap = authUserApi.getUserMapByIds(Set.of(assigneeId));
-        if (!userMap.containsKey(assigneeId)) {
+        AuthUserSimpleDto assignee = userMap.get(assigneeId);
+        if (assignee == null) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "负责人不存在");
+        }
+        if (Boolean.TRUE.equals(assignee.getIsDisable())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "负责人已禁用，不能指派");
         }
     }
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   createFileRoute,
   redirect,
@@ -60,7 +60,6 @@ export const Route = createFileRoute('/login/')({
 });
 
 function RouteComponent() {
-  const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const setTokens = useAuthStore((state) => state.setTokens);
   const redirectTarget = normalizeLoginRedirect(search.redirect);
@@ -75,11 +74,32 @@ function RouteComponent() {
   /** 面板切换目标 */
   const pendingPanelRef = useRef<PanelType | null>(null);
 
+  /**
+   * 登录成功后使用浏览器级跳转进入目标页。
+   *
+   * 当前缺陷的表现是：
+   * 1. 登录后停留在登录页；
+   * 2. 但刷新登录页或手动输入首页后又能正常进入。
+   *
+   * 这说明 token 持久化本身没有问题，异常集中在当前这次 SPA 内部跳转。
+   * 因此这里不再依赖客户端路由状态同步，而是直接复用浏览器导航，
+   * 让应用按“刷新后可进入”的已验证链路重新启动并执行根路由守卫。
+   *
+   * @param accessToken 新 access token
+   * @param refreshToken 新 refresh token
+   */
+  const initializeSessionAndNavigate = useCallback(
+    async (accessToken: string, refreshToken: string) => {
+      setTokens(accessToken, refreshToken);
+      window.location.replace(redirectTarget);
+    },
+    [redirectTarget, setTokens],
+  );
+
   const mutation = useMutation({
     mutationFn: ApiPassport.passwordLogin,
-    onSuccess: (data) => {
-      setTokens(data.accessToken, data.refreshToken);
-      navigate({ to: redirectTarget, replace: true });
+    onSuccess: async (data) => {
+      await initializeSessionAndNavigate(data.accessToken, data.refreshToken);
     },
     onError: (error) => {
       Modal.error({
@@ -91,9 +111,8 @@ function RouteComponent() {
 
   const registerMutation = useMutation({
     mutationFn: ApiPassport.register,
-    onSuccess: (data) => {
-      setTokens(data.accessToken, data.refreshToken);
-      navigate({ to: redirectTarget, replace: true });
+    onSuccess: async (data) => {
+      await initializeSessionAndNavigate(data.accessToken, data.refreshToken);
     },
   });
 
@@ -106,16 +125,19 @@ function RouteComponent() {
    * 触发面板切换动画
    * @param target 目标面板
    */
-  const switchPanel = (target: PanelType) => {
-    if (transitionState !== 'idle') {
-      return;
-    }
-    pendingPanelRef.current = target;
-    setTransitionState('exiting');
-  };
+  const switchPanel = useCallback(
+    (target: PanelType) => {
+      if (transitionState !== 'idle') {
+        return;
+      }
+      pendingPanelRef.current = target;
+      setTransitionState('exiting');
+    },
+    [transitionState],
+  );
 
   /** 过渡动画结束回调 */
-  const handleTransitionEnd = () => {
+  const handleTransitionEnd = useCallback(() => {
     if (transitionState === 'exiting') {
       if (pendingPanelRef.current) {
         setActivePanel(pendingPanelRef.current);
@@ -125,14 +147,17 @@ function RouteComponent() {
     } else if (transitionState === 'entering') {
       setTransitionState('idle');
     }
-  };
+  }, [transitionState]);
 
-  /** 首次挂载后延迟切换到 password 面板 */
-  const handleSkeletonReady = () => {
+  /**
+   * 骨架屏完成后只推进一次首屏面板切换，避免子组件 effect
+   * 因回调引用变化而重复调度切换状态。
+   */
+  const handleSkeletonReady = useCallback(() => {
     if (activePanel === 'skeleton' && transitionState === 'idle') {
       switchPanel('password');
     }
-  };
+  }, [activePanel, switchPanel, transitionState]);
 
   return (
     <LoginPage

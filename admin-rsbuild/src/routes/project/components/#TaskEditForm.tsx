@@ -291,7 +291,7 @@ const TaskEditForm = (props: TaskEditFormProps) => {
                 <div>
                   <TaskEditFieldLabel>负责人</TaskEditFieldLabel>
                   <Form.Item name={'assigneeId'} style={{ marginBottom: 0 }}>
-                    <UserSelect />
+                    <UserSelect valueLabel={props.task.assignee} />
                   </Form.Item>
                 </div>
 
@@ -457,7 +457,7 @@ function renderFullEditContent(props: FullEditContentProps) {
             </Form.Item>
 
             <Form.Item name={'assigneeId'} label={'负责人'}>
-              <UserSelect />
+              <UserSelect valueLabel={props.task.assignee} />
             </Form.Item>
 
             <Form.Item

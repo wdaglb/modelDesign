@@ -39,6 +39,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProjectTaskReadService {
     /**
+     * 我的待办默认需要排除的历史状态。
+     *
+     * 这里保留显式状态筛选能力，只有用户未指定 status 时，才把
+     * “已完成 / 已取消”从待办结果中剔除，避免影响首页“已完成任务数”
+     * 跳转后按 status=done 查看历史任务的既有行为。
+     */
+    private static final Set<String> MY_TODO_EXCLUDED_STATUS_SET = Set.of("done", "canceled");
+
+    /**
      * 时间格式化器。
      */
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -124,6 +133,11 @@ public class ProjectTaskReadService {
                 .eq(ProjectTask::getDeleted, 0)
                 .like(StringUtils.hasText(title), ProjectTask::getTitle, title)
                 .eq(StringUtils.hasText(priority), ProjectTask::getPriority, priority)
+                /**
+                 * “我的待办”默认只展示待处理任务；若前端或其他入口显式传入
+                 * status，则尊重调用方筛选条件，允许查看已完成等历史状态。
+                 */
+                .notIn(!StringUtils.hasText(status), ProjectTask::getStatus, MY_TODO_EXCLUDED_STATUS_SET)
                 .eq(StringUtils.hasText(status), ProjectTask::getStatus, status));
 
         allTasks = allTasks.stream().sorted(

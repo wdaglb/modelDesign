@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildLoginRedirectFromLocation,
+  buildParsedLocationFromRedirect,
   normalizeLoginRedirect,
   resolveLoginRouteRedirect,
 } from '@/service/loginRedirect.ts';
@@ -35,6 +36,17 @@ describe('loginRedirect', () => {
     );
 
     expect(result).toBe('/system/role?tab=menu#permission');
+  });
+
+  it('将回跳地址转换为初始化位置时保留 pathname、query 与 hash', () => {
+    const location = buildParsedLocationFromRedirect(
+      '/system/role?tab=menu#permission',
+    );
+
+    expect(location.pathname).toBe('/system/role');
+    expect(location.searchStr).toBe('?tab=menu');
+    expect(location.hash).toBe('#permission');
+    expect(location.href).toBe('http://localhost/system/role?tab=menu#permission');
   });
 
   it('守卫判断需要回到登录页时停留在当前登录页', async () => {

@@ -49,6 +49,7 @@ public class AuthUserApiImpl implements AuthUserApi {
                         .id(user.getId())
                         .nickname(user.getNickname())
                         .avatarId(user.getAvatarId())
+                        .isDisable(!Objects.equals(user.getStatus(), 1))
                         .build())
                 .collect(Collectors.toMap(AuthUserSimpleDto::getId, user -> user, (left, right) -> left));
     }

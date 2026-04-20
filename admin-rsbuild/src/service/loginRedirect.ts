@@ -71,7 +71,9 @@ export const normalizeLoginRedirect = (redirect?: string): string => {
  * @param redirect 已标准化的站内回跳地址
  * @returns 可供守卫复用的最小位置信息
  */
-const buildParsedLocationFromRedirect = (redirect: string): ParsedLocation => {
+export const buildParsedLocationFromRedirect = (
+  redirect: string,
+): ParsedLocation => {
   const url = new URL(redirect, 'http://localhost');
 
   return {

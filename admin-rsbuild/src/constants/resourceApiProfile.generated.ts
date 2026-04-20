@@ -20,8 +20,10 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
     "/project/task/my-todo"
   ],
   "/personal-center": [
+    "/ai/mcp/config/current",
     "/passport/change_password",
     "/passport/login_history",
+    "/passport/mcp_token",
     "/passport/update_current_profile",
     "/third-party/qywork/binding/current",
     "/third-party/qywork/binding/session",

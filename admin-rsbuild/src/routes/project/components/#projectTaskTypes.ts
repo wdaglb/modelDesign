@@ -41,6 +41,7 @@ export interface TaskSorterState {
 export interface CellOption {
   label: string;
   value: string | number;
+  disabled?: boolean;
 }
 
 /**

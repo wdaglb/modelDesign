@@ -47,6 +47,9 @@ export interface UserSelectProps {
   /** 当前选中的用户 ID。 */
   value?: number;
 
+  /** 当前值对应的历史展示名称。 */
+  valueLabel?: string;
+
   /** 选中变化回调。 */
   onChange?: (userId: number | undefined) => void;
 
@@ -88,6 +91,7 @@ const UserSelect = (props: UserSelectProps) => {
         keyword: trimmedKeyword,
         current: 1,
         pageSize: 20,
+        isDisable: false,
       }),
     enabled: isSearching,
     placeholderData: (prev) => prev,
@@ -99,10 +103,10 @@ const UserSelect = (props: UserSelectProps) => {
     if (isSearching) {
       users = data?.items ?? [];
     } else {
-      users = getRecentUsers();
+      users = getRecentUsers().filter((item) => !item.isDisable);
     }
 
-    return users.map((user) => {
+    const nextOptions = users.map((user) => {
       let label = user.username;
       if (user.nickname) {
         label = user.nickname;
@@ -113,7 +117,24 @@ const UserSelect = (props: UserSelectProps) => {
         label,
       };
     });
-  }, [data, isSearching]);
+
+    /**
+     * 编辑历史任务时，当前负责人可能已经被禁用，因此不会再出现在候选查询里。
+     * 这里把当前值作为一个禁用选项补回选择器，保证表单仍然能稳定回显历史负责人。
+     */
+    if (
+      props.value !== undefined &&
+      !nextOptions.some((item) => item.value === props.value)
+    ) {
+      nextOptions.unshift({
+        value: props.value,
+        label: props.valueLabel ?? `用户 #${props.value}`,
+        disabled: true,
+      });
+    }
+
+    return nextOptions;
+  }, [data, isSearching, props.value, props.valueLabel]);
 
   /**
    * 选中用户后把当前候选项写入最近使用记录，

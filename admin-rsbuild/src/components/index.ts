@@ -8,6 +8,7 @@ export {
   KMarkdownPreview,
   type KMarkdownEditorProps,
   type KMarkdownPreviewProps,
+  type MarkdownTodoTogglePayload,
   type MarkdownImageUploadResult,
 } from './KMarkdownEditor/index';
 export { default as KUpload, KFileUpload, KImageUpload } from './business/KUpload/index';

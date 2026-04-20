@@ -55,6 +55,41 @@ const readStorageToken = (key: string): string => {
   return value;
 };
 
+/**
+ * 比较两份当前登录用户信息在界面关键字段上是否等价。
+ *
+ * store 层只要识别出“对界面没有可见差异”的更新，就应该直接跳过，
+ * 这样页面层无需重复维护同一份去重逻辑，也能避免 useEffect 回写 store
+ * 时因为等价新对象而触发渲染循环。
+ *
+ * @param currentStoreInfo 当前 store 中的用户信息
+ * @param nextStoreInfo 即将写入 store 的用户信息
+ * @returns 是否为等价数据
+ */
+const isSameCurrentInfo = (
+  currentStoreInfo?: CurrentInfoVo,
+  nextStoreInfo?: CurrentInfoVo,
+) => {
+  if (!currentStoreInfo && !nextStoreInfo) {
+    return true;
+  }
+
+  if (!currentStoreInfo || !nextStoreInfo) {
+    return false;
+  }
+
+  return (
+    currentStoreInfo.userId === nextStoreInfo.userId &&
+    currentStoreInfo.username === nextStoreInfo.username &&
+    currentStoreInfo.nickname === nextStoreInfo.nickname &&
+    currentStoreInfo.avatarId === nextStoreInfo.avatarId &&
+    currentStoreInfo.tenantId === nextStoreInfo.tenantId &&
+    currentStoreInfo.loginId === nextStoreInfo.loginId &&
+    currentStoreInfo.loginIp === nextStoreInfo.loginIp &&
+    currentStoreInfo.tokenCreateTime === nextStoreInfo.tokenCreateTime
+  );
+};
+
 interface AuthStore {
   token: string;
   refreshToken: string;
@@ -163,6 +198,11 @@ const useAuthStore = create<AuthStore>((set, get) => {
       set({ token, refreshToken });
     },
     setCurrentInfo(currentInfo) {
+      const currentStoreInfo = get().currentInfo;
+      if (isSameCurrentInfo(currentStoreInfo, currentInfo)) {
+        return;
+      }
+
       set({ currentInfo });
     },
     clearAuth() {

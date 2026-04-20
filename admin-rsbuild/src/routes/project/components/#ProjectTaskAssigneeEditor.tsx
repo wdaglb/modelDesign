@@ -43,11 +43,15 @@ function buildAssigneeOptions(
   users: Awaited<ReturnType<typeof ApiUser.getPageList>>['items'],
 ) {
   const options: CellOption[] = [];
+  const containsCurrentValue =
+    currentValue !== undefined &&
+    users.some((user) => user.id === currentValue);
 
-  if (currentValue !== undefined) {
+  if (currentValue !== undefined && !containsCurrentValue) {
     options.push({
       label: currentLabel,
       value: currentValue,
+      disabled: true,
     });
   }
 
@@ -93,6 +97,8 @@ const ProjectTaskAssigneeEditor = (props: ProjectTaskAssigneeEditorProps) => {
     if (searchKeyword) {
       nextParams.nickname = searchKeyword;
     }
+
+    nextParams.isDisable = false;
 
     return nextParams;
   }, [searchKeyword]);

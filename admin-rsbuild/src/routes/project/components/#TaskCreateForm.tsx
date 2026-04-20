@@ -331,7 +331,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
               </Form.Item>
 
               <Form.Item name={'assigneeId'} label={'负责人'}>
-                <UserSelect />
+                <UserSelect valueLabel={props.task?.assignee} />
               </Form.Item>
 
               <Form.Item

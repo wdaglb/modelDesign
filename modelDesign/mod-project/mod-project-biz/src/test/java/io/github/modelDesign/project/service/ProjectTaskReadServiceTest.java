@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -354,6 +355,85 @@ class ProjectTaskReadServiceTest {
         assertEquals("高优先级新动态", response.getItems().get(0).getLatestDynamicSummary());
     }
 
+    /**
+     * 我的待办在未显式指定状态时，应默认排除已完成和已取消任务。
+     */
+    @Test
+    void getMyTodoListShouldExcludeDoneAndCanceledByDefault() {
+        ensureProjectTableInfoInitialized();
+
+        AuthCurrentUserApi authCurrentUserApi = mock(AuthCurrentUserApi.class);
+        ProjectMapper projectMapper = mock(ProjectMapper.class);
+        ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
+
+        ProjectTaskReadService service = new ProjectTaskReadService(
+                authCurrentUserApi,
+                mock(AuthUserApi.class),
+                mock(ProjectService.class),
+                projectMapper,
+                projectTaskMapper,
+                mock(ProjectTaskGuardService.class),
+                mock(ProjectTaskViewAssembler.class),
+                mock(ProjectTaskDynamicService.class)
+        );
+
+        when(authCurrentUserApi.getCurrentUser()).thenReturn(AuthCurrentUserDto.builder()
+                .userId(9L)
+                .tenantId(100L)
+                .build());
+        Project project = new Project();
+        project.setId(201L);
+        project.setTenantId(100L);
+        when(projectMapper.selectList(any())).thenReturn(List.of(project));
+        when(projectTaskMapper.selectList(any())).thenReturn(List.of());
+
+        service.getMyTodoList(new MyTodoListRequest());
+
+        assertMyTodoQueryExcludeStatuses(projectTaskMapper, Set.of("done", "canceled"));
+    }
+
+    /**
+     * 我的待办在显式指定状态时，应保留调用方传入的状态过滤条件。
+     */
+    @Test
+    void getMyTodoListShouldRespectExplicitStatusFilter() {
+        ensureProjectTableInfoInitialized();
+
+        AuthCurrentUserApi authCurrentUserApi = mock(AuthCurrentUserApi.class);
+        ProjectMapper projectMapper = mock(ProjectMapper.class);
+        ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
+        ProjectTaskGuardService projectTaskGuardService = mock(ProjectTaskGuardService.class);
+
+        ProjectTaskReadService service = new ProjectTaskReadService(
+                authCurrentUserApi,
+                mock(AuthUserApi.class),
+                mock(ProjectService.class),
+                projectMapper,
+                projectTaskMapper,
+                projectTaskGuardService,
+                mock(ProjectTaskViewAssembler.class),
+                mock(ProjectTaskDynamicService.class)
+        );
+
+        when(authCurrentUserApi.getCurrentUser()).thenReturn(AuthCurrentUserDto.builder()
+                .userId(9L)
+                .tenantId(100L)
+                .build());
+        Project project = new Project();
+        project.setId(201L);
+        project.setTenantId(100L);
+        when(projectMapper.selectList(any())).thenReturn(List.of(project));
+        when(projectTaskMapper.selectList(any())).thenReturn(List.of());
+        when(projectTaskGuardService.validateStatus("done")).thenReturn("done");
+
+        MyTodoListRequest request = new MyTodoListRequest();
+        request.setStatus("done");
+        service.getMyTodoList(request);
+
+        assertMyTodoQueryEqualsStatus(projectTaskMapper, "done");
+        assertMyTodoQueryDoesNotExcludeStatuses(projectTaskMapper, Set.of("done", "canceled"));
+    }
+
     private ProjectTaskReadService buildService(ProjectTaskMapper projectTaskMapper,
                                                 ProjectTaskViewAssembler projectTaskViewAssembler,
                                                 ProjectService projectService) {
@@ -419,6 +499,71 @@ class ProjectTaskReadServiceTest {
     }
 
     /**
+     * 校验我的待办查询默认排除了指定状态集合。
+     *
+     * @param projectTaskMapper 任务 Mapper
+     * @param expectedStatuses  期望排除的状态集合
+     */
+    private void assertMyTodoQueryExcludeStatuses(ProjectTaskMapper projectTaskMapper, Set<String> expectedStatuses) {
+        ArgumentCaptor<LambdaQueryWrapper<ProjectTask>> captor =
+                ArgumentCaptor.forClass(LambdaQueryWrapper.class);
+        verify(projectTaskMapper).selectList(captor.capture());
+        LambdaQueryWrapper<ProjectTask> wrapper = captor.getValue();
+        ensureProjectTaskTableInfoInitialized();
+        String sqlSegment = wrapper.getSqlSegment();
+        Map<String, Object> params = wrapper.getParamNameValuePairs();
+        String debugMessage = "查询条件未包含待办默认状态排除，params=" + params + ", sql=" + sqlSegment;
+        List<String> paramKeys = extractNotInParamKeys(sqlSegment, "status");
+        assertFalse(paramKeys.isEmpty(), debugMessage);
+        Set<String> actualStatuses = resolveStringParamValues(params, paramKeys);
+        assertEquals(expectedStatuses, actualStatuses, "默认排除状态集合不匹配");
+    }
+
+    /**
+     * 校验我的待办查询显式指定了状态等值条件。
+     *
+     * @param projectTaskMapper 任务 Mapper
+     * @param expectedStatus    期望状态
+     */
+    private void assertMyTodoQueryEqualsStatus(ProjectTaskMapper projectTaskMapper, String expectedStatus) {
+        ArgumentCaptor<LambdaQueryWrapper<ProjectTask>> captor =
+                ArgumentCaptor.forClass(LambdaQueryWrapper.class);
+        verify(projectTaskMapper).selectList(captor.capture());
+        LambdaQueryWrapper<ProjectTask> wrapper = captor.getValue();
+        ensureProjectTaskTableInfoInitialized();
+        String sqlSegment = wrapper.getSqlSegment();
+        Map<String, Object> params = wrapper.getParamNameValuePairs();
+        String paramKey = extractEqualsParamKey(sqlSegment, "status");
+        String debugMessage = "查询条件未包含 status = ? 语义，params=" + params + ", sql=" + sqlSegment;
+        assertTrue(paramKey != null && params.containsKey(paramKey), debugMessage);
+        assertEquals(expectedStatus, String.valueOf(params.get(paramKey)), "状态等值条件不匹配");
+    }
+
+    /**
+     * 校验我的待办查询未额外添加默认排除状态。
+     *
+     * @param projectTaskMapper 任务 Mapper
+     * @param unexpectedStatuses 不应出现的排除状态集合
+     */
+    private void assertMyTodoQueryDoesNotExcludeStatuses(ProjectTaskMapper projectTaskMapper,
+                                                         Set<String> unexpectedStatuses) {
+        ArgumentCaptor<LambdaQueryWrapper<ProjectTask>> captor =
+                ArgumentCaptor.forClass(LambdaQueryWrapper.class);
+        verify(projectTaskMapper).selectList(captor.capture());
+        LambdaQueryWrapper<ProjectTask> wrapper = captor.getValue();
+        ensureProjectTaskTableInfoInitialized();
+        String sqlSegment = wrapper.getSqlSegment();
+        Map<String, Object> params = wrapper.getParamNameValuePairs();
+        List<String> paramKeys = extractNotInParamKeys(sqlSegment, "status");
+        if (paramKeys.isEmpty()) {
+            return;
+        }
+        Set<String> actualStatuses = resolveStringParamValues(params, paramKeys);
+        assertFalse(actualStatuses.equals(unexpectedStatuses),
+                "显式状态筛选时不应继续附加默认排除状态，params=" + params + ", sql=" + sqlSegment);
+    }
+
+    /**
      * 获取等值条件中的参数 Key。
      *
      * @param sqlSegment SQL 片段
@@ -465,6 +610,32 @@ class ProjectTaskReadServiceTest {
     }
 
     /**
+     * 获取 NOT IN 条件中的参数 Key 列表。
+     *
+     * @param sqlSegment SQL 片段
+     * @param fieldName  字段名
+     * @return 参数 Key 列表
+     */
+    private List<String> extractNotInParamKeys(String sqlSegment, String fieldName) {
+        if (sqlSegment == null || fieldName == null) {
+            return List.of();
+        }
+        Pattern pattern = Pattern.compile("(?i)" + Pattern.quote(fieldName)
+                + "\\s+not\\s+in\\s*\\(([^)]+)\\)");
+        Matcher matcher = pattern.matcher(sqlSegment);
+        if (!matcher.find()) {
+            return List.of();
+        }
+        String group = matcher.group(1);
+        Matcher keyMatcher = Pattern.compile("MPGENVAL\\d+").matcher(group);
+        List<String> keys = new java.util.ArrayList<>();
+        while (keyMatcher.find()) {
+            keys.add(keyMatcher.group());
+        }
+        return keys;
+    }
+
+    /**
      * 根据参数 Key 集合获取实际数值集合。
      *
      * @param params 参数映射
@@ -482,6 +653,25 @@ class ProjectTaskReadServiceTest {
             if (longValue != null) {
                 values.add(longValue);
             }
+        }
+        return values;
+    }
+
+    /**
+     * 根据参数 Key 集合获取字符串值集合。
+     *
+     * @param params 参数映射
+     * @param keys   参数 Key 列表
+     * @return 字符串值集合
+     */
+    private Set<String> resolveStringParamValues(Map<String, Object> params, List<String> keys) {
+        Set<String> values = new HashSet<>();
+        for (String key : keys) {
+            Object value = params.get(key);
+            if (value == null) {
+                continue;
+            }
+            values.add(String.valueOf(value));
         }
         return values;
     }
