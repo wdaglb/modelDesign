@@ -12,6 +12,13 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
     "/project/task/detail/by-code",
     "/project/task/edit"
   ],
+  "/agile-board/v2": [
+    "/project/list",
+    "/project/task-status/list",
+    "/project/task/agile-board",
+    "/project/task/detail",
+    "/project/task/detail/by-code"
+  ],
   "/login": [
     "/tenant/options"
   ],
@@ -60,6 +67,9 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
     "/project/task-type/deleted",
     "/project/task-type/edit",
     "/project/task-type/list"
+  ],
+  "/report": [
+    "/project/task/report/generate"
   ],
   "/system/file-config": [
     "/system/file/access-config/current",

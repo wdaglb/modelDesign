@@ -10,6 +10,8 @@ import io.github.modelDesign.project.api.dto.ProjectTaskMyTodoRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskQueryRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskTypeDto;
 import io.github.modelDesign.project.api.dto.ProjectTaskStatusUpdateCommand;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportCommand;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDto;
 import io.github.modelDesign.tools.ProjectTaskTools;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -155,6 +157,17 @@ class ChatServiceTest {
         @Override
         public PageResult<MyTodoTaskDto> queryMyTodo(ProjectTaskMyTodoRequest request) {
             return new PageResult<>(Collections.emptyList(), 0L);
+        }
+
+        @Override
+        public ProjectTaskWorkReportDto generateWorkReport(
+                ProjectTaskWorkReportCommand command) {
+            return ProjectTaskWorkReportDto.builder()
+                    .reportType(command.getReportType())
+                    .reportTitle("空汇报")
+                    .tasks(Collections.emptyList())
+                    .dynamics(Collections.emptyList())
+                    .build();
         }
     }
 }

@@ -14,6 +14,7 @@ export const PERMISSION_RESOURCE = {
   systemPermissionGroup: '/system/permission-group',
   systemQywork: '/system/third-party/qywork',
   project: '/project',
+  report: '/report',
   agileBoard: '/agile-board',
   aiChat: '/ai/chat',
   projectTask: '/project/task',

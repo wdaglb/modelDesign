@@ -10,6 +10,10 @@ import io.github.modelDesign.project.api.dto.ProjectTaskMyTodoRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskQueryRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskStatusUpdateCommand;
 import io.github.modelDesign.project.api.dto.ProjectTaskTypeDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportCommand;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDynamicDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportTaskDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -19,6 +23,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -421,6 +426,88 @@ public class ProjectTaskTools {
                 .build();
     }
 
+    /**
+     * 生成日报。
+     *
+     * 日报同时基于任务与动态生成，
+     * 适合回顾当天参与任务推进与关键沟通记录。
+     *
+     * @param reportDate 参考日期，格式 yyyy-MM-dd，默认今天
+     * @return 日报内容
+     */
+    @Tool(
+            name = "generateDailyReport",
+            description = "生成日报。基于当前用户按参与度归属的任务与当天动态生成。"
+    )
+    public String generateDailyReport(
+            @ToolParam(
+                    required = false,
+                    description = "参考日期，格式 yyyy-MM-dd，默认今天"
+            )
+            String reportDate) {
+        return buildWorkReportText("daily", reportDate);
+    }
+
+    /**
+     * 生成周报。
+     *
+     * 周报以任务变更为主，
+     * 对未完成但期间内有动态更新的任务，会补充动态明细避免遗漏推进信息。
+     *
+     * @param reportDate 参考日期，格式 yyyy-MM-dd，默认今天
+     * @return 周报内容
+     */
+    @Tool(
+            name = "generateWeeklyReport",
+            description = "生成周报。按参与度汇总当前用户本周相关任务，未完成任务若有动态更新会附带动态。"
+    )
+    public String generateWeeklyReport(
+            @ToolParam(
+                    required = false,
+                    description = "参考日期，格式 yyyy-MM-dd，默认今天"
+            )
+            String reportDate) {
+        return buildWorkReportText("weekly", reportDate);
+    }
+
+    /**
+     * 生成月报。
+     *
+     * @param reportDate 参考日期，格式 yyyy-MM-dd，默认今天
+     * @return 月报内容
+     */
+    @Tool(
+            name = "generateMonthlyReport",
+            description = "生成月报。按参与度汇总当前用户本月相关任务，未完成任务若有动态更新会附带动态。"
+    )
+    public String generateMonthlyReport(
+            @ToolParam(
+                    required = false,
+                    description = "参考日期，格式 yyyy-MM-dd，默认今天"
+            )
+            String reportDate) {
+        return buildWorkReportText("monthly", reportDate);
+    }
+
+    /**
+     * 生成年报。
+     *
+     * @param reportDate 参考日期，格式 yyyy-MM-dd，默认今天
+     * @return 年报内容
+     */
+    @Tool(
+            name = "generateYearlyReport",
+            description = "生成年报。按参与度汇总当前用户本年相关任务，未完成任务若有动态更新会附带动态。"
+    )
+    public String generateYearlyReport(
+            @ToolParam(
+                    required = false,
+                    description = "参考日期，格式 yyyy-MM-dd，默认今天"
+            )
+            String reportDate) {
+        return buildWorkReportText("yearly", reportDate);
+    }
+
     private Integer resolvePageNumber(Integer current) {
         if (current == null || current < 1) {
             return 1;
@@ -560,6 +647,140 @@ public class ProjectTaskTools {
         }
         return prefix + System.lineSeparator()
                 + "开发总结：" + completionSummary.trim();
+    }
+
+    /**
+     * 构造工作汇报文本。
+     *
+     * 这里直接输出结构化纯文本，
+     * 让模型在拿到工具结果时既能直接引用，也能在此基础上继续润色。
+     *
+     * @param reportType 汇报类型
+     * @param reportDate 参考日期
+     * @return 汇报文本
+     */
+    private String buildWorkReportText(String reportType, String reportDate) {
+        ProjectTaskWorkReportCommand command = new ProjectTaskWorkReportCommand();
+        command.setReportType(reportType);
+        command.setReferenceDate(parseDate(reportDate));
+        ProjectTaskWorkReportDto report = projectTaskApi.generateWorkReport(
+                command
+        );
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(report.getReportTitle()).append(System.lineSeparator());
+        builder.append("统计区间：")
+                .append(report.getPeriodStart())
+                .append(" ~ ")
+                .append(report.getPeriodEnd())
+                .append(System.lineSeparator());
+        appendTaskSection(builder, report.getTasks());
+        appendDynamicSection(builder, report.getDynamics());
+        return builder.toString().trim();
+    }
+
+    /**
+     * 追加任务章节。
+     *
+     * @param builder 文本构造器
+     * @param tasks 任务列表
+     */
+    private void appendTaskSection(
+            StringBuilder builder,
+            List<ProjectTaskWorkReportTaskDto> tasks) {
+        builder.append(System.lineSeparator())
+                .append("参与任务：")
+                .append(System.lineSeparator());
+        if (tasks == null || tasks.isEmpty()) {
+            builder.append("1. 本周期无命中的参与任务。")
+                    .append(System.lineSeparator());
+            return;
+        }
+
+        int index = 1;
+        for (ProjectTaskWorkReportTaskDto task : tasks) {
+            builder.append(index)
+                    .append(". [")
+                    .append(task.getStatus())
+                    .append("][")
+                    .append(task.getPriority())
+                    .append("] ")
+                    .append(task.getTitle());
+            if (task.getProjectName() != null && !task.getProjectName().isBlank()) {
+                builder.append("（").append(task.getProjectName()).append("）");
+            }
+            builder.append(System.lineSeparator())
+                    .append("   参与身份：")
+                    .append(task.getParticipationRole())
+                    .append(System.lineSeparator())
+                    .append("   更新时间：")
+                    .append(task.getUpdatedAt());
+            if (task.getLatestDynamicSummary() != null
+                    && !task.getLatestDynamicSummary().isBlank()) {
+                builder.append(System.lineSeparator())
+                        .append("   最新动态：")
+                        .append(task.getLatestDynamicSummary());
+            }
+            builder.append(System.lineSeparator());
+            index++;
+        }
+    }
+
+    /**
+     * 追加动态章节。
+     *
+     * @param builder 文本构造器
+     * @param dynamics 动态列表
+     */
+    private void appendDynamicSection(
+            StringBuilder builder,
+            List<ProjectTaskWorkReportDynamicDto> dynamics) {
+        builder.append(System.lineSeparator())
+                .append("任务动态：")
+                .append(System.lineSeparator());
+        if (dynamics == null || dynamics.isEmpty()) {
+            builder.append("1. 本周期无需要补充的任务动态。")
+                    .append(System.lineSeparator());
+            return;
+        }
+
+        int index = 1;
+        for (ProjectTaskWorkReportDynamicDto dynamic : dynamics) {
+            builder.append(index)
+                    .append(". ")
+                    .append(dynamic.getCreatedAt())
+                    .append(" ");
+            if (dynamic.getProjectName() != null && !dynamic.getProjectName().isBlank()) {
+                builder.append("[").append(dynamic.getProjectName()).append("] ");
+            }
+            builder.append("《")
+                    .append(dynamic.getTaskTitle())
+                    .append("》");
+            if (dynamic.getOperatorName() != null
+                    && !dynamic.getOperatorName().isBlank()) {
+                builder.append(" ")
+                        .append(dynamic.getOperatorName())
+                        .append("：");
+            } else {
+                builder.append("：");
+            }
+            builder.append(dynamic.getContent())
+                    .append(System.lineSeparator());
+            index++;
+        }
+    }
+
+    /**
+     * 解析文本日期。
+     *
+     * @param value 文本日期
+     * @return 日期对象
+     */
+    private LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return LocalDate.parse(value.trim(), DateTimeFormatter.ISO_LOCAL_DATE);
     }
 
     /**

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MyTodoRouteImport } from './routes/my-todo'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportIndexRouteImport } from './routes/report/index'
 import { Route as ProjectIndexRouteImport } from './routes/project/index'
 import { Route as PersonalCenterIndexRouteImport } from './routes/personal-center/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
@@ -40,6 +41,11 @@ const MyTodoRoute = MyTodoRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportIndexRoute = ReportIndexRouteImport.update({
+  id: '/report/',
+  path: '/report/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectIndexRoute = ProjectIndexRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/login/': typeof LoginIndexRoute
   '/personal-center/': typeof PersonalCenterIndexRoute
   '/project/': typeof ProjectIndexRoute
+  '/report/': typeof ReportIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginIndexRoute
   '/personal-center': typeof PersonalCenterIndexRoute
   '/project': typeof ProjectIndexRoute
+  '/report': typeof ReportIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/login/': typeof LoginIndexRoute
   '/personal-center/': typeof PersonalCenterIndexRoute
   '/project/': typeof ProjectIndexRoute
+  '/report/': typeof ReportIndexRoute
   '/project/$projectId/members': typeof ProjectProjectIdMembersRoute
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/login/'
     | '/personal-center/'
     | '/project/'
+    | '/report/'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/personal-center'
     | '/project'
+    | '/report'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/login/'
     | '/personal-center/'
     | '/project/'
+    | '/report/'
     | '/project/$projectId/members'
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
@@ -300,6 +312,7 @@ export interface RootRouteChildren {
   LoginIndexRoute: typeof LoginIndexRoute
   PersonalCenterIndexRoute: typeof PersonalCenterIndexRoute
   ProjectIndexRoute: typeof ProjectIndexRoute
+  ReportIndexRoute: typeof ReportIndexRoute
   AgileBoardV2IndexRoute: typeof AgileBoardV2IndexRoute
   ProjectTaskTypeIndexRoute: typeof ProjectTaskTypeIndexRoute
   SystemFileConfigIndexRoute: typeof SystemFileConfigIndexRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report/': {
+      id: '/report/'
+      path: '/report'
+      fullPath: '/report/'
+      preLoaderRoute: typeof ReportIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/project/': {
@@ -497,6 +517,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginIndexRoute: LoginIndexRoute,
   PersonalCenterIndexRoute: PersonalCenterIndexRoute,
   ProjectIndexRoute: ProjectIndexRoute,
+  ReportIndexRoute: ReportIndexRoute,
   AgileBoardV2IndexRoute: AgileBoardV2IndexRoute,
   ProjectTaskTypeIndexRoute: ProjectTaskTypeIndexRoute,
   SystemFileConfigIndexRoute: SystemFileConfigIndexRoute,

@@ -9,6 +9,8 @@ import io.github.modelDesign.project.api.dto.ProjectTaskMyTodoRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskQueryRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskStatusUpdateCommand;
 import io.github.modelDesign.project.api.dto.ProjectTaskTypeDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportCommand;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDto;
 import io.github.modelDesign.project.request.ProjectTaskDynamicCreateRequest;
 import io.github.modelDesign.project.request.MyTodoListRequest;
 import io.github.modelDesign.project.request.ProjectTaskCreateRequest;
@@ -21,6 +23,7 @@ import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import io.github.modelDesign.project.response.ProjectTaskTypeVo;
 import io.github.modelDesign.project.service.ProjectTaskDynamicService;
 import io.github.modelDesign.project.service.ProjectTaskService;
+import io.github.modelDesign.project.service.ProjectTaskWorkReportService;
 import io.github.modelDesign.project.service.TaskTypeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -61,6 +64,11 @@ public class ProjectTaskApiImpl implements ProjectTaskApi {
      * 任务类型服务。
      */
     private final TaskTypeService taskTypeService;
+
+    /**
+     * 工作汇报服务。
+     */
+    private final ProjectTaskWorkReportService projectTaskWorkReportService;
 
     /**
      * 查询任务列表。
@@ -239,6 +247,18 @@ public class ProjectTaskApiImpl implements ProjectTaskApi {
                 toMyTodoDtoList(response.getItems()),
                 response.getTotal()
         );
+    }
+
+    /**
+     * 生成当前登录用户的工作汇报。
+     *
+     * @param command 汇报查询命令
+     * @return 汇报结果
+     */
+    @Override
+    public ProjectTaskWorkReportDto generateWorkReport(
+            ProjectTaskWorkReportCommand command) {
+        return projectTaskWorkReportService.generateCurrentUserReport(command);
     }
 
     private List<ProjectTaskDto> toTaskDtoList(List<ProjectTaskDetailVo> items) {

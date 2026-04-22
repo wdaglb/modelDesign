@@ -9,6 +9,8 @@ import io.github.modelDesign.project.api.dto.ProjectTaskMyTodoRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskQueryRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskStatusUpdateCommand;
 import io.github.modelDesign.project.api.dto.ProjectTaskTypeDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportCommand;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDto;
 
 import java.util.List;
 
@@ -79,4 +81,13 @@ public interface ProjectTaskApi {
      * @return 分页待办结果
      */
     PageResult<MyTodoTaskDto> queryMyTodo(ProjectTaskMyTodoRequest request);
+
+    /**
+     * 生成当前登录用户的工作汇报。
+     *
+     * @param command 汇报查询命令
+     * @return 汇报结果
+     */
+    ProjectTaskWorkReportDto generateWorkReport(
+            ProjectTaskWorkReportCommand command);
 }

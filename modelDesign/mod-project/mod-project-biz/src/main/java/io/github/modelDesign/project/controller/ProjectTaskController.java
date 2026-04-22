@@ -1,5 +1,9 @@
 package io.github.modelDesign.project.controller;
 
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportCommand;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDynamicDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportTaskDto;
 import io.github.modelDesign.project.request.MyTodoListRequest;
 import io.github.modelDesign.project.request.ProjectTaskBoardRequest;
 import io.github.modelDesign.project.request.ProjectTaskChangeLogListRequest;
@@ -7,12 +11,17 @@ import io.github.modelDesign.project.request.ProjectTaskCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskDeleteRequest;
 import io.github.modelDesign.project.request.ProjectTaskEditRequest;
 import io.github.modelDesign.project.request.ProjectTaskListRequest;
+import io.github.modelDesign.project.request.ProjectTaskWorkReportGenerateRequest;
 import io.github.modelDesign.project.response.MyTodoItemVo;
 import io.github.modelDesign.project.response.PageResponse;
 import io.github.modelDesign.project.response.ProjectTaskChangeLogItemVo;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
+import io.github.modelDesign.project.response.ProjectTaskWorkReportDynamicVo;
+import io.github.modelDesign.project.response.ProjectTaskWorkReportTaskVo;
+import io.github.modelDesign.project.response.ProjectTaskWorkReportVo;
 import io.github.modelDesign.project.service.ProjectTaskBoardQueryService;
 import io.github.modelDesign.project.service.ProjectTaskService;
+import io.github.modelDesign.project.service.ProjectTaskWorkReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,6 +59,11 @@ public class ProjectTaskController {
      * 项目任务敏捷面板查询服务。
      */
     private final ProjectTaskBoardQueryService projectTaskBoardQueryService;
+
+    /**
+     * 任务工作报表服务。
+     */
+    private final ProjectTaskWorkReportService projectTaskWorkReportService;
 
     /**
      * 获取我的待办列表。
@@ -72,6 +87,27 @@ public class ProjectTaskController {
     @GetMapping("/list")
     public PageResponse<ProjectTaskDetailVo> list(@Valid ProjectTaskListRequest request) {
         return projectTaskService.getList(request);
+    }
+
+    /**
+     * 生成当前登录用户的任务工作报表。
+     *
+     * 这里统一暴露日报、周报、月报、年报四种周期，
+     * 让前端或第三方调用方不必依赖 AI 对话入口也能直接获取结构化报表数据。
+     *
+     * @param request 报表生成请求
+     * @return 工作报表结果
+     */
+    @Operation(summary = "生成任务工作报表")
+    @GetMapping("/report/generate")
+    public ProjectTaskWorkReportVo generateReport(
+            @Valid ProjectTaskWorkReportGenerateRequest request) {
+        ProjectTaskWorkReportCommand command = new ProjectTaskWorkReportCommand();
+        command.setReportType(request.getReportType());
+        command.setReferenceDate(request.getReferenceDate());
+        ProjectTaskWorkReportDto report =
+                projectTaskWorkReportService.generateCurrentUserReport(command);
+        return toWorkReportVo(report);
     }
 
     /**
@@ -201,5 +237,74 @@ public class ProjectTaskController {
     @PostMapping("/deleted")
     public Integer deleted(@Valid @RequestBody ProjectTaskDeleteRequest request) {
         return projectTaskService.deleted(request.getIds());
+    }
+
+    /**
+     * 把工作报表 DTO 转成控制器输出对象。
+     *
+     * 这里单独做一层映射，避免把 API 聚合层 DTO 直接暴露到 HTTP 契约，
+     * 后续若接口字段需要单独演进，也不会反向牵连内部公共 API。
+     *
+     * @param report 工作报表 DTO
+     * @return 控制器输出对象
+     */
+    private ProjectTaskWorkReportVo toWorkReportVo(
+            ProjectTaskWorkReportDto report) {
+        return ProjectTaskWorkReportVo.builder()
+                .reportType(report.getReportType())
+                .reportTitle(report.getReportTitle())
+                .periodStart(report.getPeriodStart())
+                .periodEnd(report.getPeriodEnd())
+                .tasks(toWorkReportTaskVoList(report.getTasks()))
+                .dynamics(toWorkReportDynamicVoList(report.getDynamics()))
+                .build();
+    }
+
+    /**
+     * 转换工作报表任务列表。
+     *
+     * @param tasks 任务 DTO 列表
+     * @return 任务 VO 列表
+     */
+    private List<ProjectTaskWorkReportTaskVo> toWorkReportTaskVoList(
+            List<ProjectTaskWorkReportTaskDto> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return tasks.stream()
+                .map(task -> ProjectTaskWorkReportTaskVo.builder()
+                        .id(task.getId())
+                        .projectName(task.getProjectName())
+                        .title(task.getTitle())
+                        .participationRole(task.getParticipationRole())
+                        .status(task.getStatus())
+                        .priority(task.getPriority())
+                        .updatedAt(task.getUpdatedAt())
+                        .latestDynamicSummary(task.getLatestDynamicSummary())
+                        .build())
+                .toList();
+    }
+
+    /**
+     * 转换工作报表动态列表。
+     *
+     * @param dynamics 动态 DTO 列表
+     * @return 动态 VO 列表
+     */
+    private List<ProjectTaskWorkReportDynamicVo> toWorkReportDynamicVoList(
+            List<ProjectTaskWorkReportDynamicDto> dynamics) {
+        if (dynamics == null || dynamics.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return dynamics.stream()
+                .map(dynamic -> ProjectTaskWorkReportDynamicVo.builder()
+                        .taskId(dynamic.getTaskId())
+                        .projectName(dynamic.getProjectName())
+                        .taskTitle(dynamic.getTaskTitle())
+                        .operatorName(dynamic.getOperatorName())
+                        .createdAt(dynamic.getCreatedAt())
+                        .content(dynamic.getContent())
+                        .build())
+                .toList();
     }
 }

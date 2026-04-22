@@ -9,6 +9,8 @@ import io.github.modelDesign.project.api.dto.ProjectTaskMyTodoRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskQueryRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskStatusUpdateCommand;
 import io.github.modelDesign.project.api.dto.ProjectTaskTypeDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportCommand;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDto;
 import io.github.modelDesign.project.request.MyTodoListRequest;
 import io.github.modelDesign.project.request.ProjectTaskCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskDynamicCreateRequest;
@@ -20,6 +22,7 @@ import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import io.github.modelDesign.project.response.ProjectTaskTypeVo;
 import io.github.modelDesign.project.service.ProjectTaskDynamicService;
 import io.github.modelDesign.project.service.ProjectTaskService;
+import io.github.modelDesign.project.service.ProjectTaskWorkReportService;
 import io.github.modelDesign.project.service.TaskTypeService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -48,7 +51,8 @@ class ProjectTaskApiImplTest {
         ProjectTaskApiImpl api = new ProjectTaskApiImpl(
                 projectTaskService,
                 mock(ProjectTaskDynamicService.class),
-                mock(TaskTypeService.class)
+                mock(TaskTypeService.class),
+                mock(ProjectTaskWorkReportService.class)
         );
 
         ProjectTaskDetailVo task = ProjectTaskDetailVo.builder()
@@ -93,7 +97,8 @@ class ProjectTaskApiImplTest {
         ProjectTaskApiImpl api = new ProjectTaskApiImpl(
                 projectTaskService,
                 mock(ProjectTaskDynamicService.class),
-                mock(TaskTypeService.class)
+                mock(TaskTypeService.class),
+                mock(ProjectTaskWorkReportService.class)
         );
 
         ProjectTaskDetailVo task = ProjectTaskDetailVo.builder()
@@ -122,7 +127,8 @@ class ProjectTaskApiImplTest {
         ProjectTaskApiImpl api = new ProjectTaskApiImpl(
                 projectTaskService,
                 mock(ProjectTaskDynamicService.class),
-                mock(TaskTypeService.class)
+                mock(TaskTypeService.class),
+                mock(ProjectTaskWorkReportService.class)
         );
 
         ProjectTaskDetailVo currentTask = ProjectTaskDetailVo.builder()
@@ -187,7 +193,8 @@ class ProjectTaskApiImplTest {
         ProjectTaskApiImpl api = new ProjectTaskApiImpl(
                 projectTaskService,
                 mock(ProjectTaskDynamicService.class),
-                mock(TaskTypeService.class)
+                mock(TaskTypeService.class),
+                mock(ProjectTaskWorkReportService.class)
         );
 
         MyTodoItemVo todo = MyTodoItemVo.builder()
@@ -227,7 +234,8 @@ class ProjectTaskApiImplTest {
         ProjectTaskApiImpl api = new ProjectTaskApiImpl(
                 projectTaskService,
                 projectTaskDynamicService,
-                mock(TaskTypeService.class)
+                mock(TaskTypeService.class),
+                mock(ProjectTaskWorkReportService.class)
         );
 
         ProjectTaskDetailVo createdTask = ProjectTaskDetailVo.builder()
@@ -271,7 +279,8 @@ class ProjectTaskApiImplTest {
         ProjectTaskApiImpl api = new ProjectTaskApiImpl(
                 projectTaskService,
                 projectTaskDynamicService,
-                mock(TaskTypeService.class)
+                mock(TaskTypeService.class),
+                mock(ProjectTaskWorkReportService.class)
         );
 
         ProjectTaskDetailVo currentTask = ProjectTaskDetailVo.builder()
@@ -328,7 +337,8 @@ class ProjectTaskApiImplTest {
         ProjectTaskApiImpl api = new ProjectTaskApiImpl(
                 mock(ProjectTaskService.class),
                 mock(ProjectTaskDynamicService.class),
-                taskTypeService
+                taskTypeService,
+                mock(ProjectTaskWorkReportService.class)
         );
 
         when(taskTypeService.getList(any())).thenReturn(List.of(
@@ -361,7 +371,8 @@ class ProjectTaskApiImplTest {
         ProjectTaskApiImpl api = new ProjectTaskApiImpl(
                 projectTaskService,
                 mock(ProjectTaskDynamicService.class),
-                mock(TaskTypeService.class)
+                mock(TaskTypeService.class),
+                mock(ProjectTaskWorkReportService.class)
         );
 
         ProjectTaskDetailVo detail = ProjectTaskDetailVo.builder()
@@ -376,5 +387,33 @@ class ProjectTaskApiImplTest {
         assertEquals(808L, result.getId());
         assertEquals("按编号直接开工", result.getTitle());
         assertEquals("todo", result.getStatus());
+    }
+
+    /**
+     * 工作汇报生成应直接委托汇报服务。
+     */
+    @Test
+    void generateWorkReportShouldDelegateToReportService() {
+        ProjectTaskWorkReportService reportService =
+                mock(ProjectTaskWorkReportService.class);
+        ProjectTaskApiImpl api = new ProjectTaskApiImpl(
+                mock(ProjectTaskService.class),
+                mock(ProjectTaskDynamicService.class),
+                mock(TaskTypeService.class),
+                reportService
+        );
+
+        ProjectTaskWorkReportCommand command = new ProjectTaskWorkReportCommand();
+        command.setReportType("daily");
+        ProjectTaskWorkReportDto report = ProjectTaskWorkReportDto.builder()
+                .reportType("daily")
+                .reportTitle("日报（2026-04-22）")
+                .build();
+        when(reportService.generateCurrentUserReport(command)).thenReturn(report);
+
+        ProjectTaskWorkReportDto result = api.generateWorkReport(command);
+
+        assertEquals("日报（2026-04-22）", result.getReportTitle());
+        verify(reportService).generateCurrentUserReport(command);
     }
 }

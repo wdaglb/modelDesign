@@ -10,14 +10,20 @@ import io.github.modelDesign.project.api.dto.ProjectTaskMyTodoRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskQueryRequest;
 import io.github.modelDesign.project.api.dto.ProjectTaskStatusUpdateCommand;
 import io.github.modelDesign.project.api.dto.ProjectTaskTypeDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportCommand;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportDynamicDto;
+import io.github.modelDesign.project.api.dto.ProjectTaskWorkReportTaskDto;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
@@ -239,6 +245,52 @@ class ProjectTaskToolsTest {
     }
 
     /**
+     * 日报工具应按指定日期生成任务与动态文本。
+     */
+    @Test
+    void generateDailyReportShouldBuildReadableText() {
+        RecordingProjectTaskApi projectTaskApi = new RecordingProjectTaskApi();
+        projectTaskApi.workReport = ProjectTaskWorkReportDto.builder()
+                .reportType("daily")
+                .reportTitle("日报（2026-04-22）")
+                .periodStart("2026-04-22 00:00:00")
+                .periodEnd("2026-04-22 23:59:59")
+                .tasks(List.of(
+                        ProjectTaskWorkReportTaskDto.builder()
+                                .id(88L)
+                                .projectName("平台项目")
+                                .title("补充日报生成")
+                                .participationRole("成员")
+                                .status("inProgress")
+                                .priority("high")
+                                .updatedAt("2026-04-22 18:30:00")
+                                .latestDynamicSummary("已同步测试风险")
+                                .build()
+                ))
+                .dynamics(List.of(
+                        ProjectTaskWorkReportDynamicDto.builder()
+                                .taskId(88L)
+                                .projectName("平台项目")
+                                .taskTitle("补充日报生成")
+                                .operatorName("张三")
+                                .createdAt("2026-04-22 18:00:00")
+                                .content("已同步测试风险")
+                                .build()
+                ))
+                .build();
+        ProjectTaskTools tools = new ProjectTaskTools(projectTaskApi);
+
+        String result = tools.generateDailyReport("2026-04-22");
+
+        assertEquals("daily", projectTaskApi.workReportCommand.getReportType());
+        assertEquals(LocalDate.of(2026, 4, 22),
+                projectTaskApi.workReportCommand.getReferenceDate());
+        assertTrue(result.contains("日报（2026-04-22）"));
+        assertTrue(result.contains("参与身份：成员"));
+        assertTrue(result.contains("张三：已同步测试风险"));
+    }
+
+    /**
      * 记录工具调用入参的简易 API 假实现。
      */
     private static class RecordingProjectTaskApi implements ProjectTaskApi {
@@ -298,6 +350,23 @@ class ProjectTaskToolsTest {
          * 最近一次待办查询请求。
          */
         private ProjectTaskMyTodoRequest myTodoRequest;
+
+        /**
+         * 最近一次工作汇报命令。
+         */
+        private ProjectTaskWorkReportCommand workReportCommand;
+
+        /**
+         * 最近一次工作汇报结果。
+         */
+        private ProjectTaskWorkReportDto workReport = ProjectTaskWorkReportDto.builder()
+                .reportType("daily")
+                .reportTitle("日报")
+                .periodStart("2026-04-22 00:00:00")
+                .periodEnd("2026-04-22 23:59:59")
+                .tasks(Collections.emptyList())
+                .dynamics(Collections.emptyList())
+                .build();
 
         /**
          * 查询任务。
@@ -404,6 +473,19 @@ class ProjectTaskToolsTest {
                 ProjectTaskMyTodoRequest request) {
             this.myTodoRequest = request;
             return new PageResult<>(Collections.emptyList(), 0L);
+        }
+
+        /**
+         * 生成工作汇报。
+         *
+         * @param command 汇报命令
+         * @return 固定汇报结果
+         */
+        @Override
+        public ProjectTaskWorkReportDto generateWorkReport(
+                ProjectTaskWorkReportCommand command) {
+            this.workReportCommand = command;
+            return workReport;
         }
     }
 }
