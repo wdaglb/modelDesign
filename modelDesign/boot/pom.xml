@@ -18,6 +18,10 @@
         </dependency>
         <dependency>
             <groupId>io.github.modelDesign</groupId>
+            <artifactId>mod-asset-biz</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.modelDesign</groupId>
             <artifactId>mod-ai-biz</artifactId>
         </dependency>
         <dependency>

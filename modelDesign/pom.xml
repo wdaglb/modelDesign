@@ -19,6 +19,7 @@
         <module>boot</module>
         <module>common</module>
         <module>mod-ai</module>
+        <module>mod-asset</module>
         <module>mod-auth</module>
         <module>mod-project</module>
         <module>mod-system</module>
@@ -52,6 +53,16 @@
             <dependency>
                 <groupId>io.github.modelDesign</groupId>
                 <artifactId>mod-ai-biz</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.modelDesign</groupId>
+                <artifactId>mod-asset-api</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.modelDesign</groupId>
+                <artifactId>mod-asset-biz</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
             </dependency>
             <dependency>
