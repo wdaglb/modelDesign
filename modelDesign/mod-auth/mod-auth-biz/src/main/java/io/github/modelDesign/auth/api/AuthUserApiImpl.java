@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -52,5 +53,30 @@ public class AuthUserApiImpl implements AuthUserApi {
                         .isDisable(!Objects.equals(user.getStatus(), 1))
                         .build())
                 .collect(Collectors.toMap(AuthUserSimpleDto::getId, user -> user, (left, right) -> left));
+    }
+
+    /**
+     * 按租户查询用户简要列表。
+     *
+     * @param tenantId 租户 ID
+     * @return 用户列表
+     */
+    @Override
+    public List<AuthUserSimpleDto> listUsersByTenantId(Long tenantId) {
+        if (tenantId == null || tenantId <= 0) {
+            return Collections.emptyList();
+        }
+        return userService.lambdaQuery()
+                .eq(User::getTenantId, tenantId)
+                .orderByAsc(User::getId)
+                .list()
+                .stream()
+                .map(user -> AuthUserSimpleDto.builder()
+                        .id(user.getId())
+                        .nickname(user.getNickname())
+                        .avatarId(user.getAvatarId())
+                        .isDisable(!Objects.equals(user.getStatus(), 1))
+                        .build())
+                .toList();
     }
 }

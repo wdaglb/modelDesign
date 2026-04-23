@@ -3,6 +3,7 @@ package io.github.modelDesign.auth.api;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,4 +17,12 @@ public interface AuthUserApi {
      * @return 用户映射
      */
     Map<Long, AuthUserSimpleDto> getUserMapByIds(Collection<Long> userIds);
+
+    /**
+     * 按租户获取用户简要列表。
+     *
+     * @param tenantId 租户 ID
+     * @return 用户列表
+     */
+    List<AuthUserSimpleDto> listUsersByTenantId(Long tenantId);
 }
