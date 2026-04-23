@@ -9,7 +9,12 @@ import io.github.modelDesign.asset.mapper.AssetCategoryMapper;
 import io.github.modelDesign.asset.mapper.AssetDeviceMapper;
 import io.github.modelDesign.asset.mapper.AssetLocationMapper;
 import io.github.modelDesign.asset.request.AssetDeviceCreateRequest;
+import io.github.modelDesign.asset.request.AssetDeviceEditRequest;
 import io.github.modelDesign.asset.request.AssetDeviceListRequest;
+import io.github.modelDesign.asset.request.AssetDeviceReceiveRequest;
+import io.github.modelDesign.asset.request.AssetDeviceReturnRequest;
+import io.github.modelDesign.asset.request.AssetDeviceScrapRequest;
+import io.github.modelDesign.asset.request.AssetDeviceTransferRequest;
 import io.github.modelDesign.asset.response.AssetDeviceVo;
 import io.github.modelDesign.asset.response.PageResponse;
 import io.github.modelDesign.auth.api.AuthCurrentUserApi;
@@ -24,6 +29,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 设备台账服务。
@@ -122,6 +128,118 @@ public class AssetDeviceService {
         return toDeviceVo(entity);
     }
 
+    /**
+     * 编辑设备台账。
+     *
+     * @param id      设备 ID
+     * @param request 编辑请求
+     * @return 更新后的台账
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AssetDeviceVo edit(Long id, AssetDeviceEditRequest request) {
+        AuthCurrentUserDto currentUser = requireCurrentUser();
+        AssetDevice entity = requireDevice(id, currentUser.getTenantId());
+        validateCategory(request.getCategoryId(), currentUser.getTenantId());
+        validateLocation(request.getLocationId(), currentUser.getTenantId());
+        entity.setDeviceName(normalizeRequiredText(request.getDeviceName(), "设备名称不能为空", 100));
+        entity.setCategoryId(request.getCategoryId());
+        entity.setAssetCode(normalizeRequiredText(request.getAssetCode(), "资产编号不能为空", 64));
+        entity.setSerialNumber(normalizeOptionalText(request.getSerialNumber(), 128));
+        entity.setLocationId(request.getLocationId());
+        entity.setPurchaseDate(request.getPurchaseDate());
+        entity.setRemark(normalizeOptionalText(request.getRemark(), 500));
+        entity.setLastOperatedAt(LocalDateTime.now());
+        assetDeviceMapper.updateById(entity);
+        return toDeviceVo(entity);
+    }
+
+    /**
+     * 领用设备。
+     *
+     * @param request 领用请求
+     * @return 更新后的台账
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AssetDeviceVo receive(AssetDeviceReceiveRequest request) {
+        AuthCurrentUserDto currentUser = requireCurrentUser();
+        AssetDevice entity = requireDevice(request.getId(), currentUser.getTenantId());
+        requireStatus(entity, AssetDeviceStatusEnum.IN_STOCK, "仅在库设备允许领用");
+        entity.setStatus(AssetDeviceStatusEnum.IN_USE.getValue());
+        entity.setCurrentUserId(request.getCurrentUserId());
+        entity.setLastOperatedAt(LocalDateTime.now());
+        assetDeviceMapper.updateById(entity);
+        assetTransactionWriteService.writeReceive(entity, currentUser.getUserId(), request.getRemark());
+        return toDeviceVo(entity);
+    }
+
+    /**
+     * 归还设备。
+     *
+     * @param request 归还请求
+     * @return 更新后的台账
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AssetDeviceVo returned(AssetDeviceReturnRequest request) {
+        AuthCurrentUserDto currentUser = requireCurrentUser();
+        AssetDevice entity = requireDevice(request.getId(), currentUser.getTenantId());
+        requireStatus(entity, AssetDeviceStatusEnum.IN_USE, "仅领用中的设备允许归还");
+        validateLocation(request.getLocationId(), currentUser.getTenantId());
+        entity.setStatus(AssetDeviceStatusEnum.IN_STOCK.getValue());
+        entity.setCurrentUserId(null);
+        entity.setLocationId(request.getLocationId());
+        entity.setLastOperatedAt(LocalDateTime.now());
+        assetDeviceMapper.updateById(entity);
+        assetTransactionWriteService.writeReturn(entity, currentUser.getUserId(), request.getRemark());
+        return toDeviceVo(entity);
+    }
+
+    /**
+     * 调拨设备。
+     *
+     * @param request 调拨请求
+     * @return 更新后的台账
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AssetDeviceVo transfer(AssetDeviceTransferRequest request) {
+        AuthCurrentUserDto currentUser = requireCurrentUser();
+        AssetDevice entity = requireDevice(request.getId(), currentUser.getTenantId());
+        if (Objects.equals(entity.getStatus(), AssetDeviceStatusEnum.SCRAPPED.getValue())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "已报废设备不能调拨");
+        }
+        validateLocation(request.getLocationId(), currentUser.getTenantId());
+        entity.setLocationId(request.getLocationId());
+        if (request.getCurrentUserId() != null) {
+            entity.setCurrentUserId(request.getCurrentUserId());
+        }
+        entity.setLastOperatedAt(LocalDateTime.now());
+        assetDeviceMapper.updateById(entity);
+        assetTransactionWriteService.writeTransfer(entity, currentUser.getUserId(), request.getRemark());
+        return toDeviceVo(entity);
+    }
+
+    /**
+     * 报废设备。
+     *
+     * @param request 报废请求
+     * @return 更新后的台账
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AssetDeviceVo scrap(AssetDeviceScrapRequest request) {
+        AuthCurrentUserDto currentUser = requireCurrentUser();
+        AssetDevice entity = requireDevice(request.getId(), currentUser.getTenantId());
+        if (Objects.equals(entity.getStatus(), AssetDeviceStatusEnum.IN_USE.getValue())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "领用中的设备请先归还后再报废");
+        }
+        if (Objects.equals(entity.getStatus(), AssetDeviceStatusEnum.SCRAPPED.getValue())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "设备已报废，请勿重复操作");
+        }
+        entity.setStatus(AssetDeviceStatusEnum.SCRAPPED.getValue());
+        entity.setLastOperatedAt(LocalDateTime.now());
+        assetDeviceMapper.updateById(entity);
+        assetTransactionWriteService.writeScrap(entity, currentUser.getUserId(), request.getRemark());
+        return toDeviceVo(entity);
+    }
+
     private void validateCategory(Long categoryId, Long tenantId) {
         Long count = assetCategoryMapper.selectCount(new LambdaQueryWrapper<AssetCategory>()
                 .eq(AssetCategory::getTenantId, tenantId)
@@ -148,6 +266,23 @@ public class AssetDeviceService {
             throw new BusinessException(HttpStatus.UNAUTHORIZED.value(), "当前登录用户未绑定租户");
         }
         return currentUser;
+    }
+
+    private AssetDevice requireDevice(Long id, Long tenantId) {
+        AssetDevice entity = assetDeviceMapper.selectById(id);
+        if (entity == null || !Objects.equals(entity.getTenantId(), tenantId)
+                || Objects.equals(entity.getDeleted(), 1)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND.value(), "设备不存在");
+        }
+        return entity;
+    }
+
+    private void requireStatus(AssetDevice entity,
+                               AssetDeviceStatusEnum expectedStatus,
+                               String message) {
+        if (!Objects.equals(entity.getStatus(), expectedStatus.getValue())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), message);
+        }
     }
 
     private String normalizeRequiredText(String value, String blankMessage, int maxLength) {
