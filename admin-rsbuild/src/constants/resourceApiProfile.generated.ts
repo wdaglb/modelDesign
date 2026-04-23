@@ -19,6 +19,30 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
     "/project/task/detail",
     "/project/task/detail/by-code"
   ],
+  "/asset/device": [
+    "/asset/device/create",
+    "/asset/device/edit",
+    "/asset/device/list",
+    "/asset/device/receive",
+    "/asset/device/return",
+    "/asset/device/scrap",
+    "/asset/device/transfer",
+    "/asset/options/categories",
+    "/asset/options/locations",
+    "/asset/options/users"
+  ],
+  "/asset/location": [
+    "/asset/location/create",
+    "/asset/location/edit",
+    "/asset/location/list"
+  ],
+  "/asset/stocktake": [
+    "/asset/options/locations",
+    "/asset/stocktake/check",
+    "/asset/stocktake/complete",
+    "/asset/stocktake/create",
+    "/asset/stocktake/list"
+  ],
   "/login": [
     "/tenant/options"
   ],

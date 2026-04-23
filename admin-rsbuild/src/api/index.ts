@@ -1,3 +1,6 @@
+import * as ApiAssetDevice from './modules/asset-device';
+import * as ApiAssetLocation from './modules/asset-location';
+import * as ApiAssetStocktake from './modules/asset-stocktake';
 import * as ApiFile from './modules/file';
 import * as ApiFileAccessConfig from './modules/file-access-config';
 import * as ApiPassport from './modules/passport';
@@ -23,6 +26,9 @@ import * as ApiTodo from './modules/todo';
 import * as ApiUser from './modules/user';
 
 export {
+  ApiAssetDevice,
+  ApiAssetLocation,
+  ApiAssetStocktake,
   ApiFile,
   ApiFileAccessConfig,
   ApiMenu,

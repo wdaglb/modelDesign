@@ -1,3 +1,4 @@
+import * as asset from './asset';
 import * as fileAccessConfig from './fileAccessConfig';
 import * as mcpConfig from './mcpConfig';
 import * as systemPolicy from './systemPolicy';
@@ -13,6 +14,7 @@ import * as todo from './todo';
 import * as user from './user';
 
 const queryKey = {
+  asset,
   fileAccessConfig,
   mcpConfig,
   passport,
