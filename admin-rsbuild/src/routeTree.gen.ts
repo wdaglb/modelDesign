@@ -27,6 +27,9 @@ import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
 import { Route as SystemFileConfigIndexRouteImport } from './routes/system/file-config/index'
 import { Route as ProjectTaskTypeIndexRouteImport } from './routes/project/task-type/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
+import { Route as AssetStocktakeIndexRouteImport } from './routes/asset/stocktake/index'
+import { Route as AssetLocationIndexRouteImport } from './routes/asset/location/index'
+import { Route as AssetDeviceIndexRouteImport } from './routes/asset/device/index'
 import { Route as AgileBoardV2IndexRouteImport } from './routes/agile-board/v2/index'
 import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$projectId.tasks'
 import { Route as ProjectProjectIdTablesRouteImport } from './routes/project/$projectId.tables'
@@ -124,6 +127,21 @@ const ProjectProjectIdIndexRoute = ProjectProjectIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProjectProjectIdRoute,
 } as any)
+const AssetStocktakeIndexRoute = AssetStocktakeIndexRouteImport.update({
+  id: '/asset/stocktake/',
+  path: '/asset/stocktake/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssetLocationIndexRoute = AssetLocationIndexRouteImport.update({
+  id: '/asset/location/',
+  path: '/asset/location/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssetDeviceIndexRoute = AssetDeviceIndexRouteImport.update({
+  id: '/asset/device/',
+  path: '/asset/device/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgileBoardV2IndexRoute = AgileBoardV2IndexRouteImport.update({
   id: '/agile-board/v2/',
   path: '/agile-board/v2/',
@@ -165,6 +183,9 @@ export interface FileRoutesByFullPath {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/agile-board/v2/': typeof AgileBoardV2IndexRoute
+  '/asset/device/': typeof AssetDeviceIndexRoute
+  '/asset/location/': typeof AssetLocationIndexRoute
+  '/asset/stocktake/': typeof AssetStocktakeIndexRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/project/task-type/': typeof ProjectTaskTypeIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
@@ -189,6 +210,9 @@ export interface FileRoutesByTo {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/agile-board/v2': typeof AgileBoardV2IndexRoute
+  '/asset/device': typeof AssetDeviceIndexRoute
+  '/asset/location': typeof AssetLocationIndexRoute
+  '/asset/stocktake': typeof AssetStocktakeIndexRoute
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
   '/project/task-type': typeof ProjectTaskTypeIndexRoute
   '/system/file-config': typeof SystemFileConfigIndexRoute
@@ -215,6 +239,9 @@ export interface FileRoutesById {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/agile-board/v2/': typeof AgileBoardV2IndexRoute
+  '/asset/device/': typeof AssetDeviceIndexRoute
+  '/asset/location/': typeof AssetLocationIndexRoute
+  '/asset/stocktake/': typeof AssetStocktakeIndexRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
   '/project/task-type/': typeof ProjectTaskTypeIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
@@ -242,6 +269,9 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/agile-board/v2/'
+    | '/asset/device/'
+    | '/asset/location/'
+    | '/asset/stocktake/'
     | '/project/$projectId/'
     | '/project/task-type/'
     | '/system/file-config/'
@@ -266,6 +296,9 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/agile-board/v2'
+    | '/asset/device'
+    | '/asset/location'
+    | '/asset/stocktake'
     | '/project/$projectId'
     | '/project/task-type'
     | '/system/file-config'
@@ -291,6 +324,9 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/agile-board/v2/'
+    | '/asset/device/'
+    | '/asset/location/'
+    | '/asset/stocktake/'
     | '/project/$projectId/'
     | '/project/task-type/'
     | '/system/file-config/'
@@ -314,6 +350,9 @@ export interface RootRouteChildren {
   ProjectIndexRoute: typeof ProjectIndexRoute
   ReportIndexRoute: typeof ReportIndexRoute
   AgileBoardV2IndexRoute: typeof AgileBoardV2IndexRoute
+  AssetDeviceIndexRoute: typeof AssetDeviceIndexRoute
+  AssetLocationIndexRoute: typeof AssetLocationIndexRoute
+  AssetStocktakeIndexRoute: typeof AssetStocktakeIndexRoute
   ProjectTaskTypeIndexRoute: typeof ProjectTaskTypeIndexRoute
   SystemFileConfigIndexRoute: typeof SystemFileConfigIndexRoute
   SystemMenuIndexRoute: typeof SystemMenuIndexRoute
@@ -453,6 +492,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectProjectIdIndexRouteImport
       parentRoute: typeof ProjectProjectIdRoute
     }
+    '/asset/stocktake/': {
+      id: '/asset/stocktake/'
+      path: '/asset/stocktake'
+      fullPath: '/asset/stocktake/'
+      preLoaderRoute: typeof AssetStocktakeIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/asset/location/': {
+      id: '/asset/location/'
+      path: '/asset/location'
+      fullPath: '/asset/location/'
+      preLoaderRoute: typeof AssetLocationIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/asset/device/': {
+      id: '/asset/device/'
+      path: '/asset/device'
+      fullPath: '/asset/device/'
+      preLoaderRoute: typeof AssetDeviceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agile-board/v2/': {
       id: '/agile-board/v2/'
       path: '/agile-board/v2'
@@ -519,6 +579,9 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectIndexRoute: ProjectIndexRoute,
   ReportIndexRoute: ReportIndexRoute,
   AgileBoardV2IndexRoute: AgileBoardV2IndexRoute,
+  AssetDeviceIndexRoute: AssetDeviceIndexRoute,
+  AssetLocationIndexRoute: AssetLocationIndexRoute,
+  AssetStocktakeIndexRoute: AssetStocktakeIndexRoute,
   ProjectTaskTypeIndexRoute: ProjectTaskTypeIndexRoute,
   SystemFileConfigIndexRoute: SystemFileConfigIndexRoute,
   SystemMenuIndexRoute: SystemMenuIndexRoute,
