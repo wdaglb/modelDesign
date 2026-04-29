@@ -63,6 +63,16 @@ public class AssetTransactionWriteService {
     }
 
     /**
+     * 记录盘点盘亏流水。
+     *
+     * @param assetDevice     设备实体
+     * @param operatorUserId  操作人 ID
+     * @param remark          备注
+     */
+    public void writeStocktakeLoss(AssetDevice assetDevice, Long operatorUserId, String remark) {
+    }
+
+    /**
      * 统一整理动作备注，避免后续真实写库时出现 null 文本分支。
      *
      * @param remark 原始备注

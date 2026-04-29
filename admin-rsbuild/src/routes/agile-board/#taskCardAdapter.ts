@@ -1,7 +1,9 @@
 import type { TaskCardTask } from '@/components';
 
+import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import type { AgileBoardTask } from './#types';
 import { resolveTaskNumberText } from './#helper';
+import { resolveTaskBranchName } from './#taskDetailTypeHelper';
 
 /**
  * 规范化任务字段，空字符串会回退为 undefined。
@@ -67,6 +69,16 @@ interface TaskCardTaskAdapterOptions {
    * 是否为完成态任务。
    */
   isCompleted?: boolean;
+
+  /**
+   * 当前登录用户 Git 用户名。
+   */
+  gitUsername?: string;
+
+  /**
+   * 当前租户可选任务类型。
+   */
+  taskTypes?: ProjectTaskType[];
 }
 
 export function mapAgileBoardTaskToTaskCardTask(
@@ -76,6 +88,11 @@ export function mapAgileBoardTaskToTaskCardTask(
   return {
     id: task.id,
     taskNumber: resolveTaskNumberText(task),
+    branchName: resolveTaskBranchName(
+      task,
+      options?.gitUsername,
+      options?.taskTypes,
+    ),
     projectName: normalizeTaskText(task.projectName),
     typeName: normalizeTaskText(task.typeName),
     title: task.title,

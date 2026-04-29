@@ -13,7 +13,7 @@
 - 不需要做移动端的布局兼容
 - `admin-rsbuild/`：React 18 + TypeScript + Rsbuild + Ant Design 前端
 - `modelDesign/`：Spring Boot 3.5 + Spring AI + Maven 多模块后端
-- 接口文档：http://localhost:9999/v3/api-docs；openapi格式
+- OpenAPI 接口文档地址：http://localhost:9999/v3/api-docs
 
 ## 强制规范
 
@@ -72,6 +72,20 @@
 - modelDesign/
 - 数据库postgresql+redis
 - 接口需要增加swagger的注解
+
+### 数据库迁移
+
+- **严禁修改任何已经存在的历史迁移文件**，包括但不限于
+  `modelDesign/boot/src/main/resources/db/migration/` 下已经创建过的
+  `V*.sql` 文件。
+- **SQL 表、字段必须添加注释**。新增表、新增字段、调整结构时，必须同步补齐
+  表注释与字段注释，禁止留下无注释的数据库结构。
+- 数据库结构、菜单、权限、初始化数据等变更，必须通过新增更高版本号的迁移
+  SQL 文件完成，禁止在旧迁移中补字段、补索引、改默认值或改历史种子数据。
+- 如果发现自己误改了历史迁移文件，必须立即停止扩散，先用最小补丁撤回该文件
+  的改动，再通过新增迁移文件重新实现需求。
+- 只有用户明确要求“修复尚未提交且确认未被任何环境执行过的迁移文件”时，才允许
+  讨论是否修改该迁移；未明确确认前一律按历史迁移处理。
 
 ## 单元测试命令经验
 

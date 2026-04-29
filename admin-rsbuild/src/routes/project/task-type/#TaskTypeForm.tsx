@@ -23,6 +23,11 @@ interface TaskTypeFormValues {
    * 排序值。
    */
   sort: number;
+
+  /**
+   * Git 分支前缀分组。
+   */
+  gitBranchPrefixGroup?: string;
 }
 
 /**
@@ -39,11 +44,15 @@ const TaskTypeForm = (props: TaskTypeFormProps) => {
       initialValues={{
         name: props.record?.name,
         sort: props.record?.sort ?? 0,
+        gitBranchPrefixGroup: props.record?.gitBranchPrefixGroup,
       }}
       onFinish={async (values) => {
         const payload = {
           name: values.name.trim(),
           sort: values.sort,
+          gitBranchPrefixGroup: normalizeGitBranchPrefixGroup(
+            values.gitBranchPrefixGroup,
+          ),
         };
 
         if (props.record) {
@@ -72,8 +81,39 @@ const TaskTypeForm = (props: TaskTypeFormProps) => {
       >
         <InputNumber min={0} precision={0} style={{ width: '100%' }} />
       </Form.Item>
+
+      <Form.Item
+        name={'gitBranchPrefixGroup'}
+        label={'Git 分支前缀分组'}
+        rules={[{ max: 64, message: 'Git 分支前缀分组长度不能超过 64 个字符' }]}
+        extra={'允许自由填写；留空后任务详情将提示当前任务类型未配置分支前缀。'}
+      >
+        <Input
+          placeholder={'请输入 Git 分支前缀分组，例如 feat 或 bugfix'}
+          maxLength={64}
+          showCount
+          allowClear
+        />
+      </Form.Item>
     </KModal.Form>
   );
+};
+
+/**
+ * 统一规范化任务类型上的 Git 分支前缀分组输入。
+ *
+ * @param value 原始输入值
+ * @returns 规范化后的分组值
+ */
+const normalizeGitBranchPrefixGroup = (value?: string) => {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const normalizedValue = value.trim();
+  if (!normalizedValue) {
+    return '';
+  }
+  return normalizedValue;
 };
 
 export default TaskTypeForm;

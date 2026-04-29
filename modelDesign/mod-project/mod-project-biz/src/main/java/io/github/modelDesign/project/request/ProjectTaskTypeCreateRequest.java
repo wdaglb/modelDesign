@@ -26,4 +26,11 @@ public class ProjectTaskTypeCreateRequest {
     @Schema(description = "排序值", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "排序值不能为空")
     private Integer sort;
+
+    /**
+     * Git 分支前缀分组。
+     */
+    @Schema(description = "Git 分支前缀分组")
+    @Size(max = 64, message = "Git 分支前缀分组长度不能超过 64 个字符")
+    private String gitBranchPrefixGroup;
 }

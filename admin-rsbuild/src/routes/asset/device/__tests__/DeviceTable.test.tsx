@@ -1,8 +1,10 @@
 import React from 'react';
+import dayjs from 'dayjs';
 import { describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 
+import { buildDeviceCreatePayload } from '../#DeviceFormModal';
 import DeviceTable from '../#DeviceTable';
 
 const { mockDeviceItem } = vi.hoisted(() => {
@@ -31,12 +33,13 @@ vi.mock('@/components/KModal', () => {
 });
 
 vi.mock('@/components', async () => {
-  const actual = await vi.importActual<typeof import('@/components')>(
-    '@/components',
-  );
+  const actual =
+    await vi.importActual<typeof import('@/components')>('@/components');
 
   const MockKTable: any = (props: any) => {
-    const actionColumn = props.columns.find((item: any) => item.key === 'action');
+    const actionColumn = props.columns.find(
+      (item: any) => item.key === 'action',
+    );
     return (
       <div>
         <div>{props.toolbar}</div>
@@ -70,5 +73,30 @@ describe('DeviceTable', () => {
     );
 
     expect(await screen.findByText('领用')).toBeTruthy();
+  });
+
+  it('should convert device create form values to api payload', () => {
+    const payload = buildDeviceCreatePayload({
+      deviceName: '投影仪',
+      categoryId: 3,
+      assetCode: 'PJ-1001',
+      serialNumber: 'SN-PJ-1001',
+      locationId: 8,
+      purchaseDate: dayjs('2026-04-25'),
+      remark: '会议室备用',
+    });
+
+    /**
+     * 分类、位置和日期字段必须与 OpenAPI 请求体保持一致，否则新增入库会被后端校验拒绝。
+     */
+    expect(payload).toEqual({
+      deviceName: '投影仪',
+      categoryId: 3,
+      assetCode: 'PJ-1001',
+      serialNumber: 'SN-PJ-1001',
+      locationId: 8,
+      purchaseDate: '2026-04-25',
+      remark: '会议室备用',
+    });
   });
 });

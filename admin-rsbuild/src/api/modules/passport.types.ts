@@ -16,6 +16,10 @@ export interface CurrentInfoVo {
    */
   nickname: string;
   /**
+   * Git 用户名。
+   */
+  gitUsername: string;
+  /**
    * 凭证创建时间
    */
   tokenCreateTime: string;
@@ -126,6 +130,11 @@ export interface UpdateCurrentProfileParams {
    * 头像文件 ID。
    */
   avatarId?: string;
+
+  /**
+   * Git 用户名。
+   */
+  gitUsername?: string;
 }
 
 /**

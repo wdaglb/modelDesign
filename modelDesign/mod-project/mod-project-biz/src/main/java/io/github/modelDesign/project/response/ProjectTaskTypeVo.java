@@ -28,4 +28,10 @@ public class ProjectTaskTypeVo {
      */
     @Schema(description = "排序值")
     private Integer sort;
+
+    /**
+     * Git 分支前缀分组。
+     */
+    @Schema(description = "Git 分支前缀分组")
+    private String gitBranchPrefixGroup;
 }

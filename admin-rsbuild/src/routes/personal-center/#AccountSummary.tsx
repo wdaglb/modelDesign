@@ -57,6 +57,9 @@ const AccountSummary = (props: AccountSummaryProps) => {
               <Typography.Text type={'secondary'}>
                 登录账号：{getDisplayText(props.currentInfo?.username)}
               </Typography.Text>
+              <Typography.Text type={'secondary'}>
+                Git 用户名：{getDisplayText(props.currentInfo?.gitUsername)}
+              </Typography.Text>
 
               <Space size={8} wrap>
                 <Tag color={'processing'} bordered={false}>

@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { Tour, message } from 'antd';
 import { z } from 'zod';
-import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
+import { ApiProject, ApiProjectTask, ApiProjectTaskStatus, ApiProjectTaskType } from '@/api';
 import {
   TaskPriority,
   type ProjectTaskDetail,
@@ -112,6 +112,10 @@ function RouteComponent() {
   const { data: statusConfigs = [] } = useQuery({
     queryKey: queryKey.project.taskStatusList(),
     queryFn: () => ApiProjectTaskStatus.getList(),
+  });
+  const { data: taskTypes = [] } = useQuery({
+    queryKey: queryKey.project.taskTypeList(),
+    queryFn: () => ApiProjectTaskType.getList(),
   });
   const projectOptions = useMemo(() => {
     const items = projectListData?.items;
@@ -696,13 +700,14 @@ function RouteComponent() {
                 return (
                   <AgileBoardColumn
                     key={column.status}
-                  column={column}
-                  disabled={updatingTaskId !== undefined}
-                  tasks={groupedTasks[column.status]}
-                  onOpenSubtasks={handleOpenSubtasks}
-                  onPreview={openTaskPreview}
-                  onPriorityChange={handlePriorityChange}
-                />
+                    column={column}
+                    disabled={updatingTaskId !== undefined}
+                    tasks={groupedTasks[column.status]}
+                    taskTypes={taskTypes}
+                    onOpenSubtasks={handleOpenSubtasks}
+                    onPreview={openTaskPreview}
+                    onPriorityChange={handlePriorityChange}
+                  />
                 );
               })}
             </BoardColumnsGrid>
@@ -711,6 +716,7 @@ function RouteComponent() {
             {activeTask && (
               <AgileBoardTaskCardPreview
                 task={activeTask}
+                taskTypes={taskTypes}
                 accentColor={activeTaskAccentColor}
               />
             )}

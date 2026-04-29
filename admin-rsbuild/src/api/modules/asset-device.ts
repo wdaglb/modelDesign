@@ -126,6 +126,61 @@ export interface AssetDeviceListResponse {
 }
 
 /**
+ * 资产下拉选项。
+ */
+export interface AssetOptionItem {
+  /**
+   * 选项值，当前资产模块统一使用业务 ID。
+   */
+  value: number;
+
+  /**
+   * 选项文本。
+   */
+  label: string;
+}
+
+/**
+ * 设备入库登记请求体。
+ */
+export interface AssetDeviceCreateData {
+  /**
+   * 设备名称。
+   */
+  deviceName: string;
+
+  /**
+   * 分类 ID。
+   */
+  categoryId: number;
+
+  /**
+   * 资产编号。
+   */
+  assetCode: string;
+
+  /**
+   * 位置 ID。
+   */
+  locationId: number;
+
+  /**
+   * 序列号。
+   */
+  serialNumber?: string;
+
+  /**
+   * 购置日期，格式为 YYYY-MM-DD。
+   */
+  purchaseDate?: string;
+
+  /**
+   * 备注。
+   */
+  remark?: string;
+}
+
+/**
  * 获取设备台账列表。
  */
 export const getList = (params?: AssetDeviceListParams) => {
@@ -136,9 +191,23 @@ export const getList = (params?: AssetDeviceListParams) => {
 };
 
 /**
+ * 获取设备分类下拉。
+ */
+export const getCategoryOptions = () => {
+  return request<AssetOptionItem[]>('/asset/options/categories');
+};
+
+/**
+ * 获取设备位置下拉。
+ */
+export const getLocationOptions = () => {
+  return request<AssetOptionItem[]>('/asset/options/locations');
+};
+
+/**
  * 入库登记。
  */
-export const create = (data: Record<string, unknown>) => {
+export const create = (data: AssetDeviceCreateData) => {
   return request<AssetDeviceItem>('/asset/device/create', {
     method: 'post',
     data,

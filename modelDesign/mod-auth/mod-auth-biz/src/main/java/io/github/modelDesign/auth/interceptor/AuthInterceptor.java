@@ -129,6 +129,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 .username(claims.get("username", String.class))
                 .nickname(claims.get("nickname", String.class))
                 .avatarId(claims.get("avatarId", String.class))
+                .gitUsername(claims.get("gitUsername", String.class))
                 .loginId("mcp-" + userId)
                 .loginIp(request.getRemoteAddr())
                 .tokenCreateTime(LocalDateTime.now())

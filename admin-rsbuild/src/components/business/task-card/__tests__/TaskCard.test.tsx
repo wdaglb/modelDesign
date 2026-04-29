@@ -16,6 +16,7 @@ vi.mock('@/utils', () => {
 const baseTask: TaskCardTask = {
   id: 101,
   taskNumber: 'TASK-101',
+  branchName: 'bugfix/alice-dev/TASK-101',
   projectName: '火星项目',
   typeName: '需求',
   title: '补充任务编号展示',
@@ -116,6 +117,7 @@ describe('TaskCard', () => {
 
     expect(screen.getByText('# TASK-101')).toBeTruthy();
     expect(screen.getByText('火星项目')).toBeTruthy();
+    expect(screen.getByText('bugfix/alice-dev/TASK-101')).toBeTruthy();
     expect(screen.getByText('2 人天')).toBeTruthy();
     expect(screen.getByText('小王')).toBeTruthy();
     expect(screen.getByText('截止 2026-04-06')).toBeTruthy();

@@ -27,12 +27,15 @@ import {
   TaskList,
 } from '../styles/column.styled';
 
+import type { ProjectTaskType } from '@/api/modules/project-task-type';
+
 interface AgileBoardColumnProps {
   column: AgileBoardColumnMeta;
   disabled?: boolean;
   onOpenSubtasks: (task: AgileBoardTask) => Promise<void>;
   onPreview: (task: AgileBoardTask) => Promise<void>;
   tasks: AgileBoardTask[];
+  taskTypes?: ProjectTaskType[];
   onPriorityChange: (
     task: AgileBoardTask,
     priority: TaskPriority,
@@ -108,6 +111,7 @@ const AgileBoardColumn = memo((props: AgileBoardColumnProps) => {
           <AgileBoardTaskCard
             accentColor={props.column.accentColor}
             task={task}
+            taskTypes={props.taskTypes}
             disabled={props.disabled}
             onPreview={props.onPreview}
             onPriorityChange={props.onPriorityChange}

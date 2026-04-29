@@ -83,6 +83,7 @@ const isSameCurrentInfo = (
     currentStoreInfo.username === nextStoreInfo.username &&
     currentStoreInfo.nickname === nextStoreInfo.nickname &&
     currentStoreInfo.avatarId === nextStoreInfo.avatarId &&
+    currentStoreInfo.gitUsername === nextStoreInfo.gitUsername &&
     currentStoreInfo.tenantId === nextStoreInfo.tenantId &&
     currentStoreInfo.loginId === nextStoreInfo.loginId &&
     currentStoreInfo.loginIp === nextStoreInfo.loginIp &&

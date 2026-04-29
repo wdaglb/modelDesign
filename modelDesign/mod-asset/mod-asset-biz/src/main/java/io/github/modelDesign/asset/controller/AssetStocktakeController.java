@@ -4,10 +4,12 @@ import io.github.modelDesign.asset.request.AssetStocktakeCheckRequest;
 import io.github.modelDesign.asset.request.AssetStocktakeCreateRequest;
 import io.github.modelDesign.asset.response.AssetStocktakeDetailVo;
 import io.github.modelDesign.asset.response.AssetStocktakeTaskVo;
+import io.github.modelDesign.asset.service.AssetStocktakeExportService;
 import io.github.modelDesign.asset.service.AssetStocktakeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,11 @@ public class AssetStocktakeController {
     private final AssetStocktakeService assetStocktakeService;
 
     /**
+     * 盘点结果导出服务。
+     */
+    private final AssetStocktakeExportService assetStocktakeExportService;
+
+    /**
      * 获取任务列表。
      *
      * @return 任务列表
@@ -44,6 +51,39 @@ public class AssetStocktakeController {
     @GetMapping("/list")
     public List<AssetStocktakeTaskVo> list() {
         return assetStocktakeService.getList();
+    }
+
+    /**
+     * 获取任务明细。
+     *
+     * @param id 任务 ID
+     * @return 明细列表
+     */
+    @Operation(summary = "获取盘点任务明细")
+    @GetMapping("/detail")
+    public List<AssetStocktakeDetailVo> detail(
+            @Parameter(description = "任务 ID", required = true)
+            @RequestParam
+            @NotNull(message = "任务 ID 不能为空")
+            Long id) {
+        return assetStocktakeService.getDetail(id);
+    }
+
+    /**
+     * 导出任务明细。
+     *
+     * @param id       任务 ID
+     * @param response HTTP 响应
+     */
+    @Operation(summary = "导出盘点结果")
+    @GetMapping("/export")
+    public void export(
+            @Parameter(description = "任务 ID", required = true)
+            @RequestParam
+            @NotNull(message = "任务 ID 不能为空")
+            Long id,
+            HttpServletResponse response) {
+        assetStocktakeExportService.export(id, response);
     }
 
     /**

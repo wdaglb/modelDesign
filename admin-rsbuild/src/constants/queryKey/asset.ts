@@ -1,4 +1,9 @@
 /**
+ * 分类列表查询键。
+ */
+export const categoryList = () => ['assetCategoryList'];
+
+/**
  * 设备台账查询键。
  */
 export const deviceList = () => ['assetDeviceList'];

@@ -2,7 +2,9 @@ import { useDraggable } from '@dnd-kit/core';
 import { memo } from 'react';
 
 import { TaskCard } from '@/components';
+import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import { TaskPriority } from '@/api/modules/project-task.types';
+import useAuthStore from '@/store/auth.ts';
 
 import { getTaskDragId } from '../#helper';
 import { mapAgileBoardTaskToTaskCardTask } from '../#taskCardAdapter';
@@ -21,11 +23,13 @@ interface AgileBoardTaskCardProps {
   ) => Promise<void>;
   onPreview: (task: AgileBoardTask) => Promise<void>;
   task: AgileBoardTask;
+  taskTypes?: ProjectTaskType[];
 }
 
 interface AgileBoardTaskCardPreviewProps {
   accentColor?: string;
   task: AgileBoardTask;
+  taskTypes?: ProjectTaskType[];
 }
 
 /**
@@ -36,7 +40,11 @@ interface AgileBoardTaskCardPreviewProps {
  * - 数据经适配层转换后传入通用卡片，减少业务重复渲染逻辑。
  */
 const AgileBoardTaskCard = memo((props: AgileBoardTaskCardProps) => {
-  const adaptedTask = mapAgileBoardTaskToTaskCardTask(props.task);
+  const currentInfo = useAuthStore((state) => state.currentInfo);
+  const adaptedTask = mapAgileBoardTaskToTaskCardTask(props.task, {
+    gitUsername: currentInfo?.gitUsername,
+    taskTypes: props.taskTypes,
+  });
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: getTaskDragId(props.task.id),
     disabled: props.disabled,
@@ -80,7 +88,11 @@ AgileBoardTaskCard.displayName = 'AgileBoardTaskCard';
 export function AgileBoardTaskCardPreview(
   props: AgileBoardTaskCardPreviewProps,
 ) {
-  const adaptedTask = mapAgileBoardTaskToTaskCardTask(props.task);
+  const currentInfo = useAuthStore((state) => state.currentInfo);
+  const adaptedTask = mapAgileBoardTaskToTaskCardTask(props.task, {
+    gitUsername: currentInfo?.gitUsername,
+    taskTypes: props.taskTypes,
+  });
 
   return (
     <OverlayTaskCardShell

@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { message } from 'antd';
 
-import { ApiProjectTask } from '@/api';
+import { ApiProjectTask, ApiProjectTaskType } from '@/api';
+import useAuthStore from '@/store/auth.ts';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 
@@ -18,6 +19,15 @@ vi.mock('@/api', () => {
       getChildren: vi.fn(),
       getDetail: vi.fn(),
     },
+    ApiProjectTaskType: {
+      getList: vi.fn(),
+    },
+  };
+});
+
+vi.mock('@/store/auth.ts', () => {
+  return {
+    default: vi.fn(),
   };
 });
 
@@ -41,6 +51,14 @@ describe('TaskSubtaskPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(ApiProjectTask.getChildren).mockResolvedValue([]);
+    vi.mocked(ApiProjectTaskType.getList).mockResolvedValue([]);
+    vi.mocked(useAuthStore).mockImplementation((selector) => {
+      return selector({
+        currentInfo: {
+          gitUsername: 'alice-dev',
+        },
+      });
+    });
   });
 
   it('快捷创建会提交 parentTaskId / assigneeId / priority', async () => {
@@ -205,7 +223,9 @@ describe('TaskSubtaskPanel', () => {
     const loadMoreButton = screen.getByRole('button', { name: '加载更多' });
     fireEvent.click(loadMoreButton);
 
-    expect(await screen.findByText('子任务-21')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByText('子任务-21')).toBeDefined();
+    });
     expect(screen.queryByRole('button', { name: '加载更多' })).toBeNull();
   }, 10000);
 
@@ -229,6 +249,47 @@ describe('TaskSubtaskPanel', () => {
     );
 
     expect(await screen.findByText('# TASK-2002')).toBeDefined();
+  });
+
+  it('未配置个人 Git 用户名时获取分支名会提示先去个人中心配置', async () => {
+    const user = userEvent.setup();
+    const warningMock = vi
+      .spyOn(message, 'warning')
+      .mockImplementation(() => undefined as never);
+
+    vi.mocked(useAuthStore).mockImplementation((selector) => {
+      return selector({
+        currentInfo: {
+          gitUsername: '',
+        },
+      });
+    });
+    vi.mocked(ApiProjectTask.getChildren).mockResolvedValue([
+      {
+        ...parentTask,
+        id: 2004,
+        parentTaskId: parentTask.id,
+        taskNo: 'TASK-2004',
+        typeName: '缺陷',
+        title: '子任务 F',
+      },
+    ]);
+
+    renderWithQuery(
+      <TaskSubtaskPanel
+        parentTask={parentTask}
+        statusConfigs={statusConfigs}
+        onRefresh={vi.fn()}
+        onEditTask={vi.fn()}
+      />,
+    );
+
+    await screen.findByText('子任务 F');
+    await user.click(screen.getByRole('button', { name: '获取分支名' }));
+
+    await waitFor(() => {
+      expect(warningMock).toHaveBeenCalledWith('请先在个人中心配置 Git 用户名');
+    });
   });
 
   it('点击复制链接会提示复制成功', async () => {

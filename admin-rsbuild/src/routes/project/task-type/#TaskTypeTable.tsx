@@ -54,6 +54,18 @@ const TaskTypeTable = () => {
       width: 120,
     },
     {
+      title: 'Git 分支前缀分组',
+      dataIndex: 'gitBranchPrefixGroup',
+      key: 'gitBranchPrefixGroup',
+      width: 220,
+      render: (value: ProjectTaskType['gitBranchPrefixGroup']) => {
+        if (!value) {
+          return '-';
+        }
+        return value;
+      },
+    },
+    {
       title: '操作',
       key: 'action',
       width: 220,

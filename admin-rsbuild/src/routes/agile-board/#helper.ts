@@ -98,6 +98,25 @@ function normalizeTaskNumberText(value?: string | null) {
 }
 
 /**
+ * 规范化 Git 分支前缀分组，避免把纯空白配置继续向下游传播。
+ *
+ * @param value 原始前缀分组
+ * @returns 规范化后的前缀分组；为空时返回 undefined
+ */
+export function normalizeGitBranchPrefixGroup(value?: string | null) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalizedValue = value.trim();
+  if (!normalizedValue) {
+    return undefined;
+  }
+
+  return normalizedValue;
+}
+
+/**
  * 解析任务详情抽屉使用的任务编号。
  *
  * 说明：
@@ -157,6 +176,40 @@ export function buildAgileBoardTaskShareUrl(
   const shareUrl = new URL('/agile-board/', origin);
   shareUrl.searchParams.set('taskId', String(task.id));
   return shareUrl.toString();
+}
+
+/**
+ * 根据前缀分组、Git 用户名和任务编号生成建议分支名。
+ *
+ * 约束：
+ * - 任一关键片段缺失时直接返回 undefined，不做隐式兜底；
+ * - 前缀分组沿用任务类型配置的原始文本，仅做 trim 规整。
+ *
+ * @param gitBranchPrefixGroup 任务类型上的分支前缀分组
+ * @param gitUsername 当前用户 Git 用户名
+ * @param taskNumberText 任务编号
+ * @returns 建议分支名；若信息不足则返回 undefined
+ */
+export function buildTaskBranchName(params: {
+  gitBranchPrefixGroup?: string | null;
+  gitUsername?: string | null;
+  taskNumberText?: string | null;
+}) {
+  const normalizedPrefixGroup = normalizeGitBranchPrefixGroup(
+    params.gitBranchPrefixGroup,
+  );
+  const normalizedGitUsername = normalizeTaskNumberText(params.gitUsername);
+  const normalizedTaskNumberText = normalizeTaskNumberText(params.taskNumberText);
+
+  if (
+    !normalizedPrefixGroup ||
+    !normalizedGitUsername ||
+    !normalizedTaskNumberText
+  ) {
+    return undefined;
+  }
+
+  return `${normalizedPrefixGroup}/${normalizedGitUsername}/${normalizedTaskNumberText}`;
 }
 
 /**

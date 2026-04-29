@@ -26,4 +26,9 @@ public class TaskType extends BaseEntity {
      * 排序值。
      */
     private Integer sort;
+
+    /**
+     * Git 分支前缀分组。
+     */
+    private String gitBranchPrefixGroup;
 }

@@ -30,6 +30,7 @@ import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$pro
 import { Route as AssetStocktakeIndexRouteImport } from './routes/asset/stocktake/index'
 import { Route as AssetLocationIndexRouteImport } from './routes/asset/location/index'
 import { Route as AssetDeviceIndexRouteImport } from './routes/asset/device/index'
+import { Route as AssetCategoryIndexRouteImport } from './routes/asset/category/index'
 import { Route as AgileBoardV2IndexRouteImport } from './routes/agile-board/v2/index'
 import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$projectId.tasks'
 import { Route as ProjectProjectIdTablesRouteImport } from './routes/project/$projectId.tables'
@@ -142,6 +143,11 @@ const AssetDeviceIndexRoute = AssetDeviceIndexRouteImport.update({
   path: '/asset/device/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssetCategoryIndexRoute = AssetCategoryIndexRouteImport.update({
+  id: '/asset/category/',
+  path: '/asset/category/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgileBoardV2IndexRoute = AgileBoardV2IndexRouteImport.update({
   id: '/agile-board/v2/',
   path: '/agile-board/v2/',
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/agile-board/v2/': typeof AgileBoardV2IndexRoute
+  '/asset/category/': typeof AssetCategoryIndexRoute
   '/asset/device/': typeof AssetDeviceIndexRoute
   '/asset/location/': typeof AssetLocationIndexRoute
   '/asset/stocktake/': typeof AssetStocktakeIndexRoute
@@ -210,6 +217,7 @@ export interface FileRoutesByTo {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/agile-board/v2': typeof AgileBoardV2IndexRoute
+  '/asset/category': typeof AssetCategoryIndexRoute
   '/asset/device': typeof AssetDeviceIndexRoute
   '/asset/location': typeof AssetLocationIndexRoute
   '/asset/stocktake': typeof AssetStocktakeIndexRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/project/$projectId/tables': typeof ProjectProjectIdTablesRoute
   '/project/$projectId/tasks': typeof ProjectProjectIdTasksRoute
   '/agile-board/v2/': typeof AgileBoardV2IndexRoute
+  '/asset/category/': typeof AssetCategoryIndexRoute
   '/asset/device/': typeof AssetDeviceIndexRoute
   '/asset/location/': typeof AssetLocationIndexRoute
   '/asset/stocktake/': typeof AssetStocktakeIndexRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/agile-board/v2/'
+    | '/asset/category/'
     | '/asset/device/'
     | '/asset/location/'
     | '/asset/stocktake/'
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/agile-board/v2'
+    | '/asset/category'
     | '/asset/device'
     | '/asset/location'
     | '/asset/stocktake'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/project/$projectId/tables'
     | '/project/$projectId/tasks'
     | '/agile-board/v2/'
+    | '/asset/category/'
     | '/asset/device/'
     | '/asset/location/'
     | '/asset/stocktake/'
@@ -350,6 +362,7 @@ export interface RootRouteChildren {
   ProjectIndexRoute: typeof ProjectIndexRoute
   ReportIndexRoute: typeof ReportIndexRoute
   AgileBoardV2IndexRoute: typeof AgileBoardV2IndexRoute
+  AssetCategoryIndexRoute: typeof AssetCategoryIndexRoute
   AssetDeviceIndexRoute: typeof AssetDeviceIndexRoute
   AssetLocationIndexRoute: typeof AssetLocationIndexRoute
   AssetStocktakeIndexRoute: typeof AssetStocktakeIndexRoute
@@ -513,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssetDeviceIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/asset/category/': {
+      id: '/asset/category/'
+      path: '/asset/category'
+      fullPath: '/asset/category/'
+      preLoaderRoute: typeof AssetCategoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agile-board/v2/': {
       id: '/agile-board/v2/'
       path: '/agile-board/v2'
@@ -579,6 +599,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectIndexRoute: ProjectIndexRoute,
   ReportIndexRoute: ReportIndexRoute,
   AgileBoardV2IndexRoute: AgileBoardV2IndexRoute,
+  AssetCategoryIndexRoute: AssetCategoryIndexRoute,
   AssetDeviceIndexRoute: AssetDeviceIndexRoute,
   AssetLocationIndexRoute: AssetLocationIndexRoute,
   AssetStocktakeIndexRoute: AssetStocktakeIndexRoute,

@@ -30,6 +30,21 @@ public class AssetStocktakeItem extends BaseEntity {
     private Long deviceId;
 
     /**
+     * 账面数量。
+     */
+    private Integer expectedQuantity;
+
+    /**
+     * 实际数量。
+     */
+    private Integer actualQuantity;
+
+    /**
+     * 差异数量。
+     */
+    private Integer differenceQuantity;
+
+    /**
      * 盘点结果状态。
      */
     private Integer resultStatus;

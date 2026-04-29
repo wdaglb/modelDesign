@@ -2,8 +2,18 @@ import { describe, expect, it } from 'vitest';
 
 import { taskChildrenBatch } from '@/constants/queryKey/project';
 
+import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import type { AgileBoardTask } from '../#types';
 import { mapAgileBoardTaskToTaskCardTask } from '../#taskCardAdapter';
+
+const taskTypes: ProjectTaskType[] = [
+  {
+    id: 2,
+    name: '缺陷',
+    sort: 1,
+    gitBranchPrefixGroup: 'bugfix',
+  },
+];
 
 describe('mapAgileBoardTaskToTaskCardTask', () => {
   it('存在项目编号时拼接为项目编号加任务 id', () => {
@@ -90,6 +100,26 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
     };
 
     expect(mapAgileBoardTaskToTaskCardTask(task).typeName).toBe('缺陷');
+  });
+
+  it('会基于统一 helper 映射建议分支名', () => {
+    const task: AgileBoardTask = {
+      id: 14,
+      projectId: 1,
+      title: '映射建议分支名',
+      typeId: 2,
+      typeName: '缺陷',
+      taskNo: 'TASK-14',
+      status: 'todo',
+      priority: 'medium',
+    };
+
+    expect(
+      mapAgileBoardTaskToTaskCardTask(task, {
+        gitUsername: 'alice-dev',
+        taskTypes,
+      }).branchName,
+    ).toBe('bugfix/alice-dev/TASK-14');
   });
 
   it('敏捷面板卡片截止时间只保留日期', () => {

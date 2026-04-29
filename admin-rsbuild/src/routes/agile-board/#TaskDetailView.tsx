@@ -44,6 +44,7 @@ import {
   getTaskPriorityText,
   resolveTaskNumberText,
 } from './#helper';
+import useAuthStore from '@/store/auth.ts';
 import {
   TaskDetailChip,
   TaskDetailChipLabel,
@@ -76,6 +77,9 @@ import {
 import type { TaskPreviewDrawerTabKey } from './#previewDrawerService';
 import {
   buildTaskDetailTypeMenuItems,
+  getTaskBranchUnavailableMessage,
+  resolveTaskBranchName,
+  resolveTaskBranchUnavailableReason,
   resolveTaskDetailTypeText,
 } from './#taskDetailTypeHelper';
 import {
@@ -381,7 +385,12 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
   const taskTypeQuery = useQuery({
     queryKey: queryKey.project.taskTypeList(),
     queryFn: () => ApiProjectTaskType.getList(),
-    enabled: openDropdown === 'type',
+    /**
+     * 分支名生成同样依赖任务类型上的前缀分组配置，
+     * 因此当前任务已有 typeId 时也需要预先拿到类型列表，
+     * 不能只在用户展开类型下拉时再请求。
+     */
+    enabled: openDropdown === 'type' || Boolean(props.task.typeId),
     placeholderData: (previousData) => previousData,
   });
 
@@ -450,6 +459,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     dynamicMentionNotFoundContent = '搜索用户中...';
   }
 
+  const currentInfo = useAuthStore((state) => state.currentInfo);
   const taskNumberText = resolveTaskNumberText(props.task);
   const taskShareUrl = buildAgileBoardTaskShareUrl(
     props.task,
@@ -477,6 +487,22 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
 
     return resolveTaskTypeTagTone(typeText);
   }, [typeText]);
+  const taskBranchName = useMemo(() => {
+    return resolveTaskBranchName(
+      props.task,
+      currentInfo?.gitUsername,
+      taskTypeQuery.data,
+    );
+  }, [currentInfo?.gitUsername, props.task, taskTypeQuery.data]);
+  const taskBranchUnavailableMessage = useMemo(() => {
+    return getTaskBranchUnavailableMessage(
+      resolveTaskBranchUnavailableReason(
+        props.task,
+        currentInfo?.gitUsername,
+        taskTypeQuery.data,
+      ),
+    );
+  }, [currentInfo?.gitUsername, props.task, taskTypeQuery.data]);
   const scheduleRangeValue = useMemo(() => {
     return buildTaskDetailScheduleRangeValue({
       startTime: draftStartTime,
@@ -670,6 +696,23 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
       message.success('任务链接已复制');
     } catch {
       message.error('任务链接复制失败，请稍后重试');
+    }
+  };
+
+  /**
+   * 复制建议分支名；若任务类型未配置前缀分组，则直接给出提示，不生成兜底值。
+   */
+  const copyTaskBranchName = async () => {
+    if (!taskBranchName) {
+      message.warning(taskBranchUnavailableMessage);
+      return;
+    }
+
+    try {
+      await copyTextToClipboard(taskBranchName);
+      message.success('任务分支名已复制');
+    } catch {
+      message.error('任务分支名复制失败，请稍后重试');
     }
   };
 
@@ -1118,6 +1161,25 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                 >
                   复制编号
                 </Button>
+                <Button
+                  type={'link'}
+                  size={'small'}
+                  style={{ padding: 0, height: 'auto' }}
+                  onClick={async () => {
+                    await copyTaskBranchName();
+                  }}
+                >
+                  获取分支名
+                </Button>
+                {taskBranchName ? (
+                  <Typography.Text type={'secondary'} style={{ fontSize: 10 }}>
+                    {taskBranchName}
+                  </Typography.Text>
+                ) : (
+                  <Typography.Text type={'warning'} style={{ fontSize: 10 }}>
+                    {taskBranchUnavailableMessage}
+                  </Typography.Text>
+                )}
               </TaskDetailIdRow>
               <div
                 style={{

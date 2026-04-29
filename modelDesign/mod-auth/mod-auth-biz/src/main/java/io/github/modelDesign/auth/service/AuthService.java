@@ -233,13 +233,16 @@ public class AuthService {
         User user = userService.requireUser(currentAdmin.getUserId());
         String nickname = normalizeNickname(request.getNickname());
         String avatarId = normalizeAvatarId(request.getAvatarId());
+        String gitUsername = normalizeGitUsername(request.getGitUsername());
 
         user.setNickname(nickname);
         user.setAvatarId(avatarId);
+        user.setGitUsername(gitUsername);
         userService.updateById(user);
 
         currentAdmin.setNickname(nickname);
         currentAdmin.setAvatarId(avatarId);
+        currentAdmin.setGitUsername(gitUsername);
         sessionRepository.updateCurrentAdmin(currentAdmin);
 
         return toCurrentInfoVo(currentAdmin);
@@ -352,6 +355,7 @@ public class AuthService {
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .avatarId(user.getAvatarId())
+                .gitUsername(user.getGitUsername())
                 .loginId(UUID.randomUUID().toString().replace("-", ""))
                 .loginIp(loginIp)
                 .tokenCreateTime(LocalDateTime.now())
@@ -560,6 +564,7 @@ public class AuthService {
                 .loginId(currentAdmin.getLoginId())
                 .loginIp(currentAdmin.getLoginIp())
                 .nickname(currentAdmin.getNickname())
+                .gitUsername(currentAdmin.getGitUsername())
                 .tokenCreateTime(currentAdmin.getTokenCreateTime())
                 .tenantId(currentAdmin.getTenantId())
                 .userId(currentAdmin.getUserId())
@@ -603,5 +608,18 @@ public class AuthService {
             return "";
         }
         return avatarId.trim();
+    }
+
+    /**
+     * 统一规范化 Git 用户名，避免把纯空白写入用户资料。
+     *
+     * @param gitUsername 原始 Git 用户名
+     * @return 规范化后的 Git 用户名
+     */
+    private String normalizeGitUsername(String gitUsername) {
+        if (!StringUtils.hasText(gitUsername)) {
+            return "";
+        }
+        return gitUsername.trim();
     }
 }

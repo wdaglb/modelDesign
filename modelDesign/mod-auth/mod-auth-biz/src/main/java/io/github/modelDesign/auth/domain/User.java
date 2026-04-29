@@ -40,6 +40,11 @@ public class User extends BaseEntity {
     private String avatarId;
 
     /**
+     * Git 用户名。
+     */
+    private String gitUsername;
+
+    /**
      * 账号状态，1 表示启用，0 表示禁用。
      */
     private Integer status;

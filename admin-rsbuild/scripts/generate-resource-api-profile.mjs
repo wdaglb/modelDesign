@@ -152,12 +152,41 @@ function collectDirectRequestResources(node) {
           resourceSet.add(resource);
         }
       }
+
+      const axiosResource = getAxiosResource(currentNode);
+      if (axiosResource) {
+        resourceSet.add(axiosResource);
+      }
     }
     ts.forEachChild(currentNode, visit);
   };
 
   visit(node);
   return Array.from(resourceSet);
+}
+
+function getAxiosResource(node) {
+  if (!ts.isPropertyAccessExpression(node.expression)) {
+    return '';
+  }
+  if (!ts.isIdentifier(node.expression.expression)) {
+    return '';
+  }
+  if (node.expression.expression.text !== 'axios') {
+    return '';
+  }
+  const requestMethod = node.expression.name.text;
+  if (!['get', 'post', 'put', 'delete', 'patch'].includes(requestMethod)) {
+    return '';
+  }
+  const resource = getStringValue(node.arguments[0]);
+  if (!resource) {
+    return '';
+  }
+  if (!resource.startsWith('/api/')) {
+    return resource;
+  }
+  return resource.slice(4);
 }
 
 function loadPermissionResourceMap() {

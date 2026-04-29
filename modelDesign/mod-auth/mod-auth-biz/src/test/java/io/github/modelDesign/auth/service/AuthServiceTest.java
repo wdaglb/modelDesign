@@ -11,6 +11,8 @@ import io.github.modelDesign.auth.enums.LoginFailureReasonEnum;
 import io.github.modelDesign.auth.request.PasswordLoginRequest;
 import io.github.modelDesign.auth.request.RefreshTokenRequest;
 import io.github.modelDesign.auth.request.RegisterRequest;
+import io.github.modelDesign.auth.request.UpdateCurrentProfileRequest;
+import io.github.modelDesign.auth.response.CurrentInfoVo;
 import io.github.modelDesign.auth.response.McpTokenVo;
 import io.github.modelDesign.auth.session.AuthContext;
 import io.github.modelDesign.auth.response.UserLoginVo;
@@ -532,6 +534,59 @@ class AuthServiceTest {
     }
 
     /**
+     * 更新当前登录用户资料时应同步持久化 Git 用户名并刷新会话上下文。
+     */
+    @Test
+    void updateCurrentProfileShouldPersistGitUsernameAndRefreshSession() {
+        FakeUserService userService = new FakeUserService();
+        FakeSessionRepository sessionRepository = new FakeSessionRepository();
+        FakeTenantService tenantService = new FakeTenantService();
+        TokenService tokenService = new TokenService(new AuthProperties());
+        FakeUserLoginHistoryService userLoginHistoryService =
+                new FakeUserLoginHistoryService();
+        FakeLoginClientInfoResolver clientInfoResolver =
+                new FakeLoginClientInfoResolver();
+        User user = buildEnabledUser();
+        user.setAvatarId("avatar-old");
+        user.setGitUsername("old-git");
+        userService.userById = user;
+        AuthService authService = new AuthService(
+                userService,
+                sessionRepository,
+                tenantService,
+                tokenService,
+                userLoginHistoryService,
+                clientInfoResolver
+        );
+        CurrentAdmin currentAdmin = CurrentAdmin.builder()
+                .userId(1001L)
+                .tenantId(2002L)
+                .username("alice")
+                .nickname("Alice")
+                .avatarId("avatar-old")
+                .gitUsername("old-git")
+                .loginId("login-1")
+                .loginIp("127.0.0.1")
+                .tokenCreateTime(LocalDateTime.of(2026, 4, 12, 8, 0))
+                .build();
+        sessionRepository.save(currentAdmin, "refresh-id-1");
+        AuthContext.set(currentAdmin);
+        UpdateCurrentProfileRequest request = new UpdateCurrentProfileRequest();
+        request.setNickname("  Alice Cooper  ");
+        request.setAvatarId("  avatar-new  ");
+        request.setGitUsername("  alice-dev  ");
+
+        CurrentInfoVo result = authService.updateCurrentProfile(request);
+
+        assertEquals("Alice Cooper", user.getNickname());
+        assertEquals("avatar-new", user.getAvatarId());
+        assertEquals("alice-dev", user.getGitUsername());
+        assertEquals("alice-dev", sessionRepository.savedAdmin.getGitUsername());
+        assertEquals("alice-dev", result.getGitUsername());
+        AuthContext.clear();
+    }
+
+    /**
      * 租户禁用审计应基于租户状态判定，而不是依赖异常文案等值。
      */
     @Test
@@ -673,6 +728,11 @@ class AuthServiceTest {
         private User userByUsername;
 
         /**
+         * 按用户 ID 返回的用户。
+         */
+        private User userById;
+
+        /**
          * 最近一次创建的更新链。
          */
         private FakeLambdaUpdateChainWrapper lastUpdateChain;
@@ -693,6 +753,14 @@ class AuthServiceTest {
         @Override
         public User getByUsername(String username) {
             return userByUsername;
+        }
+
+        @Override
+        public User requireUser(Long id) {
+            if (userById != null && Objects.equals(userById.getId(), id)) {
+                return userById;
+            }
+            throw new BusinessException(HttpStatus.NOT_FOUND.value(), "用户不存在");
         }
 
         @Override
@@ -727,6 +795,14 @@ class AuthServiceTest {
             if (entity.getId() == null) {
                 entity.setId(9999L);
             }
+            userByUsername = entity;
+            return true;
+        }
+
+        @Override
+        public boolean updateById(User entity) {
+            savedUser = entity;
+            userById = entity;
             userByUsername = entity;
             return true;
         }

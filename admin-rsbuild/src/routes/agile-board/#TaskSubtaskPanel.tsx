@@ -25,6 +25,7 @@ import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail, TaskStatusCode } from '@/api/modules/project-task.types';
 import queryKey from '@/constants/queryKey';
 import { copyTextToClipboard } from '@/utils';
+import useAuthStore from '@/store/auth.ts';
 
 import {
   getBoardStatusText,
@@ -33,6 +34,11 @@ import {
   resolveTaskNumberText,
 } from './#helper';
 import TaskPreviewSection from './#TaskPreviewSection';
+import {
+  getTaskBranchUnavailableMessage,
+  resolveTaskBranchName,
+  resolveTaskBranchUnavailableReason,
+} from './#taskDetailTypeHelper';
 
 interface TaskSubtaskPanelProps {
   /**
@@ -64,6 +70,7 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
   const [creating, setCreating] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number>();
   const [visibleSubtaskCount, setVisibleSubtaskCount] = useState(20);
+  const currentInfo = useAuthStore((state) => state.currentInfo);
 
   /**
    * 子任务列表分段渲染首批数量。
@@ -284,6 +291,31 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
                           <Typography.Text strong>{item.title}</Typography.Text>
                         </Space>
                         <Space size={0}>
+                          <Button
+                            type={'link'}
+                            size={'small'}
+                            onClick={async () => {
+                              const taskBranchName = resolveTaskBranchName(
+                                item,
+                                currentInfo?.gitUsername,
+                              );
+                              if (!taskBranchName) {
+                                message.warning(
+                                  getTaskBranchUnavailableMessage(
+                                    resolveTaskBranchUnavailableReason(
+                                      item,
+                                      currentInfo?.gitUsername,
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              await copyTextToClipboard(taskBranchName);
+                              message.success('任务分支名已复制');
+                            }}
+                          >
+                            获取分支名
+                          </Button>
                           <Button
                             type={'link'}
                             size={'small'}

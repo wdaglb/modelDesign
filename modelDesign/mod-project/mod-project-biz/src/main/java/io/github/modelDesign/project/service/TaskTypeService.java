@@ -96,6 +96,9 @@ public class TaskTypeService {
         taskType.setTenantId(tenantId);
         taskType.setName(name);
         taskType.setSort(sort);
+        taskType.setGitBranchPrefixGroup(normalizeGitBranchPrefixGroup(
+                request.getGitBranchPrefixGroup()
+        ));
         taskTypeMapper.insert(taskType);
         return toTaskTypeVo(taskType);
     }
@@ -124,6 +127,9 @@ public class TaskTypeService {
 
         taskType.setName(name);
         taskType.setSort(sort);
+        taskType.setGitBranchPrefixGroup(normalizeGitBranchPrefixGroup(
+                request.getGitBranchPrefixGroup()
+        ));
         taskTypeMapper.updateById(taskType);
         return toTaskTypeVo(taskType);
     }
@@ -186,6 +192,7 @@ public class TaskTypeService {
             taskType.setTenantId(tenantId);
             taskType.setName(DEFAULT_TYPE_NAME_LIST.get(index));
             taskType.setSort(index + 1);
+            taskType.setGitBranchPrefixGroup("");
             taskTypeMapper.insert(taskType);
         }
     }
@@ -217,6 +224,9 @@ public class TaskTypeService {
                 .id(taskType.getId())
                 .name(taskType.getName())
                 .sort(taskType.getSort())
+                .gitBranchPrefixGroup(normalizeGitBranchPrefixGroup(
+                        taskType.getGitBranchPrefixGroup()
+                ))
                 .build();
     }
 
@@ -255,5 +265,18 @@ public class TaskTypeService {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "排序值不能小于 0");
         }
         return sort;
+    }
+
+    /**
+     * 规范化 Git 分支前缀分组，允许任务类型显式留空，交由详情页决定回退提示。
+     *
+     * @param gitBranchPrefixGroup 原始分组值
+     * @return 规范化后的分组值
+     */
+    private String normalizeGitBranchPrefixGroup(String gitBranchPrefixGroup) {
+        if (!StringUtils.hasText(gitBranchPrefixGroup)) {
+            return "";
+        }
+        return gitBranchPrefixGroup.trim();
     }
 }

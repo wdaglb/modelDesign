@@ -1,11 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {
   AgileBoardColumnMeta,
   AgileBoardTask,
 } from '@/routes/agile-board/#types';
+import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import AgileBoardV2Column from '@/routes/agile-board/v2/#AgileBoardV2Column';
+import useAuthStore from '@/store/auth.ts';
+
+vi.mock('@/store/auth.ts', () => {
+  return {
+    default: vi.fn(),
+  };
+});
 
 const column: AgileBoardColumnMeta = {
   status: 'todo',
@@ -24,6 +32,7 @@ const task = {
   status: 'todo',
   priority: 'high',
   typeName: '缺陷',
+  typeId: 2,
   assignee: '小王',
   dueTime: '2026-04-07',
   projectName: '火星项目',
@@ -31,6 +40,15 @@ const task = {
   childTaskCount: 2,
   taskNo: 'TASK-101',
 } as AgileBoardTask;
+
+const taskTypes: ProjectTaskType[] = [
+  {
+    id: 2,
+    name: '缺陷',
+    sort: 1,
+    gitBranchPrefixGroup: 'bugfix',
+  },
+];
 
 /**
  * 生成指定数量的任务数据，用于验证 v2 列表的固定卡片输出。
@@ -46,12 +64,24 @@ function createTasks(count: number): AgileBoardTask[] {
   });
 }
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(useAuthStore).mockImplementation((selector) => {
+    return selector({
+      currentInfo: {
+        gitUsername: 'alice-dev',
+      },
+    });
+  });
+});
+
 describe('AgileBoardV2Column', () => {
   it('使用轻量卡片列表渲染全部任务', () => {
     const { container } = render(
       <AgileBoardV2Column
         column={column}
         tasks={createTasks(24)}
+        taskTypes={taskTypes}
         onOpenSubtasks={vi.fn()}
         onPreview={vi.fn()}
       />,
@@ -69,6 +99,7 @@ describe('AgileBoardV2Column', () => {
       <AgileBoardV2Column
         column={column}
         tasks={createTasks(6)}
+        taskTypes={taskTypes}
         onOpenSubtasks={vi.fn()}
         onPreview={vi.fn()}
       />,
@@ -93,6 +124,7 @@ describe('AgileBoardV2Column', () => {
       <AgileBoardV2Column
         column={column}
         tasks={[task]}
+        taskTypes={taskTypes}
         onOpenSubtasks={vi.fn()}
         onPreview={vi.fn()}
       />,
@@ -116,6 +148,7 @@ describe('AgileBoardV2Column', () => {
       <AgileBoardV2Column
         column={column}
         tasks={[task]}
+        taskTypes={taskTypes}
         onOpenSubtasks={vi.fn()}
         onPreview={vi.fn()}
       />,
@@ -125,11 +158,69 @@ describe('AgileBoardV2Column', () => {
     expect(screen.getByText('恢复列底部完整滚动')).toBeDefined();
   });
 
+  it('卡片中展示建议分支名', () => {
+    render(
+      <AgileBoardV2Column
+        column={column}
+        tasks={[task]}
+        taskTypes={taskTypes}
+        onOpenSubtasks={vi.fn()}
+        onPreview={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('bugfix/alice-dev/TASK-101')).toBeDefined();
+  });
+
+  it('未配置个人 Git 用户名时展示去个人中心配置提示', () => {
+    vi.mocked(useAuthStore).mockImplementation((selector) => {
+      return selector({
+        currentInfo: {
+          gitUsername: '',
+        },
+      });
+    });
+
+    render(
+      <AgileBoardV2Column
+        column={column}
+        tasks={[task]}
+        taskTypes={taskTypes}
+        onOpenSubtasks={vi.fn()}
+        onPreview={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('请先在个人中心配置 Git 用户名')).toBeDefined();
+  });
+
+  it('未配置前缀时展示未配置提示', () => {
+    render(
+      <AgileBoardV2Column
+        column={column}
+        tasks={[task]}
+        taskTypes={[
+          {
+            id: 2,
+            name: '缺陷',
+            sort: 1,
+            gitBranchPrefixGroup: '',
+          },
+        ]}
+        onOpenSubtasks={vi.fn()}
+        onPreview={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('当前任务类型未配置分支前缀')).toBeDefined();
+  });
+
   it('卡片中不展示任务说明文本', () => {
     render(
       <AgileBoardV2Column
         column={column}
         tasks={[task]}
+        taskTypes={taskTypes}
         onOpenSubtasks={vi.fn()}
         onPreview={vi.fn()}
       />,
@@ -149,6 +240,7 @@ describe('AgileBoardV2Column', () => {
       <AgileBoardV2Column
         column={column}
         tasks={[task]}
+        taskTypes={taskTypes}
         onOpenSubtasks={vi.fn()}
         onPreview={onPreview}
       />,
@@ -170,6 +262,7 @@ describe('AgileBoardV2Column', () => {
       <AgileBoardV2Column
         column={column}
         tasks={[task]}
+        taskTypes={taskTypes}
         onOpenSubtasks={onOpenSubtasks}
         onPreview={onPreview}
       />,

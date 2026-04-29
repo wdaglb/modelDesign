@@ -1,3 +1,4 @@
+import * as ApiAssetCategory from './modules/asset-category';
 import * as ApiAssetDevice from './modules/asset-device';
 import * as ApiAssetLocation from './modules/asset-location';
 import * as ApiAssetStocktake from './modules/asset-stocktake';
@@ -26,6 +27,7 @@ import * as ApiTodo from './modules/todo';
 import * as ApiUser from './modules/user';
 
 export {
+  ApiAssetCategory,
   ApiAssetDevice,
   ApiAssetLocation,
   ApiAssetStocktake,

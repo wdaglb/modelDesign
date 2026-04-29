@@ -1,6 +1,7 @@
 package io.github.modelDesign.asset.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -30,6 +31,13 @@ public class AssetStocktakeCheckRequest {
      */
     @Schema(description = "盘点结果状态")
     private Integer resultStatus;
+
+    /**
+     * 实际数量。
+     */
+    @Schema(description = "实际数量；不传时按盘点结果默认推导")
+    @Min(value = 0, message = "实际数量不能小于 0")
+    private Integer actualQuantity;
 
     /**
      * 实际位置 ID。

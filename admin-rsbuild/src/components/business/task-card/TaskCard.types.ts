@@ -8,6 +8,8 @@ import type { TaskPriority } from '@/api/modules/project-task.types';
 export interface TaskCardTask {
   id: number;
   taskNumber?: string;
+  /** 建议分支名。 */
+  branchName?: string;
   projectName?: string;
   /**
    * 任务类型名称。

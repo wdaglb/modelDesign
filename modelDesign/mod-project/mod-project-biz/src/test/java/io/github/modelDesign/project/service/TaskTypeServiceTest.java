@@ -6,6 +6,7 @@ import io.github.modelDesign.common.exception.BusinessException;
 import io.github.modelDesign.project.domain.TaskType;
 import io.github.modelDesign.project.mapper.ProjectTaskMapper;
 import io.github.modelDesign.project.mapper.TaskTypeMapper;
+import io.github.modelDesign.project.request.ProjectTaskTypeCreateRequest;
 import io.github.modelDesign.project.request.ProjectTaskTypeListRequest;
 import io.github.modelDesign.project.response.ProjectTaskTypeVo;
 import org.junit.jupiter.api.Test;
@@ -54,7 +55,43 @@ class TaskTypeServiceTest {
 
         assertEquals(2, result.size());
         assertEquals("任务", result.get(0).getName());
+        assertEquals("", result.get(0).getGitBranchPrefixGroup());
         assertEquals("缺陷", result.get(1).getName());
+        assertEquals("", result.get(1).getGitBranchPrefixGroup());
+    }
+
+    /**
+     * 创建任务类型时应保存 Git 分支前缀分组。
+     */
+    @Test
+    void createShouldPersistGitBranchPrefixGroup() {
+        AuthCurrentUserApi authCurrentUserApi = mock(AuthCurrentUserApi.class);
+        TaskTypeMapper taskTypeMapper = mock(TaskTypeMapper.class);
+        ProjectTaskMapper projectTaskMapper = mock(ProjectTaskMapper.class);
+        TaskTypeService service = new TaskTypeService(
+                authCurrentUserApi,
+                taskTypeMapper,
+                projectTaskMapper
+        );
+
+        when(authCurrentUserApi.getCurrentUser())
+                .thenReturn(AuthCurrentUserDto.builder().tenantId(1001L).build());
+        when(taskTypeMapper.selectCount(any())).thenReturn(1L, 0L);
+        doAnswer(invocation -> {
+            TaskType taskType = invocation.getArgument(0);
+            taskType.setId(88L);
+            return 1;
+        }).when(taskTypeMapper).insert(any(TaskType.class));
+
+        ProjectTaskTypeCreateRequest request = new ProjectTaskTypeCreateRequest();
+        request.setName("缺陷");
+        request.setSort(2);
+        request.setGitBranchPrefixGroup("  bugfix  ");
+
+        ProjectTaskTypeVo result = service.create(request);
+
+        assertEquals(88L, result.getId());
+        assertEquals("bugfix", result.getGitBranchPrefixGroup());
     }
 
     /**
@@ -75,6 +112,7 @@ class TaskTypeServiceTest {
         existedType.setId(11L);
         existedType.setTenantId(1001L);
         existedType.setName("任务");
+        existedType.setGitBranchPrefixGroup("feat");
 
         when(authCurrentUserApi.getCurrentUser())
                 .thenReturn(AuthCurrentUserDto.builder().tenantId(1001L).build());

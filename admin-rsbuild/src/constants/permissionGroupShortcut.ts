@@ -267,6 +267,27 @@ export const PERMISSION_GROUP_SHORTCUTS: PermissionGroupShortcut[] = [
     description: '项目任务状态配置实际调用的接口。',
   },
   {
+    code: 'ASSET_CATEGORY_DEPENDENCIES',
+    name: '设备分类管理依赖接口',
+    triggerResources: [PERMISSION_RESOURCE.assetCategoryManage],
+    apiResources: [
+      '/asset/category/list',
+      '/asset/category/create',
+      '/asset/category/edit',
+    ],
+    description: '设备分类管理实际调用的接口。',
+  },
+  {
+    code: 'ASSET_CATEGORY_DELETE_DEPENDENCIES',
+    name: '设备分类删除依赖接口',
+    triggerResources: [PERMISSION_RESOURCE.assetCategoryDelete],
+    apiResources: [
+      '/asset/category/delete-check',
+      '/asset/category/delete',
+    ],
+    description: '设备分类删除与迁移删除实际调用的接口。',
+  },
+  {
     code: 'ASSET_DEVICE_DEPENDENCIES',
     name: '设备台账依赖接口',
     triggerResources: [PERMISSION_RESOURCE.assetDeviceManage],
@@ -301,9 +322,11 @@ export const PERMISSION_GROUP_SHORTCUTS: PermissionGroupShortcut[] = [
     triggerResources: [PERMISSION_RESOURCE.assetStocktakeManage],
     apiResources: [
       '/asset/stocktake/list',
+      '/asset/stocktake/detail',
       '/asset/stocktake/create',
       '/asset/stocktake/check',
       '/asset/stocktake/complete',
+      '/asset/stocktake/export',
       '/asset/options/locations',
     ],
     description: '设备盘点任务页实际调用的接口。',

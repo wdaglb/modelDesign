@@ -1,7 +1,9 @@
 import { Empty } from 'antd';
 import type { ReactNode } from 'react';
 import { memo, useCallback } from 'react';
+import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import { TaskPriorityLabel } from '@/api/modules/project-task.types';
+import useAuthStore from '@/store/auth.ts';
 import {
   getColumnSubtitle,
   getTaskAssigneeText,
@@ -9,7 +11,13 @@ import {
   getTaskProjectText,
   getTaskWorkDaysText,
   getBoardPriorityAccentColor,
+  resolveTaskNumberText,
 } from '../#helper';
+import {
+  getTaskBranchUnavailableMessage,
+  resolveTaskBranchName,
+  resolveTaskBranchUnavailableReason,
+} from '../#taskDetailTypeHelper';
 import type { AgileBoardColumnMeta, AgileBoardTask } from '../#types';
 import {
   V2ColumnBody,
@@ -40,33 +48,9 @@ interface AgileBoardV2ColumnProps {
   onOpenSubtasks: (task: AgileBoardTask) => Promise<void>;
   onPreview: (task: AgileBoardTask) => Promise<void>;
   tasks: AgileBoardTask[];
+  taskTypes?: ProjectTaskType[];
 }
 
-/**
- * 统一从多个兼容字段中解析任务编号，避免 v2 面板出现空白编号。
- *
- * @param task 当前任务
- * @returns 用于界面展示的任务编号
- */
-function resolveTaskCode(task: AgileBoardTask) {
-  if (task.taskNo) {
-    return task.taskNo;
-  }
-
-  if (task.taskCode) {
-    return task.taskCode;
-  }
-
-  if (task.code) {
-    return task.code;
-  }
-
-  if (task.serialNumber !== undefined && task.serialNumber !== null) {
-    return String(task.serialNumber);
-  }
-
-  return `TASK-${task.id}`;
-}
 
 /**
  * 判断当前任务是否需要展示子任务入口。
@@ -101,6 +85,7 @@ function resolveTaskTypeText(task: AgileBoardTask) {
  * - 所有展示文案都在本层规整，避免把大而全的通用卡片树带入此页面。
  */
 const AgileBoardV2Column = memo((props: AgileBoardV2ColumnProps) => {
+  const currentInfo = useAuthStore((state) => state.currentInfo);
   const columnSubtitle = getColumnSubtitle(props.column.isHistory);
   let subtitleNode: ReactNode = null;
 
@@ -117,6 +102,18 @@ const AgileBoardV2Column = memo((props: AgileBoardV2ColumnProps) => {
     (task: AgileBoardTask) => {
       const priorityColor = getBoardPriorityAccentColor(task.priority);
       const childTaskCount = task.childTaskCount ?? 0;
+      const taskBranchName = resolveTaskBranchName(
+        task,
+        currentInfo?.gitUsername,
+        props.taskTypes,
+      );
+      const taskBranchUnavailableMessage = getTaskBranchUnavailableMessage(
+        resolveTaskBranchUnavailableReason(
+          task,
+          currentInfo?.gitUsername,
+          props.taskTypes,
+        ),
+      );
       let subtaskActionNode: ReactNode = null;
 
       if (shouldShowSubtaskAction(task)) {
@@ -146,7 +143,7 @@ const AgileBoardV2Column = memo((props: AgileBoardV2ColumnProps) => {
         >
           <V2TaskCardTop>
             <V2TaskCode $accentColor={props.column.accentColor}>
-              {resolveTaskCode(task)}
+              {resolveTaskNumberText(task)}
             </V2TaskCode>
             <V2PriorityTag $color={priorityColor}>
               {TaskPriorityLabel[task.priority]}
@@ -162,6 +159,12 @@ const AgileBoardV2Column = memo((props: AgileBoardV2ColumnProps) => {
             <V2TaskMetaItem>
               <V2TaskMetaLabel>项目</V2TaskMetaLabel>
               <V2TaskMetaValue>{getTaskProjectText(task)}</V2TaskMetaValue>
+            </V2TaskMetaItem>
+            <V2TaskMetaItem>
+              <V2TaskMetaLabel>分支名</V2TaskMetaLabel>
+              <V2TaskMetaValue>
+                {taskBranchName || taskBranchUnavailableMessage}
+              </V2TaskMetaValue>
             </V2TaskMetaItem>
             <V2TaskMetaItem>
               <V2TaskMetaLabel>负责人</V2TaskMetaLabel>
@@ -181,7 +184,13 @@ const AgileBoardV2Column = memo((props: AgileBoardV2ColumnProps) => {
         </V2TaskCard>
       );
     },
-    [props.column.accentColor, props.onOpenSubtasks, props.onPreview],
+    [
+      currentInfo?.gitUsername,
+      props.column.accentColor,
+      props.onOpenSubtasks,
+      props.onPreview,
+      props.taskTypes,
+    ],
   );
 
   return (

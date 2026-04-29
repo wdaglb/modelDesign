@@ -190,6 +190,7 @@ public class TokenService {
                 .claim("username", currentAdmin.getUsername())
                 .claim("nickname", currentAdmin.getNickname())
                 .claim("avatarId", currentAdmin.getAvatarId())
+                .claim("gitUsername", currentAdmin.getGitUsername())
                 .claim("loginIp", currentAdmin.getLoginIp())
                 .claim("tokenType", tokenType)
                 .issuedAt(Date.from(now))

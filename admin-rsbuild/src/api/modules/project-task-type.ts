@@ -18,6 +18,11 @@ export interface ProjectTaskType {
    * 排序值。
    */
   sort: number;
+
+  /**
+   * Git 分支前缀分组。
+   */
+  gitBranchPrefixGroup?: string;
 }
 
 /**
@@ -43,6 +48,11 @@ export interface ProjectTaskTypeCreateParams {
    * 排序值。
    */
   sort: number;
+
+  /**
+   * Git 分支前缀分组。
+   */
+  gitBranchPrefixGroup?: string;
 }
 
 /**
@@ -58,6 +68,11 @@ export interface ProjectTaskTypeEditParams {
    * 排序值。
    */
   sort: number;
+
+  /**
+   * Git 分支前缀分组。
+   */
+  gitBranchPrefixGroup?: string;
 }
 
 /**

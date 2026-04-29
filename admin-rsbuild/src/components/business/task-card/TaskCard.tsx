@@ -10,6 +10,7 @@ import type { TaskCardProps, TaskCardTask } from './TaskCard.types';
 import {
   TaskCardContainer,
   TaskDynamicAlert,
+  TaskBranchText,
   TaskCardHeader,
   TaskCardRoot,
   TaskCardStack,
@@ -212,6 +213,25 @@ function getTaskNumberDisplayText(task: TaskCardTask) {
 }
 
 /**
+ * 任务卡片中的建议分支名文案。
+ *
+ * @param task 当前任务数据
+ * @returns 规范化后的分支名文案
+ */
+function getTaskBranchText(task: TaskCardTask) {
+  if (!task.branchName) {
+    return undefined;
+  }
+
+  const normalizedBranchName = task.branchName.trim();
+  if (!normalizedBranchName) {
+    return undefined;
+  }
+
+  return normalizedBranchName;
+}
+
+/**
  * 任务卡片中的最新动态摘要。
  *
  * 摘要只做空值规整，具体截断与省略交给样式层统一处理，
@@ -384,6 +404,7 @@ const TaskCard = (props: TaskCardProps) => {
   const workDaysText = getTaskWorkDaysText(props.task);
   const taskNumberText = getTaskNumberText(props.task);
   const taskNumberDisplayText = getTaskNumberDisplayText(props.task);
+  const taskBranchText = getTaskBranchText(props.task);
   const latestDynamicSummary = getTaskLatestDynamicSummary(props.task);
   const taskTypeText = getTaskTypeText(props.task);
   let taskTypeTone: TaskTypeTagTone | undefined;
@@ -488,7 +509,10 @@ const TaskCard = (props: TaskCardProps) => {
   let metaProjectNode: ReactNode = null;
   if (taskNumberText) {
     metaProjectNode = (
-      <TaskMetaText type="secondary">{projectText}</TaskMetaText>
+      <>
+        <TaskMetaText type="secondary">{projectText}</TaskMetaText>
+        {taskBranchText ? <TaskBranchText>{taskBranchText}</TaskBranchText> : null}
+      </>
     );
   }
 

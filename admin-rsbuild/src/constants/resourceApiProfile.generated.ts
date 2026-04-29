@@ -19,21 +19,23 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
     "/project/task/detail",
     "/project/task/detail/by-code"
   ],
+  "/asset/category": [
+    "/asset/category/create",
+    "/asset/category/edit",
+    "/asset/category/list"
+  ],
   "/asset/device": [
     "/asset/device/create",
-    "/asset/device/edit",
     "/asset/device/list",
     "/asset/device/receive",
     "/asset/device/return",
     "/asset/device/scrap",
     "/asset/device/transfer",
     "/asset/options/categories",
-    "/asset/options/locations",
-    "/asset/options/users"
+    "/asset/options/locations"
   ],
   "/asset/location": [
     "/asset/location/create",
-    "/asset/location/edit",
     "/asset/location/list"
   ],
   "/asset/stocktake": [
@@ -41,6 +43,8 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
     "/asset/stocktake/check",
     "/asset/stocktake/complete",
     "/asset/stocktake/create",
+    "/asset/stocktake/detail",
+    "/asset/stocktake/export",
     "/asset/stocktake/list"
   ],
   "/login": [

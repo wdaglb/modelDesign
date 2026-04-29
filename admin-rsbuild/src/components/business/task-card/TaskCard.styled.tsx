@@ -168,6 +168,21 @@ export const TaskNumberLink = styled(Typography.Link)`
 `;
 
 /**
+ * 任务卡片中的建议分支名文案。
+ */
+export const TaskBranchText = styled(Typography.Text)`
+  display: block;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: rgba(15, 23, 42, 0.62);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', monospace;
+`;
+
+/**
  * 任务卡片头部辅助文案。
  */
 export const TaskHeaderText = styled(Typography.Text)`

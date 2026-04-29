@@ -4,7 +4,7 @@ import { Button, Dropdown, Space, message } from 'antd';
 import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
-import { ApiProject, ApiProjectTask, ApiProjectTaskStatus } from '@/api';
+import { ApiProject, ApiProjectTask, ApiProjectTaskStatus, ApiProjectTaskType } from '@/api';
 import {
   type ProjectTaskDetail,
   type TaskPriority,
@@ -84,6 +84,10 @@ function RouteComponent() {
   const { data: statusConfigs = [] } = useQuery({
     queryKey: ['project', 'task-status-list', 'agile-board-v2'],
     queryFn: () => ApiProjectTaskStatus.getList(),
+  });
+  const { data: taskTypes = [] } = useQuery({
+    queryKey: ['project', 'task-type-list', 'agile-board-v2'],
+    queryFn: () => ApiProjectTaskType.getList(),
   });
   const projectOptions = useMemo(() => {
     const items = projectListData?.items;
@@ -467,6 +471,7 @@ function RouteComponent() {
                   key={column.status}
                   column={column}
                   tasks={groupedTasks[column.status]}
+                  taskTypes={taskTypes}
                   onOpenSubtasks={handleOpenSubtasks}
                   onPreview={openTaskPreview}
                 />

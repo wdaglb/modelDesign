@@ -46,6 +46,11 @@ public class CurrentAdmin implements Serializable {
     private String avatarId;
 
     /**
+     * Git 用户名。
+     */
+    private String gitUsername;
+
+    /**
      * 登录流水号。
      */
     private String loginId;

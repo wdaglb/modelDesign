@@ -17,6 +17,7 @@ interface BasicInfoTabProps {
 interface BasicInfoFormValues {
   nickname: string;
   avatarId?: string;
+  gitUsername?: string;
 }
 
 /**
@@ -43,6 +44,7 @@ const BasicInfoTab = (props: BasicInfoTabProps) => {
     form.setFieldsValue({
       nickname: props.currentInfo.nickname,
       avatarId: props.currentInfo.avatarId,
+      gitUsername: props.currentInfo.gitUsername,
     });
   }, [form, props.currentInfo]);
 
@@ -71,7 +73,7 @@ const BasicInfoTab = (props: BasicInfoTabProps) => {
 
       <Card title={'可编辑信息'}>
         <Typography.Text type={'secondary'}>
-          第一版支持编辑头像和昵称，登录账号与租户信息暂时保持只读。
+          当前支持编辑头像、昵称和 Git 用户名，登录账号与租户信息暂时保持只读。
         </Typography.Text>
 
         <Form<BasicInfoFormValues>
@@ -82,6 +84,7 @@ const BasicInfoTab = (props: BasicInfoTabProps) => {
             await updateProfileMutation.mutateAsync({
               nickname: values.nickname.trim(),
               avatarId: normalizeAvatarId(values.avatarId),
+              gitUsername: normalizeGitUsername(values.gitUsername),
             });
           }}
         >
@@ -105,6 +108,18 @@ const BasicInfoTab = (props: BasicInfoTabProps) => {
             <Input placeholder={'请输入昵称'} maxLength={50} />
           </Form.Item>
 
+          <Form.Item
+            name={'gitUsername'}
+            label={'Git 用户名'}
+            rules={[{ max: 64, message: 'Git 用户名长度不能超过 64 个字符' }]}
+          >
+            <Input
+              placeholder={'请输入 Git 用户名'}
+              maxLength={64}
+              allowClear
+            />
+          </Form.Item>
+
           <Form.Item style={{ marginBottom: 0 }}>
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
               <Button
@@ -116,6 +131,7 @@ const BasicInfoTab = (props: BasicInfoTabProps) => {
                   form.setFieldsValue({
                     nickname: props.currentInfo.nickname,
                     avatarId: props.currentInfo.avatarId,
+                    gitUsername: props.currentInfo.gitUsername,
                   });
                 }}
               >
@@ -146,6 +162,23 @@ const normalizeAvatarId = (avatarId?: string) => {
     return '';
   }
   return normalizedAvatarId;
+};
+
+/**
+ * 统一规范化 Git 用户名输入，避免把纯空白保存到后端。
+ *
+ * @param gitUsername 原始 Git 用户名
+ * @returns 规范化后的 Git 用户名
+ */
+const normalizeGitUsername = (gitUsername?: string) => {
+  if (typeof gitUsername !== 'string') {
+    return '';
+  }
+  const normalizedGitUsername = gitUsername.trim();
+  if (!normalizedGitUsername) {
+    return '';
+  }
+  return normalizedGitUsername;
 };
 
 const getDisplayText = (value?: string | number) => {

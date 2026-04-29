@@ -42,6 +42,12 @@ public class CurrentInfoVo {
     private String nickname;
 
     /**
+     * Git 用户名。
+     */
+    @Schema(description = "Git 用户名")
+    private String gitUsername;
+
+    /**
      * 当前 token 创建时间。
      */
     @Schema(description = "当前 token 创建时间")

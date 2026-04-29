@@ -25,4 +25,11 @@ public class UpdateCurrentProfileRequest {
     @Schema(description = "头像文件 ID")
     @Size(max = 64, message = "头像文件 ID 长度不能超过 64 个字符")
     private String avatarId;
+
+    /**
+     * Git 用户名。
+     */
+    @Schema(description = "Git 用户名")
+    @Size(max = 64, message = "Git 用户名长度不能超过 64 个字符")
+    private String gitUsername;
 }

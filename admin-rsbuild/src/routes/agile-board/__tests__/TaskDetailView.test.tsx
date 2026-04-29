@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { message, Modal } from 'antd';
 
-import { ApiProjectTask, ApiProjectTaskDynamic, ApiUser } from '@/api';
+import { ApiProjectTask, ApiProjectTaskDynamic, ApiProjectTaskType, ApiUser } from '@/api';
 import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
 import type { ProjectTaskDynamicItem } from '@/api/modules/project-task-dynamic';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 import { copyTextToClipboard } from '@/utils';
+import useAuthStore from '@/store/auth.ts';
 
 import TaskDetailView from '../#TaskDetailView';
 
@@ -113,6 +115,12 @@ vi.mock('@/utils', () => {
   };
 });
 
+vi.mock('@/store/auth.ts', () => {
+  return {
+    default: vi.fn(),
+  };
+});
+
 const statusConfigs: TaskStatusConfig[] = [
   {
     code: 'todo',
@@ -191,10 +199,18 @@ const previewCreateChangeLogs: ProjectTaskChangeLogItem[] = [
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(copyTextToClipboard).mockResolvedValue(undefined);
+  vi.mocked(useAuthStore).mockImplementation((selector) => {
+    return selector({
+      currentInfo: {
+        gitUsername: 'alice-dev',
+      },
+    });
+  });
   vi.mocked(ApiProjectTaskDynamic.getList).mockResolvedValue({
     items: [],
     total: 0,
   });
+  vi.mocked(ApiProjectTaskType.getList).mockResolvedValue([]);
   vi.mocked(ApiUser.getPageList).mockResolvedValue({
     items: [],
     total: 0,
@@ -357,6 +373,170 @@ describe('TaskDetailView', () => {
     });
     await waitFor(() => {
       expect(successMock).toHaveBeenCalledWith('任务标题已复制');
+    });
+  });
+
+  it('点击复制编号时会复制任务编号文案', async () => {
+    const user = userEvent.setup();
+    const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
+      return undefined as never;
+    });
+
+    renderWithQuery(
+      <TaskDetailView
+        task={{
+          ...task,
+          taskNo: 'TASK-1001',
+        }}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '复制编号' }));
+
+    await waitFor(() => {
+      expect(copyTextToClipboard).toHaveBeenCalledWith('TASK-1001');
+    });
+    await waitFor(() => {
+      expect(successMock).toHaveBeenCalledWith('任务编号已复制');
+    });
+  });
+
+  it('任务类型配置前缀后会生成并复制分支名', async () => {
+    const user = userEvent.setup();
+    const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
+      return undefined as never;
+    });
+    vi.mocked(ApiProjectTaskType.getList).mockResolvedValue([
+      {
+        id: 2,
+        name: '缺陷',
+        sort: 1,
+        gitBranchPrefixGroup: 'bugfix',
+      },
+    ]);
+
+    renderWithQuery(
+      <TaskDetailView
+        task={{
+          ...task,
+          taskNo: 'TASK-1001',
+          typeId: 2,
+          typeName: '缺陷',
+        }}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('bugfix/alice-dev/TASK-1001')).toBeDefined();
+    await user.click(screen.getByRole('button', { name: '获取分支名' }));
+
+    await waitFor(() => {
+      expect(copyTextToClipboard).toHaveBeenCalledWith(
+        'bugfix/alice-dev/TASK-1001',
+      );
+    });
+    await waitFor(() => {
+      expect(successMock).toHaveBeenCalledWith('任务分支名已复制');
+    });
+  });
+
+  it('未配置个人 Git 用户名时会提示先去个人中心配置', async () => {
+    const user = userEvent.setup();
+    const warningMock = vi.spyOn(message, 'warning').mockImplementation(() => {
+      return undefined as never;
+    });
+    vi.mocked(useAuthStore).mockImplementation((selector) => {
+      return selector({
+        currentInfo: {
+          gitUsername: '',
+        },
+      });
+    });
+    vi.mocked(ApiProjectTaskType.getList).mockResolvedValue([
+      {
+        id: 2,
+        name: '缺陷',
+        sort: 1,
+        gitBranchPrefixGroup: 'bugfix',
+      },
+    ]);
+
+    renderWithQuery(
+      <TaskDetailView
+        task={{
+          ...task,
+          taskNo: 'TASK-1001',
+          typeId: 2,
+          typeName: '缺陷',
+        }}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('请先在个人中心配置 Git 用户名')).toBeDefined();
+    await user.click(screen.getByRole('button', { name: '获取分支名' }));
+
+    await waitFor(() => {
+      expect(warningMock).toHaveBeenCalledWith('请先在个人中心配置 Git 用户名');
+    });
+  });
+
+  it('任务类型未配置前缀时会提示未配置而不是生成分支名', async () => {
+    const user = userEvent.setup();
+    const warningMock = vi.spyOn(message, 'warning').mockImplementation(() => {
+      return undefined as never;
+    });
+    vi.mocked(ApiProjectTaskType.getList).mockResolvedValue([
+      {
+        id: 1,
+        name: '任务',
+        sort: 1,
+        gitBranchPrefixGroup: '',
+      },
+    ]);
+
+    renderWithQuery(
+      <TaskDetailView
+        task={{
+          ...task,
+          taskNo: 'TASK-1001',
+          typeId: 1,
+          typeName: '任务',
+        }}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('当前任务类型未配置分支前缀')).toBeDefined();
+    await user.click(screen.getByRole('button', { name: '获取分支名' }));
+
+    await waitFor(() => {
+      expect(warningMock).toHaveBeenCalledWith('当前任务类型未配置分支前缀');
     });
   });
 

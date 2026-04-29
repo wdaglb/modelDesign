@@ -64,6 +64,7 @@ class AuthInterceptorTest {
         assertEquals(2L, resolvedAdmin.getUserId());
         assertEquals(1L, resolvedAdmin.getTenantId());
         assertEquals("alice", resolvedAdmin.getUsername());
+        assertEquals(null, resolvedAdmin.getGitUsername());
     }
 
     /**
