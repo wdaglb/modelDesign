@@ -15,12 +15,14 @@ const statusConfigs: TaskStatusConfig[] = [
     name: '待处理',
     sort: 1,
     isCompleted: false,
+    showInAgileBoard: true,
   },
   {
     code: 'done',
     name: '已完成',
     sort: 2,
     isCompleted: true,
+    showInAgileBoard: true,
   },
 ];
 
@@ -41,12 +43,14 @@ describe('taskStatusManagerHelper', () => {
         code: 'todo',
         name: '待处理',
         isCompleted: false,
+        showInAgileBoard: true,
       },
       {
         clientKey: 'status-1-done',
         code: 'done',
         name: '已完成',
         isCompleted: true,
+        showInAgileBoard: true,
       },
     ]);
   });
@@ -58,6 +62,7 @@ describe('taskStatusManagerHelper', () => {
         code: '  todo  ',
         name: ' 待处理 ',
         isCompleted: false,
+        showInAgileBoard: false,
       },
     ]);
 
@@ -67,6 +72,7 @@ describe('taskStatusManagerHelper', () => {
           code: 'todo',
           name: '待处理',
           isCompleted: false,
+          showInAgileBoard: false,
         },
       ],
     });
@@ -79,12 +85,14 @@ describe('taskStatusManagerHelper', () => {
         code: 'todo',
         name: '待处理',
         isCompleted: false,
+        showInAgileBoard: true,
       },
       {
         clientKey: 'draft-2',
         code: 'done',
         name: '已完成',
         isCompleted: false,
+        showInAgileBoard: true,
       },
     ]);
 
@@ -98,6 +106,7 @@ describe('taskStatusManagerHelper', () => {
         code: '1invalid',
         name: '非法状态',
         isCompleted: true,
+        showInAgileBoard: true,
       },
     ]);
 
@@ -126,6 +135,7 @@ describe('taskStatusManagerHelper', () => {
         code: 'todo',
         name: '待处理',
         isCompleted: false,
+        showInAgileBoard: true,
       },
     ]);
     const rightSnapshot = serializeTaskStatusDrafts([
@@ -134,10 +144,34 @@ describe('taskStatusManagerHelper', () => {
         code: 'todo',
         name: '待处理',
         isCompleted: false,
+        showInAgileBoard: true,
       },
     ]);
 
     expect(leftSnapshot).toBe(rightSnapshot);
+  });
+
+  it('草稿快照应包含敏捷面板显示标记', () => {
+    const leftSnapshot = serializeTaskStatusDrafts([
+      {
+        clientKey: 'draft-1',
+        code: 'todo',
+        name: '待处理',
+        isCompleted: false,
+        showInAgileBoard: true,
+      },
+    ]);
+    const rightSnapshot = serializeTaskStatusDrafts([
+      {
+        clientKey: 'draft-1',
+        code: 'todo',
+        name: '待处理',
+        isCompleted: false,
+        showInAgileBoard: false,
+      },
+    ]);
+
+    expect(leftSnapshot).not.toBe(rightSnapshot);
   });
 
   it('新增空草稿时默认使用未完成状态', () => {
@@ -146,6 +180,7 @@ describe('taskStatusManagerHelper', () => {
       code: '',
       name: '',
       isCompleted: false,
+      showInAgileBoard: true,
     });
   });
 });

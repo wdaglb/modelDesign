@@ -35,8 +35,20 @@ const {
       projectName: '演示项目',
     } as TodoItem,
     mockStatusConfigs: [
-      { code: 'todo', name: '待处理', sort: 1, isCompleted: false },
-      { code: 'inProgress', name: '进行中', sort: 2, isCompleted: false },
+      {
+        code: 'todo',
+        name: '待处理',
+        sort: 1,
+        isCompleted: false,
+        showInAgileBoard: true,
+      },
+      {
+        code: 'inProgress',
+        name: '进行中',
+        sort: 2,
+        isCompleted: false,
+        showInAgileBoard: true,
+      },
     ],
     mockCurrentInfo: {
       userId: 9527,

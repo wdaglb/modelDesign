@@ -45,7 +45,7 @@ const TaskIterationSelect = (props: TaskIterationSelectProps) => {
     });
 
     const selectedIterationId = props.selectedIteration?.id;
-    if (selectedIterationId === undefined) {
+    if (selectedIterationId === undefined || selectedIterationId === null) {
       return options;
     }
 
@@ -76,7 +76,7 @@ const TaskIterationSelect = (props: TaskIterationSelectProps) => {
       showSearch={{
         optionFilterProp: 'label',
       }}
-      value={props.value}
+      value={props.value ?? undefined}
       onChange={props.onChange}
     />
   );

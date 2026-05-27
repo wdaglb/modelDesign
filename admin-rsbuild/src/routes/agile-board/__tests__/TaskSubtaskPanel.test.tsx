@@ -42,9 +42,27 @@ const parentTask: ProjectTaskDetail = {
 };
 
 const statusConfigs: TaskStatusConfig[] = [
-  { code: 'doing', name: '处理中', sort: 10, isCompleted: false },
-  { code: 'todo', name: '待处理', sort: 1, isCompleted: false },
-  { code: 'done', name: '已完成', sort: 20, isCompleted: true },
+  {
+    code: 'doing',
+    name: '处理中',
+    sort: 10,
+    isCompleted: false,
+    showInAgileBoard: true,
+  },
+  {
+    code: 'todo',
+    name: '待处理',
+    sort: 1,
+    isCompleted: false,
+    showInAgileBoard: true,
+  },
+  {
+    code: 'done',
+    name: '已完成',
+    sort: 20,
+    isCompleted: true,
+    showInAgileBoard: true,
+  },
 ];
 
 describe('TaskSubtaskPanel', () => {

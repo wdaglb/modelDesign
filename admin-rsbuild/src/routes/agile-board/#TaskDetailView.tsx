@@ -477,6 +477,17 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
     props.task,
     window.location.origin,
   );
+  const parentTaskLinkText = useMemo(() => {
+    if (props.task.parentTaskId === undefined || props.task.parentTaskId === null) {
+      return undefined;
+    }
+
+    if (props.task.parentTaskTitle) {
+      return props.task.parentTaskTitle;
+    }
+
+    return `父任务 #${props.task.parentTaskId}`;
+  }, [props.task.parentTaskId, props.task.parentTaskTitle]);
   const statusText = getBoardStatusText(props.task.status, props.statusConfigs);
   const priorityText = getTaskPriorityText(props.task.priority);
   const typeText = useMemo(() => {
@@ -515,7 +526,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
       };
     });
 
-    if (props.task.iterationId === undefined) {
+    if (props.task.iterationId === undefined || props.task.iterationId === null) {
       return options;
     }
 
@@ -1013,6 +1024,27 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
   };
 
   /**
+   * 打开当前子任务关联的父任务详情。
+   *
+   * 当前详情对象只需要父任务 ID 和标题即可让外层抽屉重新请求详情，
+   * 其它字段在这里只作为类型兜底，不参与真实展示。
+   */
+  const handleOpenParentTaskDetail = async () => {
+    if (props.task.parentTaskId === undefined || props.task.parentTaskId === null) {
+      return;
+    }
+
+    await props.onEditTask({
+      id: props.task.parentTaskId,
+      projectId: props.task.projectId,
+      projectCode: props.task.projectCode,
+      title: parentTaskLinkText || `父任务 #${props.task.parentTaskId}`,
+      status: props.task.status,
+      priority: props.task.priority,
+    });
+  };
+
+  /**
    * 删除子任务并刷新详情态数据。
    *
    * 删除成功后需要同步回刷子任务列表和主任务详情，避免抽屉内计数与最新状态残留。
@@ -1240,7 +1272,7 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                   popupMatchSelectWidth={false}
                   size={'small'}
                   style={{ minWidth: 120 }}
-                  value={props.task.iterationId}
+                  value={props.task.iterationId ?? undefined}
                   variant={'borderless'}
                   showSearch={{
                     optionFilterProp: 'label',
@@ -1250,6 +1282,16 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                   }}
                 />
               </TaskDetailIdRow>
+              {parentTaskLinkText && (
+                <Typography.Link
+                  style={{ fontSize: 12 }}
+                  onClick={() => {
+                    void handleOpenParentTaskDetail();
+                  }}
+                >
+                  {`父任务：${parentTaskLinkText}`}
+                </Typography.Link>
+              )}
               <div
                 style={{
                   display: 'flex',

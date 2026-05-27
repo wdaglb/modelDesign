@@ -23,6 +23,11 @@ export interface TaskStatusConfig {
    * 是否为完成状态。
    */
   isCompleted: boolean;
+
+  /**
+   * 是否显示在敏捷面板。
+   */
+  showInAgileBoard: boolean;
 }
 
 /**
@@ -43,6 +48,11 @@ export interface TaskStatusSaveItem {
    * 是否为完成状态。
    */
   isCompleted: boolean;
+
+  /**
+   * 是否显示在敏捷面板。
+   */
+  showInAgileBoard: boolean;
 }
 
 /**

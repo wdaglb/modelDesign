@@ -2,12 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AxiosResponse } from 'axios';
 
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
+import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import { RequestError } from '@/api/types';
 
 import {
+  buildAgileBoardColumns,
   buildBoardQueryParams,
   buildAgileBoardTaskShareUrl,
   filterBoardParentTasks,
+  groupBoardTasks,
   handleBoardTitleSearch,
 } from '../#helper';
 
@@ -18,6 +21,23 @@ const taskDetail: ProjectTaskDetail = {
   status: 'todo',
   priority: 'medium',
 };
+
+const statusConfigs: TaskStatusConfig[] = [
+  {
+    code: 'todo',
+    name: '待处理',
+    sort: 1,
+    isCompleted: false,
+    showInAgileBoard: true,
+  },
+  {
+    code: 'canceled',
+    name: '已取消',
+    sort: 2,
+    isCompleted: false,
+    showInAgileBoard: false,
+  },
+];
 
 function buildRequestError(status: number) {
   const response = {
@@ -92,6 +112,29 @@ describe('handleBoardTitleSearch', () => {
     const result = filterBoardParentTasks(tasks);
 
     expect(result).toEqual([tasks[0]]);
+  });
+
+  it('敏捷面板只展示开启显示的状态列和任务', () => {
+    const tasks = [
+      {
+        id: 1,
+        title: '待处理任务',
+        status: 'todo',
+      },
+      {
+        id: 2,
+        title: '取消任务',
+        status: 'canceled',
+      },
+    ] as ProjectTaskDetail[];
+
+    const columns = buildAgileBoardColumns(statusConfigs, tasks);
+    const groupedTasks = groupBoardTasks(tasks, columns);
+
+    expect(columns.map((column) => column.status)).toEqual(['todo']);
+    expect(groupedTasks).toEqual({
+      todo: [tasks[0]],
+    });
   });
 
   it('普通标题输入时直接触发标题搜索', async () => {

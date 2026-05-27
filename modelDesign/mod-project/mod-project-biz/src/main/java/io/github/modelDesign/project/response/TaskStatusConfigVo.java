@@ -34,4 +34,10 @@ public class TaskStatusConfigVo {
      */
     @Schema(description = "是否为完成状态")
     private Boolean isCompleted;
+
+    /**
+     * 是否显示在敏捷面板。
+     */
+    @Schema(description = "是否显示在敏捷面板")
+    private Boolean showInAgileBoard;
 }

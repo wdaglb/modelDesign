@@ -7,6 +7,7 @@ import {
   Input,
   Radio,
   Space,
+  Switch,
   Table,
   Typography,
   message,
@@ -260,6 +261,27 @@ const TaskStatusManager = () => {
           >
             完成
           </Radio>
+        );
+      },
+    },
+    {
+      title: '敏捷面板显示',
+      dataIndex: 'showInAgileBoard',
+      key: 'showInAgileBoard',
+      width: 160,
+      render: (value: boolean, record) => {
+        return (
+          <Switch
+            checked={value}
+            disabled={!canSave}
+            checkedChildren={'显示'}
+            unCheckedChildren={'隐藏'}
+            onChange={(checked) => {
+              updateDraftItem(record.clientKey, {
+                showInAgileBoard: checked,
+              });
+            }}
+          />
         );
       },
     },

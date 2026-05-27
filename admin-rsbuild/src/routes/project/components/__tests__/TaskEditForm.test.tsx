@@ -61,6 +61,7 @@ const statusConfigs: TaskStatusConfig[] = [
     name: '待处理',
     sort: 1,
     isCompleted: false,
+    showInAgileBoard: true,
   },
 ];
 

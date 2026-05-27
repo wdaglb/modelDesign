@@ -28,6 +28,7 @@ describe('openTaskPreviewDrawer', () => {
         name: '待处理',
         sort: 1,
         isCompleted: false,
+        showInAgileBoard: true,
       },
     ];
     const iterations = [

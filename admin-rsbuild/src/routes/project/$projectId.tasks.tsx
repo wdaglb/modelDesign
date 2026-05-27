@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
-import { message } from 'antd';
+import { Button, message, Modal, Space, Typography } from 'antd';
 import type { TableProps } from 'antd';
 
 import { ApiProjectMember, ApiProjectTask } from '@/api';
@@ -68,6 +68,8 @@ function RouteComponent() {
   const [sorter, setSorter] = useState<TaskSorterState>({});
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [savingCellKey, setSavingCellKey] = useState<string>();
+  const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>([]);
+  const [batchDeleting, setBatchDeleting] = useState(false);
   const saveLockRef = useRef(false);
 
   const { data: memberList } = useQuery({
@@ -146,6 +148,15 @@ function RouteComponent() {
     setPagination({ current, pageSize });
   };
 
+  /**
+   * 更新任务表格多选状态。
+   *
+   * @param taskIds 当前已选任务 ID 列表
+   */
+  const handleSelectionChange = (taskIds: number[]) => {
+    setSelectedTaskIds(taskIds);
+  };
+
   const invalidateTaskQueries = async () => {
     await Promise.all([
       queryClient.invalidateQueries({
@@ -179,7 +190,44 @@ function RouteComponent() {
   const handleDelete = async (taskId: number) => {
     await ApiProjectTask.deleted([taskId]);
     message.success('删除成功');
+    setSelectedTaskIds((previous) => {
+      return previous.filter((selectedTaskId) => selectedTaskId !== taskId);
+    });
     await invalidateTaskQueries();
+  };
+
+  /**
+   * 批量删除已选任务。
+   *
+   * 删除前使用二次确认，避免多选场景下误删；删除成功后清空选择并刷新
+   * 项目任务、敏捷面板和待办等依赖任务数据的查询。
+   */
+  const handleBatchDelete = () => {
+    if (!canDeleteTask || selectedTaskIds.length === 0 || batchDeleting) {
+      return;
+    }
+
+    Modal.confirm({
+      title: '确认删除任务',
+      content: `已选择 ${selectedTaskIds.length} 个任务，删除后无法恢复，确认继续吗？`,
+      okText: '确认删除',
+      cancelText: '取消',
+      okButtonProps: {
+        danger: true,
+      },
+      onOk: async () => {
+        setBatchDeleting(true);
+
+        try {
+          await ApiProjectTask.deleted(selectedTaskIds);
+          message.success('批量删除成功');
+          setSelectedTaskIds([]);
+          await invalidateTaskQueries();
+        } finally {
+          setBatchDeleting(false);
+        }
+      },
+    });
   };
 
   const getCellKey = (taskId: number, field: EditableField) => {
@@ -333,6 +381,7 @@ function RouteComponent() {
       pagination={pagination}
       projectName={project?.name}
       savingCellKey={savingCellKey}
+      selectedTaskIds={selectedTaskIds}
       sorter={sorter}
       onAssigneeSave={handleAssigneeSave}
       onCloseEditingCell={closeEditingCell}
@@ -341,41 +390,69 @@ function RouteComponent() {
       onEdit={openTaskForm}
       onPaginationChange={handlePaginationChange}
       onPrioritySave={handlePrioritySave}
+      onSelectionChange={handleSelectionChange}
       onStartEditCell={startEditCell}
       onStartTimeSave={handleStartTimeSave}
       onStatusSave={handleStatusSave}
       onTableChange={handleTableChange}
       toolbar={
-        <ProjectTaskToolbar
-          assigneeId={assigneeId}
-          canCreateTask={canCreateTask}
-          memberOptions={memberOptions}
-          priority={priority}
-          status={status}
-          onAssigneeChange={(value) => {
-            closeEditingCell();
-            resetToFirstPage();
-            setAssigneeId(value);
-          }}
-          onCreate={async () => {
-            await openTaskForm();
-          }}
-          onPriorityChange={(value) => {
-            closeEditingCell();
-            resetToFirstPage();
-            setPriority(value);
-          }}
-          onStatusChange={(value) => {
-            closeEditingCell();
-            resetToFirstPage();
-            setStatus(value);
-          }}
-          onTitleSearch={(value) => {
-            closeEditingCell();
-            resetToFirstPage();
-            setTitle(value);
-          }}
-        />
+        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+          <ProjectTaskToolbar
+            assigneeId={assigneeId}
+            canCreateTask={canCreateTask}
+            memberOptions={memberOptions}
+            priority={priority}
+            status={status}
+            onAssigneeChange={(value) => {
+              closeEditingCell();
+              resetToFirstPage();
+              setAssigneeId(value);
+            }}
+            onCreate={async () => {
+              await openTaskForm();
+            }}
+            onPriorityChange={(value) => {
+              closeEditingCell();
+              resetToFirstPage();
+              setPriority(value);
+            }}
+            onStatusChange={(value) => {
+              closeEditingCell();
+              resetToFirstPage();
+              setStatus(value);
+            }}
+            onTitleSearch={(value) => {
+              closeEditingCell();
+              resetToFirstPage();
+              setTitle(value);
+            }}
+          />
+
+          {selectedTaskIds.length > 0 && (
+            <Space size={8}>
+              <Typography.Text type="secondary">
+                {`已选择 ${selectedTaskIds.length} 个任务`}
+              </Typography.Text>
+              <Button
+                danger
+                size="small"
+                disabled={!canDeleteTask}
+                loading={batchDeleting}
+                onClick={handleBatchDelete}
+              >
+                批量删除
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setSelectedTaskIds([]);
+                }}
+              >
+                取消选择
+              </Button>
+            </Space>
+          )}
+        </Space>
       }
     />
   );

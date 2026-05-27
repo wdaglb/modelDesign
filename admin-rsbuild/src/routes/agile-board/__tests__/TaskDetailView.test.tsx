@@ -132,12 +132,14 @@ const statusConfigs: TaskStatusConfig[] = [
     name: '待处理',
     sort: 1,
     isCompleted: false,
+    showInAgileBoard: true,
   },
   {
     code: 'doing',
     name: '处理中',
     sort: 2,
     isCompleted: false,
+    showInAgileBoard: true,
   },
 ];
 
@@ -240,6 +242,60 @@ describe('TaskDetailView', () => {
     expect(screen.getByText('时间')).toBeDefined();
     expect(screen.getByDisplayValue('2026-04-19')).toBeDefined();
     expect(screen.getByDisplayValue('2026-04-20')).toBeDefined();
+  });
+
+  it('子任务详情应展示父任务链接并可打开父任务详情', async () => {
+    const user = userEvent.setup();
+    const onEditTask = vi.fn().mockResolvedValue(undefined);
+    const childTask: ProjectTaskDetail = {
+      ...task,
+      id: 2001,
+      parentTaskId: task.id,
+      parentTaskTitle: '父任务标题',
+      title: '子任务标题',
+    };
+
+    renderWithQuery(
+      <TaskDetailView
+        task={childTask}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={onEditTask}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByText('父任务：父任务标题'));
+
+    expect(onEditTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: task.id,
+        title: '父任务标题',
+      }),
+    );
+  });
+
+  it('空迭代任务不应展示迭代 null 兜底项', () => {
+    renderWithQuery(
+      <TaskDetailView
+        task={{
+          ...task,
+          iterationId: null as unknown as number,
+        }}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('迭代#null')).toBeNull();
   });
 
   it('动态 Tab 应展示预置动态内容', () => {

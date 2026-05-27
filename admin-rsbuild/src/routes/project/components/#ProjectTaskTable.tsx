@@ -20,8 +20,10 @@ interface ProjectTaskTableProps extends ProjectTaskColumnProps {
   params: ProjectTaskListParams;
   pagination: TaskPaginationState;
   projectName?: string;
+  selectedTaskIds?: number[];
   toolbar: ReactNode;
   onPaginationChange: (current: number, pageSize: number) => void;
+  onSelectionChange?: (taskIds: number[]) => void;
   onTableChange: TableProps<ProjectTaskItem>['onChange'];
 }
 
@@ -30,6 +32,20 @@ interface ProjectTaskTableProps extends ProjectTaskColumnProps {
  */
 const ProjectTaskTable = (props: ProjectTaskTableProps) => {
   const columns = createProjectTaskColumns(props);
+  let rowSelection: TableProps<ProjectTaskItem>['rowSelection'];
+
+  if (props.onSelectionChange) {
+    /**
+     * 多选状态由项目任务页托管，便于批量删除后主动清空选择。
+     */
+    rowSelection = {
+      selectedRowKeys: props.selectedTaskIds,
+      preserveSelectedRowKeys: true,
+      onChange: (selectedRowKeys) => {
+        props.onSelectionChange?.(selectedRowKeys as number[]);
+      },
+    };
+  }
 
   return (
     <KTable<ProjectTaskItem>
@@ -39,6 +55,7 @@ const ProjectTaskTable = (props: ProjectTaskTableProps) => {
       params={props.params}
       columns={columns}
       onChange={props.onTableChange}
+      rowSelection={rowSelection}
       scroll={{ x: 1760 }}
       pagination={{
         current: props.pagination.current,

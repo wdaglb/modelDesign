@@ -281,22 +281,11 @@ export function buildAgileBoardColumns(
 ) {
   const columns: AgileBoardColumnMeta[] = [];
   const existingStatusSet = new Set<string>();
+  const visibleStatusConfigs = filterAgileBoardStatusConfigs(statusConfigs);
 
-  statusConfigs.forEach((statusConfig, index) => {
+  visibleStatusConfigs.forEach((statusConfig, index) => {
     existingStatusSet.add(statusConfig.code);
     columns.push(buildColumnMeta(statusConfig, index));
-  });
-
-  const historyStatusCodes = collectHistoryStatusCodes(tasks, existingStatusSet);
-  historyStatusCodes.forEach((statusCode) => {
-    columns.push({
-      status: statusCode,
-      title: `${statusCode}（历史状态）`,
-      isCompleted: false,
-      accentColor: HISTORY_ACCENT_COLOR,
-      background: HISTORY_BACKGROUND,
-      isHistory: true,
-    });
   });
 
   return columns;
@@ -317,7 +306,7 @@ export function groupBoardTasks(
 
   tasks.forEach((task) => {
     if (!groupedTasks[task.status]) {
-      groupedTasks[task.status] = [];
+      return;
     }
     groupedTasks[task.status].push(task);
   });
@@ -553,7 +542,8 @@ export function buildBoardStatusOptions(
   statusConfigs: TaskStatusConfig[],
   currentStatus: TaskStatusCode,
 ) {
-  const options = statusConfigs.map((item) => {
+  const visibleStatusConfigs = filterAgileBoardStatusConfigs(statusConfigs);
+  const options = visibleStatusConfigs.map((item) => {
     return {
       label: item.name,
       value: item.code,
@@ -564,7 +554,7 @@ export function buildBoardStatusOptions(
     return options;
   }
 
-  const exists = statusConfigs.some((item) => item.code === currentStatus);
+  const exists = visibleStatusConfigs.some((item) => item.code === currentStatus);
   if (exists) {
     return options;
   }
@@ -576,6 +566,20 @@ export function buildBoardStatusOptions(
       value: currentStatus,
     },
   ];
+}
+
+/**
+ * 过滤敏捷面板可展示的任务状态配置。
+ *
+ * @param statusConfigs 完整任务状态配置
+ * @returns 允许在敏捷面板展示的状态配置
+ */
+export function filterAgileBoardStatusConfigs(
+  statusConfigs: TaskStatusConfig[],
+) {
+  return statusConfigs.filter((statusConfig) => {
+    return statusConfig.showInAgileBoard !== false;
+  });
 }
 
 function buildColumnMeta(statusConfig: TaskStatusConfig, index: number) {

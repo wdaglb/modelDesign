@@ -189,6 +189,7 @@ public class TaskStatusConfigService extends ServiceImpl<TaskStatusConfigMapper,
             config.setName(name);
             config.setSort(index + 1);
             config.setIsCompleted(completed);
+            config.setShowInAgileBoard(resolveShowInAgileBoard(item));
             nextConfigs.add(config);
         }
 
@@ -311,9 +312,36 @@ public class TaskStatusConfigService extends ServiceImpl<TaskStatusConfigMapper,
                     .name(config.getName())
                     .sort(config.getSort())
                     .isCompleted(config.getIsCompleted())
+                    .showInAgileBoard(resolveShowInAgileBoard(config))
                     .build());
         }
         return result;
+    }
+
+    /**
+     * 解析保存请求中的敏捷面板显示标记。
+     *
+     * @param item 状态保存项
+     * @return 是否显示在敏捷面板；兼容旧请求缺字段时默认显示
+     */
+    private Boolean resolveShowInAgileBoard(TaskStatusSaveItemRequest item) {
+        if (item.getShowInAgileBoard() == null) {
+            return true;
+        }
+        return item.getShowInAgileBoard();
+    }
+
+    /**
+     * 解析实体中的敏捷面板显示标记。
+     *
+     * @param config 状态配置实体
+     * @return 是否显示在敏捷面板；兼容历史数据缺字段时默认显示
+     */
+    private Boolean resolveShowInAgileBoard(TaskStatusConfig config) {
+        if (config.getShowInAgileBoard() == null) {
+            return true;
+        }
+        return config.getShowInAgileBoard();
     }
 
     /**

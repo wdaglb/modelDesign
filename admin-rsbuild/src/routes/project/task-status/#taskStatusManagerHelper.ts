@@ -29,6 +29,11 @@ export interface EditableTaskStatusItem {
    * 是否为完成状态。
    */
   isCompleted: boolean;
+
+  /**
+   * 是否显示在敏捷面板。
+   */
+  showInAgileBoard: boolean;
 }
 
 /**
@@ -46,6 +51,7 @@ export function createEditableTaskStatuses(
       code: status.code,
       name: status.name,
       isCompleted: status.isCompleted,
+      showInAgileBoard: status.showInAgileBoard,
     };
   });
 }
@@ -64,6 +70,7 @@ export function createEmptyTaskStatusItem(
     code: '',
     name: '',
     isCompleted: false,
+    showInAgileBoard: true,
   };
 }
 
@@ -81,6 +88,7 @@ export function buildTaskStatusSaveParams(
       code: item.code.trim(),
       name: item.name.trim(),
       isCompleted: item.isCompleted,
+      showInAgileBoard: item.showInAgileBoard,
     };
   });
 
@@ -199,6 +207,7 @@ export function serializeTaskStatusDrafts(
         code: item.code.trim(),
         name: item.name.trim(),
         isCompleted: item.isCompleted,
+        showInAgileBoard: item.showInAgileBoard,
       };
     }),
   );

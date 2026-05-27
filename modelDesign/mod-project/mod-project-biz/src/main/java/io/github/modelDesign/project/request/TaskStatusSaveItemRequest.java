@@ -34,4 +34,10 @@ public class TaskStatusSaveItemRequest {
     @Schema(description = "是否为完成状态", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "完成状态标记不能为空")
     private Boolean isCompleted;
+
+    /**
+     * 是否显示在敏捷面板。
+     */
+    @Schema(description = "是否显示在敏捷面板")
+    private Boolean showInAgileBoard;
 }
