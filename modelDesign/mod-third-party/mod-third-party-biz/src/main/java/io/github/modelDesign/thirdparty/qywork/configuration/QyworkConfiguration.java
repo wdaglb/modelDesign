@@ -11,7 +11,10 @@ import java.time.Duration;
  * 企业微信模块配置。
  */
 @Configuration
-@EnableConfigurationProperties(QyworkProperties.class)
+@EnableConfigurationProperties({
+        AppDomainProperties.class,
+        QyworkProperties.class
+})
 public class QyworkConfiguration {
     /**
      * 企业微信专用 HTTP 客户端。

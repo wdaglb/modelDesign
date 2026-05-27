@@ -48,7 +48,7 @@ public class OauthBindingSession implements Serializable {
     private String entryMode;
 
     /**
-     * 当前前端公开 origin。
+     * 后端配置的应用公开域名。
      */
     private String origin;
 

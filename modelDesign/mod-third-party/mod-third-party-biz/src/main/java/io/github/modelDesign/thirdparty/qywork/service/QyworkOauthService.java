@@ -10,6 +10,7 @@ import io.github.modelDesign.thirdparty.oauth.service.OauthBindingSessionService
 import io.github.modelDesign.thirdparty.oauth.service.UserOauthService;
 import io.github.modelDesign.thirdparty.qywork.client.QyworkOauthClient;
 import io.github.modelDesign.thirdparty.qywork.client.QyworkOauthUserInfoResponse;
+import io.github.modelDesign.thirdparty.qywork.configuration.AppDomainProperties;
 import io.github.modelDesign.thirdparty.qywork.configuration.QyworkProperties;
 import io.github.modelDesign.thirdparty.qywork.domain.QyworkCorpConfig;
 import io.github.modelDesign.thirdparty.qywork.request.CreateOauthBindingSessionRequest;
@@ -41,6 +42,7 @@ public class QyworkOauthService {
     private final UserOauthService userOauthService;
     private final OauthBindingSessionService oauthBindingSessionService;
     private final QyworkProperties qyworkProperties;
+    private final AppDomainProperties appDomainProperties;
 
     /**
      * 获取当前登录用户的企业微信绑定状态。
@@ -77,13 +79,19 @@ public class QyworkOauthService {
         }
 
         String providerAppId = buildProviderAppId(config);
+        /*
+         * 二维码和 OAuth 回调必须使用后端部署时确认的公开域名。
+         * 不能继续信任前端传入的 origin，否则本地调试域名、代理域名
+         * 或被篡改的请求体都会生成不可用甚至不安全的授权地址。
+         */
+        String appDomain = normalizeAppDomain(appDomainProperties.getDomain());
         OauthBindingSession session = oauthBindingSessionService.createPendingSession(
                 tenantId,
                 currentAdmin.getUserId(),
                 PROVIDER,
                 providerAppId,
                 request.getEntryMode(),
-                normalizeOrigin(request.getOrigin())
+                appDomain
         );
 
         String callbackUrl = buildCallbackUrl(session.getOrigin());
@@ -277,10 +285,18 @@ public class QyworkOauthService {
         return origin + "/api/third-party/qywork/binding/scan-entry?sceneToken=" + sceneToken;
     }
 
-    private String normalizeOrigin(String origin) {
-        String normalized = origin == null ? "" : origin.trim();
+    private String normalizeAppDomain(String domain) {
+        String normalized = domain == null ? "" : domain.trim();
         if (!StringUtils.hasText(normalized) || !(normalized.startsWith("http://") || normalized.startsWith("https://"))) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "origin 格式不正确");
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "app.domain 配置不正确");
+        }
+        return stripTrailingSlash(normalized);
+    }
+
+    private String stripTrailingSlash(String domain) {
+        String normalized = domain;
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized;
     }

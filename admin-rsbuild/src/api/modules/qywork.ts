@@ -91,7 +91,6 @@ export interface QyworkCurrentBinding {
 
 export interface CreateQyworkBindingSessionParams {
   entryMode: 'in_app' | 'desktop_qr';
-  origin: string;
 }
 
 export interface QyworkBindingSessionCreated {
