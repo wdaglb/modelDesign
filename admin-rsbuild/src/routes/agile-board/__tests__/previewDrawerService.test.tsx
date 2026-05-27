@@ -30,6 +30,15 @@ describe('openTaskPreviewDrawer', () => {
         isCompleted: false,
       },
     ];
+    const iterations = [
+      {
+        id: 1,
+        name: '当前迭代',
+        startDate: '2026-04-01',
+        endDate: '2026-04-15',
+        published: true,
+      },
+    ];
 
     const onEdit = vi.fn<
       (task: ProjectTaskDetail) => Promise<void>
@@ -38,6 +47,7 @@ describe('openTaskPreviewDrawer', () => {
 
     await openTaskPreviewDrawer(drawer, {
       taskId: 1001,
+      iterations,
       statusConfigs,
       initialTabKey: 'subtask',
       onEdit,
@@ -59,6 +69,7 @@ describe('openTaskPreviewDrawer', () => {
 
     const drawerChildren = openProps.children as ReactElement;
     expect(drawerChildren.props.taskId).toBe(1001);
+    expect(drawerChildren.props.iterations).toBe(iterations);
     expect(drawerChildren.props.statusConfigs).toBe(statusConfigs);
     expect(drawerChildren.props.initialTabKey).toBe('subtask');
     expect(drawerChildren.props.onEdit).toBe(onEdit);

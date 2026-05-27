@@ -396,6 +396,7 @@ export function buildEditPayload(
   let nextAssigneeId = task.assigneeId;
   let nextStartTime = normalizeDateValue(task.startTime);
   let nextDueTime = normalizeDateValue(task.dueTime);
+  let nextIterationId = task.iterationId;
 
   if (Object.prototype.hasOwnProperty.call(patch, 'assigneeId')) {
     nextAssigneeId = patch.assigneeId;
@@ -409,10 +410,15 @@ export function buildEditPayload(
     nextDueTime = patch.dueTime;
   }
 
+  if (Object.prototype.hasOwnProperty.call(patch, 'iterationId')) {
+    nextIterationId = patch.iterationId;
+  }
+
   return {
     title: patch.title ?? task.title,
     description: patch.description ?? task.description,
     typeId: patch.typeId ?? (task.typeId as number),
+    iterationId: nextIterationId,
     status: patch.status ?? task.status,
     priority: patch.priority ?? task.priority,
     workDays: patch.workDays ?? task.workDays,

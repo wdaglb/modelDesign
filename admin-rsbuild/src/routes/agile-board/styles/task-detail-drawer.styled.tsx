@@ -86,6 +86,35 @@ export const TaskDetailIdRow = styled.div`
 `;
 
 /**
+ * 详情头部可点击复制的短文本。
+ *
+ * 任务编号和分支名都属于高频复制信息，直接在文本本身提供交互，
+ * 可以减少额外“复制”按钮占位；下划线用于明确提示这是可点击区域。
+ */
+export const TaskDetailCopyText = styled.button`
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #4e5969;
+  font-size: 10px;
+  line-height: 16px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    color: #1677ff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(22, 119, 255, 0.35);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+`;
+
+/**
  * 实体主标题。
  */
 export const TaskDetailEntityTitle = styled.h3<{ $clickable?: boolean }>`

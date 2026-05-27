@@ -5,7 +5,12 @@ import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { message, Modal } from 'antd';
 
-import { ApiProjectTask, ApiProjectTaskDynamic, ApiProjectTaskType, ApiUser } from '@/api';
+import {
+  ApiProjectTask,
+  ApiProjectTaskDynamic,
+  ApiProjectTaskType,
+  ApiUser,
+} from '@/api';
 import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
 import type { ProjectTaskDynamicItem } from '@/api/modules/project-task-dynamic';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
@@ -376,7 +381,7 @@ describe('TaskDetailView', () => {
     });
   });
 
-  it('点击复制编号时会复制任务编号文案', async () => {
+  it('点击任务编号文本时会复制任务编号文案', async () => {
     const user = userEvent.setup();
     const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
       return undefined as never;
@@ -398,7 +403,16 @@ describe('TaskDetailView', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: '复制编号' }));
+    const taskNumberCopyTrigger = screen.getByRole('button', {
+      name: 'TASK-1001',
+    });
+
+    expect(taskNumberCopyTrigger).toBeDefined();
+    expect(taskNumberCopyTrigger.getAttribute('title')).toBe(
+      '点击复制任务编号',
+    );
+
+    await user.click(taskNumberCopyTrigger);
 
     await waitFor(() => {
       expect(copyTextToClipboard).toHaveBeenCalledWith('TASK-1001');
@@ -408,7 +422,7 @@ describe('TaskDetailView', () => {
     });
   });
 
-  it('任务类型配置前缀后会生成并复制分支名', async () => {
+  it('任务类型配置前缀后点击分支名文本会复制分支名', async () => {
     const user = userEvent.setup();
     const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
       return undefined as never;
@@ -441,7 +455,17 @@ describe('TaskDetailView', () => {
     );
 
     expect(await screen.findByText('bugfix/alice-dev/TASK-1001')).toBeDefined();
-    await user.click(screen.getByRole('button', { name: '获取分支名' }));
+
+    const branchNameCopyTrigger = screen.getByRole('button', {
+      name: 'bugfix/alice-dev/TASK-1001',
+    });
+
+    expect(branchNameCopyTrigger).toBeDefined();
+    expect(branchNameCopyTrigger.getAttribute('title')).toBe(
+      '点击复制任务分支名',
+    );
+
+    await user.click(branchNameCopyTrigger);
 
     await waitFor(() => {
       expect(copyTextToClipboard).toHaveBeenCalledWith(
@@ -450,6 +474,68 @@ describe('TaskDetailView', () => {
     });
     await waitFor(() => {
       expect(successMock).toHaveBeenCalledWith('任务分支名已复制');
+    });
+  });
+
+  it('分支名右侧会展示当前迭代并支持快捷修改', async () => {
+    const user = userEvent.setup();
+    const onTaskUpdated = vi.fn().mockResolvedValue(undefined);
+
+    vi.mocked(ApiProjectTask.edit).mockResolvedValue({
+      ...task,
+      iterationId: 2,
+      iterationName: '第二迭代',
+    });
+
+    renderWithQuery(
+      <TaskDetailView
+        task={{
+          ...task,
+          iterationId: 1,
+          iterationName: '第一迭代',
+        }}
+        iterations={[
+          {
+            id: 1,
+            name: '第一迭代',
+            startDate: '2026-04-01',
+            endDate: '2026-04-15',
+            published: true,
+          },
+          {
+            id: 2,
+            name: '第二迭代',
+            startDate: '2026-04-16',
+            endDate: '2026-04-30',
+            published: true,
+          },
+        ]}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={onTaskUpdated}
+      />,
+    );
+
+    expect(screen.getByTitle('第一迭代')).toBeDefined();
+
+    await user.click(screen.getByRole('combobox'));
+    await user.click(await screen.findByTitle('第二迭代'));
+
+    await waitFor(() => {
+      expect(ApiProjectTask.edit).toHaveBeenCalledWith(
+        task.id,
+        expect.objectContaining({
+          iterationId: 2,
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(onTaskUpdated).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -492,12 +578,13 @@ describe('TaskDetailView', () => {
       />,
     );
 
-    expect(await screen.findByText('请先在个人中心配置 Git 用户名')).toBeDefined();
-    await user.click(screen.getByRole('button', { name: '获取分支名' }));
-
-    await waitFor(() => {
-      expect(warningMock).toHaveBeenCalledWith('请先在个人中心配置 Git 用户名');
-    });
+    expect(
+      await screen.findByText('请先在个人中心配置 Git 用户名'),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: '请先在个人中心配置 Git 用户名' }),
+    ).toBeNull();
+    expect(warningMock).not.toHaveBeenCalled();
   });
 
   it('任务类型未配置前缀时会提示未配置而不是生成分支名', async () => {
@@ -533,11 +620,10 @@ describe('TaskDetailView', () => {
     );
 
     expect(await screen.findByText('当前任务类型未配置分支前缀')).toBeDefined();
-    await user.click(screen.getByRole('button', { name: '获取分支名' }));
-
-    await waitFor(() => {
-      expect(warningMock).toHaveBeenCalledWith('当前任务类型未配置分支前缀');
-    });
+    expect(
+      screen.queryByRole('button', { name: '当前任务类型未配置分支前缀' }),
+    ).toBeNull();
+    expect(warningMock).not.toHaveBeenCalled();
   });
 
   it('子任务快捷创建成功后会重新聚焦输入框，便于连续创建', async () => {
@@ -763,7 +849,9 @@ describe('TaskDetailView', () => {
     fireEvent.click(await screen.findByText('子任务 1'));
 
     fireEvent.click(await screen.findByText('小王'));
-    expect(await screen.findByRole('combobox')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox').length).toBeGreaterThan(1);
+    });
 
     fireEvent.click(await screen.findByText('04-22'));
     expect(container.querySelector('.ant-picker')).toBeTruthy();

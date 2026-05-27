@@ -39,7 +39,7 @@ const ProjectTaskTable = (props: ProjectTaskTableProps) => {
       params={props.params}
       columns={columns}
       onChange={props.onTableChange}
-      scroll={{ x: 1340 }}
+      scroll={{ x: 1760 }}
       pagination={{
         current: props.pagination.current,
         pageSize: props.pagination.pageSize,

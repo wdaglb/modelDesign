@@ -16,6 +16,7 @@ import { Route as ProjectIndexRouteImport } from './routes/project/index'
 import { Route as PersonalCenterIndexRouteImport } from './routes/personal-center/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as AgileBoardIndexRouteImport } from './routes/agile-board/index'
+import { Route as ProjectListRouteImport } from './routes/project/list'
 import { Route as ProjectProjectIdRouteImport } from './routes/project/$projectId'
 import { Route as AiChatRouteImport } from './routes/ai.chat'
 import { Route as SystemUserIndexRouteImport } from './routes/system/user/index'
@@ -71,6 +72,11 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
 const AgileBoardIndexRoute = AgileBoardIndexRouteImport.update({
   id: '/agile-board/',
   path: '/agile-board/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectListRoute = ProjectListRouteImport.update({
+  id: '/project/list',
+  path: '/project/list',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectProjectIdRoute = ProjectProjectIdRouteImport.update({
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/my-todo': typeof MyTodoRoute
   '/ai/chat': typeof AiChatRoute
   '/project/$projectId': typeof ProjectProjectIdRouteWithChildren
+  '/project/list': typeof ProjectListRoute
   '/agile-board/': typeof AgileBoardIndexRoute
   '/login/': typeof LoginIndexRoute
   '/personal-center/': typeof PersonalCenterIndexRoute
@@ -215,6 +222,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/my-todo': typeof MyTodoRoute
   '/ai/chat': typeof AiChatRoute
+  '/project/list': typeof ProjectListRoute
   '/agile-board': typeof AgileBoardIndexRoute
   '/login': typeof LoginIndexRoute
   '/personal-center': typeof PersonalCenterIndexRoute
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   '/my-todo': typeof MyTodoRoute
   '/ai/chat': typeof AiChatRoute
   '/project/$projectId': typeof ProjectProjectIdRouteWithChildren
+  '/project/list': typeof ProjectListRoute
   '/agile-board/': typeof AgileBoardIndexRoute
   '/login/': typeof LoginIndexRoute
   '/personal-center/': typeof PersonalCenterIndexRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/my-todo'
     | '/ai/chat'
     | '/project/$projectId'
+    | '/project/list'
     | '/agile-board/'
     | '/login/'
     | '/personal-center/'
@@ -307,6 +317,7 @@ export interface FileRouteTypes {
     | '/'
     | '/my-todo'
     | '/ai/chat'
+    | '/project/list'
     | '/agile-board'
     | '/login'
     | '/personal-center'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/my-todo'
     | '/ai/chat'
     | '/project/$projectId'
+    | '/project/list'
     | '/agile-board/'
     | '/login/'
     | '/personal-center/'
@@ -368,6 +380,7 @@ export interface RootRouteChildren {
   MyTodoRoute: typeof MyTodoRoute
   AiChatRoute: typeof AiChatRoute
   ProjectProjectIdRoute: typeof ProjectProjectIdRouteWithChildren
+  ProjectListRoute: typeof ProjectListRoute
   AgileBoardIndexRoute: typeof AgileBoardIndexRoute
   LoginIndexRoute: typeof LoginIndexRoute
   PersonalCenterIndexRoute: typeof PersonalCenterIndexRoute
@@ -439,6 +452,13 @@ declare module '@tanstack/react-router' {
       path: '/agile-board'
       fullPath: '/agile-board/'
       preLoaderRoute: typeof AgileBoardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/project/list': {
+      id: '/project/list'
+      path: '/project/list'
+      fullPath: '/project/list'
+      preLoaderRoute: typeof ProjectListRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/project/$projectId': {
@@ -613,6 +633,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyTodoRoute: MyTodoRoute,
   AiChatRoute: AiChatRoute,
   ProjectProjectIdRoute: ProjectProjectIdRouteWithChildren,
+  ProjectListRoute: ProjectListRoute,
   AgileBoardIndexRoute: AgileBoardIndexRoute,
   LoginIndexRoute: LoginIndexRoute,
   PersonalCenterIndexRoute: PersonalCenterIndexRoute,

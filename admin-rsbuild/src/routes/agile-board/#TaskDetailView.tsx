@@ -10,6 +10,7 @@ import {
   type InputRef,
   Mentions,
   Modal,
+  Select,
   Tag,
   Tabs,
   Typography,
@@ -25,6 +26,7 @@ import {
 } from '@/api';
 import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
 import type { ProjectTaskDynamicItem } from '@/api/modules/project-task-dynamic';
+import type { ProjectTaskIteration } from '@/api/modules/project-task-iteration';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import {
   TaskPriorityOptions,
@@ -50,6 +52,7 @@ import {
   TaskDetailChipLabel,
   TaskDetailChipRow,
   TaskDetailChipValue,
+  TaskDetailCopyText,
   TaskDetailDrawerFooterBar,
   TaskDetailDrawerScrollArea,
   TaskDetailDrawerStack,
@@ -238,6 +241,15 @@ interface TaskDetailViewProps {
    * 抽屉首次打开时默认激活的 Tab。
    */
   initialTabKey?: TaskPreviewDrawerTabKey;
+
+  /**
+   * 当前看板已加载的迭代列表。
+   *
+   * 详情抽屉的快捷修改应与看板筛选使用同一份迭代配置，
+   * 避免用户看到的“当前迭代”与可选择范围出现短暂不一致。
+   */
+  iterations?: ProjectTaskIteration[];
+
   /**
    * 打开关联任务详情。
    *
@@ -494,6 +506,35 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
       taskTypeQuery.data,
     );
   }, [currentInfo?.gitUsername, props.task, taskTypeQuery.data]);
+  const iterationOptions = useMemo(() => {
+    const sourceIterations = props.iterations ?? [];
+    const options = sourceIterations.map((item) => {
+      return {
+        label: item.name,
+        value: item.id,
+      };
+    });
+
+    if (props.task.iterationId === undefined) {
+      return options;
+    }
+
+    const iterationExists = sourceIterations.some((item) => {
+      return item.id === props.task.iterationId;
+    });
+    if (iterationExists) {
+      return options;
+    }
+
+    return [
+      ...options,
+      {
+        label: props.task.iterationName || `迭代#${props.task.iterationId}`,
+        value: props.task.iterationId,
+        disabled: true,
+      },
+    ];
+  }, [props.iterations, props.task.iterationId, props.task.iterationName]);
   const taskBranchUnavailableMessage = useMemo(() => {
     return getTaskBranchUnavailableMessage(
       resolveTaskBranchUnavailableReason(
@@ -1074,6 +1115,24 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
   };
 
   /**
+   * 保存任务当前迭代。
+   *
+   * Ant Design Select 清空时会返回 undefined。后端将空迭代识别为取消绑定，
+   * 因此这里必须显式把 iterationId 写进 patch，而不是依赖默认合并逻辑。
+   *
+   * @param value 新迭代 ID；undefined 表示清空迭代
+   */
+  const saveTaskIteration = async (value?: number) => {
+    if (props.task.iterationId === value) {
+      return;
+    }
+
+    await saveQuickField('iterationId', {
+      iterationId: value,
+    });
+  };
+
+  /**
    * 保存详情区 Markdown 待办切换结果。
    *
    * 这里保持“预览交互在组件内、持久化在页面层”的职责边界：
@@ -1148,38 +1207,48 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
           <TaskDetailEntityCard size={'small'}>
             <TaskDetailEntityTitleStack>
               <TaskDetailIdRow>
-                <Typography.Text type={'secondary'} style={{ fontSize: 10 }}>
-                  {taskNumberText}
-                </Typography.Text>
-                <Button
-                  type={'link'}
-                  size={'small'}
-                  style={{ padding: 0, height: 'auto' }}
+                <TaskDetailCopyText
+                  type={'button'}
+                  title={'点击复制任务编号'}
                   onClick={async () => {
                     await copyTaskNumber();
                   }}
                 >
-                  复制编号
-                </Button>
-                <Button
-                  type={'link'}
-                  size={'small'}
-                  style={{ padding: 0, height: 'auto' }}
-                  onClick={async () => {
-                    await copyTaskBranchName();
-                  }}
-                >
-                  获取分支名
-                </Button>
+                  {taskNumberText}
+                </TaskDetailCopyText>
                 {taskBranchName ? (
-                  <Typography.Text type={'secondary'} style={{ fontSize: 10 }}>
+                  <TaskDetailCopyText
+                    type={'button'}
+                    title={'点击复制任务分支名'}
+                    onClick={async () => {
+                      await copyTaskBranchName();
+                    }}
+                  >
                     {taskBranchName}
-                  </Typography.Text>
+                  </TaskDetailCopyText>
                 ) : (
                   <Typography.Text type={'warning'} style={{ fontSize: 10 }}>
                     {taskBranchUnavailableMessage}
                   </Typography.Text>
                 )}
+                <Select<number>
+                  allowClear
+                  disabled={isSavingField('iterationId')}
+                  loading={isSavingField('iterationId')}
+                  options={iterationOptions}
+                  placeholder={'未设置迭代'}
+                  popupMatchSelectWidth={false}
+                  size={'small'}
+                  style={{ minWidth: 120 }}
+                  value={props.task.iterationId}
+                  variant={'borderless'}
+                  showSearch={{
+                    optionFilterProp: 'label',
+                  }}
+                  onChange={(value) => {
+                    void saveTaskIteration(value);
+                  }}
+                />
               </TaskDetailIdRow>
               <div
                 style={{

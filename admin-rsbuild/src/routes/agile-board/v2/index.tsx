@@ -484,6 +484,7 @@ function RouteComponent() {
 
         await openTaskPreviewDrawer(drawer, {
           taskId: task.id,
+          iterations: taskIterations,
           statusConfigs,
           initialTabKey: options?.initialTabKey,
           onTaskUpdated: async () => {
@@ -510,6 +511,7 @@ function RouteComponent() {
       refetchBoardTasks,
       statusConfigs,
       syncPreviewSearch,
+      taskIterations,
     ],
   );
 

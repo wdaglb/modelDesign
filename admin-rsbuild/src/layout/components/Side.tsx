@@ -1,6 +1,5 @@
-import { memo, ReactNode, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Avatar, Dropdown, Layout, Menu, Modal } from 'antd';
-import { ItemType } from 'antd/es/menu/interface';
 import { Icon } from '@iconify/react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from '@tanstack/react-router';
@@ -28,15 +27,10 @@ import { logout } from '@/service/loginService.ts';
 import useAuthStore from '@/store/auth.ts';
 
 import ChangePasswordForm from './ChangePasswordForm.tsx';
-
-type MenuItem = {
-  key: string;
-  label: string;
-  icon?: ReactNode;
-  children?: MenuItem[];
-};
-
-type ParentKeys = Record<string, string[]>;
+import {
+  buildSideMenuData,
+  resolveSideSelectedKey,
+} from './#sideMenuHelper.tsx';
 
 const Side = () => {
   const { currentInfo, menus } = useAuthStore(
@@ -90,75 +84,16 @@ const Side = () => {
     });
   }, [currentInfo?.userId]);
 
-  const { menuData, parentKeys } = useMemo(() => {
-    const result: MenuItem[] = [];
-    const keyData: Record<number, MenuItem> = {};
-    const menuParentIds: Record<number, number | undefined> = {};
-    const keys: ParentKeys = {};
-
-    menus.forEach((item) => {
-      keyData[item.id] = {
-        key: item.name.startsWith('/') ? item.name : `/${item.name}`,
-        label: item.title,
-        icon: item.iconValue ? <Icon icon={item.iconValue} /> : null,
-        children: [],
-      };
-      menuParentIds[item.id] = item.parentId || undefined;
-    });
-
-    const getParentKeys = (id: number) => {
-      const parentPath: string[] = [];
-      let currentParentId = menuParentIds[id];
-
-      while (currentParentId) {
-        const parent = keyData[currentParentId];
-        if (!parent) {
-          break;
-        }
-        parentPath.unshift(parent.key);
-        currentParentId = menuParentIds[currentParentId];
-      }
-
-      return parentPath;
-    };
-
-    const pruneEmptyChildren = (items: MenuItem[]) => {
-      items.forEach((item) => {
-        if (item.children?.length) {
-          pruneEmptyChildren(item.children);
-        }
-
-        if (!item.children?.length) {
-          delete item.children;
-        }
-      });
-    };
-
-    menus.forEach((item) => {
-      const current = keyData[item.id];
-      keys[current.key] = getParentKeys(item.id);
-
-      if (!item.parentId) {
-        result.push(current);
-        return;
-      }
-
-      const parent = keyData[item.parentId];
-      if (!parent) {
-        return;
-      }
-
-      parent.children ??= [];
-      parent.children.push(current);
-    });
-
-    pruneEmptyChildren(result);
-
-    return {
-      menuData: result as ItemType[],
-      parentKeys: keys,
-    };
-  }, [menus]);
+  const navigateMenu = useCallback(
+    (key: string) => {
+      navigate({ to: key });
+    },
+    [navigate],
+  );
+  const { menuData, parentKeys } = useMemo(
+    () => buildSideMenuData(menus, navigateMenu),
+    [menus, navigateMenu],
+  );
 
   const displayName = currentInfo?.nickname || currentInfo?.username || '未登录用户';
   const avatarText = (displayName[0] || 'U').toUpperCase();
@@ -166,14 +101,10 @@ const Side = () => {
   const unreadCount = unreadCountData?.unreadCount || 0;
 
   useEffect(() => {
-    /**
-     * 优先匹配路径最长的菜单 key，避免 `/system/user` 被父级 `/system`
-     * 提前命中，导致子菜单高亮与父级展开状态异常。
-     */
-    const matchedSelectedKey = Object.keys(parentKeys)
-      .filter((key) => location.pathname === key || location.pathname.startsWith(`${key}/`))
-      .sort((leftKey, rightKey) => rightKey.length - leftKey.length)[0];
-    const currentSelectedKey = matchedSelectedKey || location.pathname;
+    const currentSelectedKey = resolveSideSelectedKey(
+      location.pathname,
+      parentKeys,
+    );
     const currentParentKeys = parentKeys[currentSelectedKey] || [];
 
     /**
@@ -369,7 +300,7 @@ const Side = () => {
               borderInlineEnd: 'none',
             }}
             onClick={(menu) => {
-              navigate({ to: menu.key });
+              navigateMenu(menu.key);
             }}
             onOpenChange={(keys) => {
               setOpenKeys(keys);

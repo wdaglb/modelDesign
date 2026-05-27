@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Input, Pagination, Select, message } from 'antd';
 import { Helmet } from 'react-helmet-async';
@@ -42,7 +42,7 @@ import {
 } from './components/#ProjectListPage.styled';
 
 export const Route = createFileRoute('/project/')({
-  component: RouteComponent,
+  component: ProjectListPage,
 });
 
 /**
@@ -52,8 +52,8 @@ export const Route = createFileRoute('/project/')({
  *
  * @returns 页面组件
  */
-function RouteComponent() {
-  const navigate = Route.useNavigate();
+export function ProjectListPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const modal = useKModal();
   const { hasButtonPermission } = usePermission();

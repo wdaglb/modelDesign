@@ -93,6 +93,10 @@ export function createProjectTaskColumns(
       title: '任务',
       dataIndex: 'title',
       key: 'title',
+      /**
+       * 项目详情页任务标题通常承载需求摘要，给固定宽度避免被其它状态类短字段挤压。
+       */
+      width: 360,
       ellipsis: {
         showTitle: false,
       },

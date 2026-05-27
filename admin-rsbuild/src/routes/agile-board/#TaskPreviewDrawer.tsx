@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Skeleton } from 'antd';
 
 import { ApiProjectTask } from '@/api';
+import type { ProjectTaskIteration } from '@/api/modules/project-task-iteration';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 import { useKDrawer } from '@/components/KDrawer';
@@ -17,6 +18,13 @@ interface TaskPreviewDrawerProps {
    * 抽屉首次打开时默认激活的 Tab。
    */
   initialTabKey?: TaskPreviewDrawerTabKey;
+  /**
+   * 当前看板已加载的迭代配置。
+   *
+   * 传入详情视图后用于展示和快捷修改任务迭代，避免详情抽屉重复维护
+   * 一套与看板不同步的迭代数据来源。
+   */
+  iterations?: ProjectTaskIteration[];
   onEdit: (task: ProjectTaskDetail) => Promise<void>;
   onTaskUpdated: () => Promise<void>;
   statusConfigs: TaskStatusConfig[];
@@ -93,6 +101,7 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
       children: (
         <TaskPreviewDrawer
           taskId={task.id}
+          iterations={props.iterations}
           statusConfigs={props.statusConfigs}
           onTaskUpdated={handleTaskMutated}
           onEdit={props.onEdit}
@@ -139,6 +148,7 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
   return (
     <TaskDetailView
       task={detailQuery.data}
+      iterations={props.iterations}
       statusConfigs={props.statusConfigs}
       initialTabKey={props.initialTabKey}
       onEnterEdit={() => {

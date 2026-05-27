@@ -1,5 +1,6 @@
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
+import type { ProjectTaskIteration } from '@/api/modules/project-task-iteration';
 import type { OpenProps } from '@/components/KDrawer/types.ts';
 
 import TaskPreviewDrawer from './#TaskPreviewDrawer';
@@ -20,6 +21,13 @@ interface OpenTaskPreviewDrawerOptions {
   initialTabKey?: TaskPreviewDrawerTabKey;
   onEdit: (task: ProjectTaskDetail) => Promise<void>;
   onTaskUpdated: () => Promise<void>;
+  /**
+   * 已加载的迭代列表。
+   *
+   * 任务详情抽屉里需要基于当前看板同一份迭代配置做快捷切换，
+   * 避免详情抽屉重新请求时与看板筛选口径短暂不一致。
+   */
+  iterations?: ProjectTaskIteration[];
   statusConfigs: TaskStatusConfig[];
   taskId: number;
 }
@@ -58,6 +66,7 @@ export async function openTaskPreviewDrawer(
     children: (
       <TaskPreviewDrawer
         taskId={options.taskId}
+        iterations={options.iterations}
         statusConfigs={options.statusConfigs}
         onTaskUpdated={options.onTaskUpdated}
         onEdit={options.onEdit}
