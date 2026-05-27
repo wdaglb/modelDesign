@@ -50,7 +50,7 @@ const PositionListCard = ({
         }}
       >
         <Typography.Text strong>{title}</Typography.Text>
-        <Tag bordered={false}>{positions.length}</Tag>
+        <Tag variant="filled">{positions.length}</Tag>
       </Flex>
 
       <div

@@ -137,6 +137,7 @@ class ProjectTaskApiImplTest {
                 .title("补充任务状态工具")
                 .description("现有编辑接口要求完整字段")
                 .typeId(3L)
+                .iterationId(66L)
                 .status("todo")
                 .priority("medium")
                 .assigneeId(0L)
@@ -171,6 +172,7 @@ class ProjectTaskApiImplTest {
         assertEquals("补充任务状态工具", captured.getTitle());
         assertEquals("现有编辑接口要求完整字段", captured.getDescription());
         assertEquals(3L, captured.getTypeId());
+        assertEquals(66L, captured.getIterationId());
         assertEquals("inProgress", captured.getStatus());
         assertEquals("medium", captured.getPriority());
         assertNull(captured.getAssigneeId());
@@ -250,6 +252,7 @@ class ProjectTaskApiImplTest {
         command.setProjectId(10L);
         command.setTitle("创建任务");
         command.setTypeId(2L);
+        command.setIterationId(77L);
         command.setStatus("todo");
         command.setPriority("medium");
 
@@ -264,6 +267,7 @@ class ProjectTaskApiImplTest {
         assertEquals(10L, captured.getProjectId());
         assertEquals("创建任务", captured.getTitle());
         assertEquals(2L, captured.getTypeId());
+        assertEquals(77L, captured.getIterationId());
         assertEquals("todo", captured.getStatus());
         assertEquals("medium", captured.getPriority());
     }

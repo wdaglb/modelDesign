@@ -85,7 +85,7 @@ const CategoryDeleteModal = ({ ids }: CategoryDeleteModalProps) => {
         });
       }}
     >
-      <Space direction={'vertical'} size={12} style={{ width: '100%' }}>
+      <Space orientation={'vertical'} size={12} style={{ width: '100%' }}>
         <Typography.Text>
           {isBatchDelete
             ? `当前已选择 ${ids.length} 个分类进行批量删除。`

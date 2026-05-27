@@ -26,6 +26,7 @@ import { Route as SystemPermissionGroupIndexRouteImport } from './routes/system/
 import { Route as SystemMenuIndexRouteImport } from './routes/system/menu/index'
 import { Route as SystemFileConfigIndexRouteImport } from './routes/system/file-config/index'
 import { Route as ProjectTaskTypeIndexRouteImport } from './routes/project/task-type/index'
+import { Route as ProjectTaskStatusIndexRouteImport } from './routes/project/task-status/index'
 import { Route as ProjectProjectIdIndexRouteImport } from './routes/project/$projectId.index'
 import { Route as AssetStocktakeIndexRouteImport } from './routes/asset/stocktake/index'
 import { Route as AssetLocationIndexRouteImport } from './routes/asset/location/index'
@@ -123,6 +124,11 @@ const ProjectTaskTypeIndexRoute = ProjectTaskTypeIndexRouteImport.update({
   path: '/project/task-type/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectTaskStatusIndexRoute = ProjectTaskStatusIndexRouteImport.update({
+  id: '/project/task-status/',
+  path: '/project/task-status/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectProjectIdIndexRoute = ProjectProjectIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/asset/location/': typeof AssetLocationIndexRoute
   '/asset/stocktake/': typeof AssetStocktakeIndexRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
+  '/project/task-status/': typeof ProjectTaskStatusIndexRoute
   '/project/task-type/': typeof ProjectTaskTypeIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/asset/location': typeof AssetLocationIndexRoute
   '/asset/stocktake': typeof AssetStocktakeIndexRoute
   '/project/$projectId': typeof ProjectProjectIdIndexRoute
+  '/project/task-status': typeof ProjectTaskStatusIndexRoute
   '/project/task-type': typeof ProjectTaskTypeIndexRoute
   '/system/file-config': typeof SystemFileConfigIndexRoute
   '/system/menu': typeof SystemMenuIndexRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/asset/location/': typeof AssetLocationIndexRoute
   '/asset/stocktake/': typeof AssetStocktakeIndexRoute
   '/project/$projectId/': typeof ProjectProjectIdIndexRoute
+  '/project/task-status/': typeof ProjectTaskStatusIndexRoute
   '/project/task-type/': typeof ProjectTaskTypeIndexRoute
   '/system/file-config/': typeof SystemFileConfigIndexRoute
   '/system/menu/': typeof SystemMenuIndexRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
     | '/asset/location/'
     | '/asset/stocktake/'
     | '/project/$projectId/'
+    | '/project/task-status/'
     | '/project/task-type/'
     | '/system/file-config/'
     | '/system/menu/'
@@ -311,6 +321,7 @@ export interface FileRouteTypes {
     | '/asset/location'
     | '/asset/stocktake'
     | '/project/$projectId'
+    | '/project/task-status'
     | '/project/task-type'
     | '/system/file-config'
     | '/system/menu'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/asset/location/'
     | '/asset/stocktake/'
     | '/project/$projectId/'
+    | '/project/task-status/'
     | '/project/task-type/'
     | '/system/file-config/'
     | '/system/menu/'
@@ -366,6 +378,7 @@ export interface RootRouteChildren {
   AssetDeviceIndexRoute: typeof AssetDeviceIndexRoute
   AssetLocationIndexRoute: typeof AssetLocationIndexRoute
   AssetStocktakeIndexRoute: typeof AssetStocktakeIndexRoute
+  ProjectTaskStatusIndexRoute: typeof ProjectTaskStatusIndexRoute
   ProjectTaskTypeIndexRoute: typeof ProjectTaskTypeIndexRoute
   SystemFileConfigIndexRoute: typeof SystemFileConfigIndexRoute
   SystemMenuIndexRoute: typeof SystemMenuIndexRoute
@@ -498,6 +511,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectTaskTypeIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/project/task-status/': {
+      id: '/project/task-status/'
+      path: '/project/task-status'
+      fullPath: '/project/task-status/'
+      preLoaderRoute: typeof ProjectTaskStatusIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$projectId/': {
       id: '/project/$projectId/'
       path: '/'
@@ -603,6 +623,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssetDeviceIndexRoute: AssetDeviceIndexRoute,
   AssetLocationIndexRoute: AssetLocationIndexRoute,
   AssetStocktakeIndexRoute: AssetStocktakeIndexRoute,
+  ProjectTaskStatusIndexRoute: ProjectTaskStatusIndexRoute,
   ProjectTaskTypeIndexRoute: ProjectTaskTypeIndexRoute,
   SystemFileConfigIndexRoute: SystemFileConfigIndexRoute,
   SystemMenuIndexRoute: SystemMenuIndexRoute,

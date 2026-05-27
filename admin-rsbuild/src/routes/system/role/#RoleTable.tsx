@@ -23,7 +23,7 @@ import UpdateRoleForm from './#UpdateRoleForm';
  */
 const RoleInfoCell = ({ item }: { item: Role }) => {
   return (
-    <Space direction={'vertical'} size={0}>
+    <Space orientation={'vertical'} size={0}>
       <Typography.Text strong>{item.name}</Typography.Text>
       <Typography.Text type={'secondary'}>{item.code}</Typography.Text>
       {item.remark && (

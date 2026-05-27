@@ -213,6 +213,8 @@ public class ProjectTaskLifecycleService {
         target.setParentTaskId(source.getParentTaskId());
         target.setTitle(source.getTitle());
         target.setDescription(source.getDescription());
+        target.setTypeId(source.getTypeId());
+        target.setIterationId(source.getIterationId());
         target.setStatus(source.getStatus());
         target.setPriority(source.getPriority());
         target.setCreatorId(source.getCreatorId());

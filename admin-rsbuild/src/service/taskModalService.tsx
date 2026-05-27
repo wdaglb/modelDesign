@@ -1,4 +1,5 @@
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
+import type { ProjectTaskIteration } from '@/api/modules/project-task-iteration';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { OpenProps } from '@/components/KModal/types.ts';
 
@@ -20,6 +21,16 @@ interface OpenTaskModalOptions {
    * 新建时默认负责人 ID。
    */
   defaultAssigneeId?: number;
+
+  /**
+   * 新建时默认迭代 ID。
+   */
+  defaultIterationId?: number;
+
+  /**
+   * 已加载的迭代列表。
+   */
+  iterations?: ProjectTaskIteration[];
 
   /**
    * 编辑时传入的任务详情。
@@ -83,6 +94,8 @@ export async function openTaskModal(
     <TaskCreateForm
       projectId={options.projectId}
       defaultAssigneeId={options.defaultAssigneeId}
+      defaultIterationId={options.defaultIterationId}
+      iterations={options.iterations}
       task={options.task}
       statusConfigs={options.statusConfigs}
     />
@@ -92,6 +105,7 @@ export async function openTaskModal(
     children = (
       <TaskEditForm
         mode={'full'}
+        iterations={options.iterations}
         task={options.task}
         statusConfigs={options.statusConfigs}
       />

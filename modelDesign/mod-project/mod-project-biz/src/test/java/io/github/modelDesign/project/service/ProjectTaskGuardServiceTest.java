@@ -38,6 +38,7 @@ class ProjectTaskGuardServiceTest {
         ProjectTaskGuardService service = new ProjectTaskGuardService(
                 mock(TaskStatusConfigService.class),
                 mock(TaskTypeService.class),
+                mock(TaskIterationService.class),
                 authUserApi,
                 mock(ProjectMemberMapper.class),
                 mock(ProjectTaskMemberMapper.class),

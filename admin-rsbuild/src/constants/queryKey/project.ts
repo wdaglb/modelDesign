@@ -75,3 +75,8 @@ export const taskStatusList = () => ['projectTaskStatusList'];
  * 任务类型列表查询键。
  */
 export const taskTypeList = () => ['projectTaskTypeList'];
+
+/**
+ * 任务迭代列表查询键。
+ */
+export const taskIterationList = () => ['projectTaskIterationList'];

@@ -44,12 +44,12 @@ const AccountSummary = (props: AccountSummaryProps) => {
               {avatarText}
             </Avatar>
 
-            <Space direction={'vertical'} size={6}>
+            <Space orientation={'vertical'} size={6}>
               <Space size={8} wrap>
                 <Typography.Title level={3} style={{ margin: 0 }}>
                   {displayName}
                 </Typography.Title>
-                <Tag color={'blue'} bordered={false}>
+                <Tag color={'blue'} variant="filled">
                   个人中心
                 </Tag>
               </Space>
@@ -62,10 +62,10 @@ const AccountSummary = (props: AccountSummaryProps) => {
               </Typography.Text>
 
               <Space size={8} wrap>
-                <Tag color={'processing'} bordered={false}>
+                <Tag color={'processing'} variant="filled">
                   用户 ID：{getDisplayText(props.currentInfo?.userId)}
                 </Tag>
-                <Tag color={'gold'} bordered={false}>
+                <Tag color={'gold'} variant="filled">
                   租户 ID：{getDisplayText(props.currentInfo?.tenantId)}
                 </Tag>
               </Space>

@@ -87,6 +87,18 @@ public class ProjectTaskDetailVo {
     private String typeName;
 
     /**
+     * 任务迭代 ID。
+     */
+    @Schema(description = "任务迭代 ID")
+    private Long iterationId;
+
+    /**
+     * 任务迭代名称。
+     */
+    @Schema(description = "任务迭代名称")
+    private String iterationName;
+
+    /**
      * 任务状态编码。
      */
     @Schema(description = "任务状态编码", allowableValues = {"todo", "inProgress", "pendingTest", "pendingRelease", "done", "canceled"})

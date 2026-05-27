@@ -204,7 +204,7 @@ const MessageCenterDrawer = () => {
 
           {messages.length > 0 && (
             <Space
-              direction={'vertical'}
+              orientation={'vertical'}
               size={10}
               style={{ width: '100%' }}
             >

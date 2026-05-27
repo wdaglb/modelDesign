@@ -58,6 +58,12 @@ public class ProjectTaskEditRequest {
     private Long typeId;
 
     /**
+     * 任务迭代 ID。
+     */
+    @Schema(description = "任务迭代 ID")
+    private Long iterationId;
+
+    /**
      * 任务状态编码。
      */
     @Schema(description = "任务状态编码", allowableValues = {"todo", "inProgress", "pendingTest", "pendingRelease", "done", "canceled"}, requiredMode = Schema.RequiredMode.REQUIRED)

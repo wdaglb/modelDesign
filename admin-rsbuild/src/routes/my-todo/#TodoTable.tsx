@@ -207,7 +207,7 @@ const TodoTable = () => {
       },
       render: (_value, record) => {
         return (
-          <Space direction={'vertical'} size={2} style={{ width: '100%' }}>
+          <Space orientation={'vertical'} size={2} style={{ width: '100%' }}>
             <Typography.Text ellipsis={{ tooltip: record.title }}>
               {record.title}
             </Typography.Text>

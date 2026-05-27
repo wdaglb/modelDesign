@@ -11,6 +11,7 @@ import * as ApiPosition from './modules/position';
 import * as ApiProjectMember from './modules/project-member';
 import * as ApiProjectTaskChangeLog from './modules/project-task-change-log';
 import * as ApiProjectTaskDynamic from './modules/project-task-dynamic';
+import * as ApiProjectTaskIteration from './modules/project-task-iteration';
 import * as ApiProjectTaskReport from './modules/project-task-report';
 import * as ApiProjectTask from './modules/project-task';
 import * as ApiProjectTaskStatus from './modules/project-task-status';
@@ -43,6 +44,7 @@ export {
   ApiProjectMember,
   ApiProjectTaskChangeLog,
   ApiProjectTaskDynamic,
+  ApiProjectTaskIteration,
   ApiProjectTaskReport,
   ApiProjectTask,
   ApiProjectTaskStatus,

@@ -265,6 +265,7 @@ export function buildBoardQueryParams(
 ): AgileBoardQueryParams {
   return {
     title: normalizeBoardKeyword(filters.title),
+    iterationId: filters.iterationId,
     projectId: filters.projectId,
     assigneeId: filters.assigneeId,
     priority: filters.priority,
@@ -328,8 +329,23 @@ export function groupBoardTasks(
  * 筛选敏捷面板中的父任务列表。
  */
 export function filterBoardParentTasks(tasks: AgileBoardTask[]) {
+  const taskIdSet = new Set<number>();
+
+  tasks.forEach((task) => {
+    taskIdSet.add(task.id);
+  });
+
   return tasks.filter((task) => {
-    return task.parentTaskId === undefined || task.parentTaskId === null;
+    if (task.parentTaskId === undefined || task.parentTaskId === null) {
+      return true;
+    }
+
+    /**
+     * 迭代筛选后可能只命中子任务而父任务未命中。
+     * 这类“孤立子任务”若继续按纯 parentTaskId 过滤，会在看板上完全消失，
+     * 因此这里保留它作为当前筛选结果的顶层卡片渲染。
+     */
+    return !taskIdSet.has(task.parentTaskId);
   });
 }
 
@@ -392,6 +408,7 @@ export function buildBoardEditPayload(
     title: task.title,
     description: task.description,
     typeId: task.typeId as number,
+    iterationId: task.iterationId,
     status: task.status,
     priority: task.priority,
     workDays: task.workDays,

@@ -176,6 +176,9 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     public ProjectTaskDetailVo create(ProjectTaskCreateRequest request) {
         Project project = projectService.requireProject(request.getProjectId());
         Long typeId = projectTaskGuardService.validateTypeId(request.getTypeId());
+        Long iterationId = projectTaskGuardService.validateIterationId(
+                request.getIterationId()
+        );
         String status = projectTaskGuardService.validateStatus(request.getStatus());
         projectTaskGuardService.validatePriority(request.getPriority());
         projectTaskGuardService.validateWorkDays(request.getWorkDays());
@@ -195,6 +198,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setTitle(request.getTitle().trim());
         task.setDescription(projectTaskGuardService.normalizeDescription(request.getDescription()));
         task.setTypeId(typeId);
+        task.setIterationId(iterationId);
         task.setStatus(status);
         task.setPriority(request.getPriority().trim());
         task.setWorkDays(request.getWorkDays());
@@ -234,6 +238,9 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         List<Long> beforeTagIds = projectTaskTagBindingService.findTagIdsByTaskId(task.getId());
 
         Long typeId = projectTaskGuardService.validateTypeId(request.getTypeId());
+        Long iterationId = projectTaskGuardService.validateIterationId(
+                request.getIterationId()
+        );
         String status = projectTaskGuardService.validateStatus(request.getStatus());
         projectTaskGuardService.validatePriority(request.getPriority());
         projectTaskGuardService.validateWorkDays(request.getWorkDays());
@@ -249,9 +256,10 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         projectTaskGuardService.validateCompleteStatusWithChildren(task.getId(), status);
 
         List<Long> targetTagIds = resolveEditRelationIds(beforeTagIds, request.getTagIds());
-        applyTaskUpdate(task, request, typeId, status, targetParentTaskId);
+        applyTaskUpdate(task, request, typeId, iterationId, status, targetParentTaskId);
         updateById(task);
         syncNullableAssigneeFields(task);
+        syncNullableIterationFields(beforeTask, task);
 
         projectTaskGuardService.ensureAssigneeMember(task);
         projectTaskDependencyService.saveDependencies(task.getId(), task.getProjectId(), targetPredecessorTaskIds);
@@ -343,7 +351,13 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         return currentIds;
     }
 
-    private void applyTaskUpdate(ProjectTask task, ProjectTaskEditRequest request, Long typeId, String status, Long parentTaskId) {
+    private void applyTaskUpdate(
+            ProjectTask task,
+            ProjectTaskEditRequest request,
+            Long typeId,
+            Long iterationId,
+            String status,
+            Long parentTaskId) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime resolvedAssigneeAssignedAt = projectTaskTimeMetricsSupport.resolveAssigneeAssignedAtOnEdit(
                 task.getAssigneeId(),
@@ -355,6 +369,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setTitle(request.getTitle().trim());
         task.setDescription(projectTaskGuardService.normalizeDescription(request.getDescription()));
         task.setTypeId(typeId);
+        task.setIterationId(iterationId);
         task.setStatus(status);
         task.setPriority(request.getPriority().trim());
         task.setWorkDays(request.getWorkDays());
@@ -384,6 +399,29 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
                 .update();
     }
 
+    /**
+     * 显式同步可空迭代字段。
+     *
+     * MyBatis-Plus 默认不会通过 updateById 把 null 字段写回数据库，
+     * 因此任务从某个迭代移出时，需要额外补一次 set null。
+     *
+     * @param beforeTask 变更前任务实体
+     * @param task       已完成字段归一化的任务实体
+     */
+    private void syncNullableIterationFields(ProjectTask beforeTask, ProjectTask task) {
+        if (task.getIterationId() != null) {
+            return;
+        }
+        if (beforeTask.getIterationId() == null) {
+            return;
+        }
+
+        lambdaUpdate()
+                .eq(ProjectTask::getId, task.getId())
+                .set(ProjectTask::getIterationId, null)
+                .update();
+    }
+
     private ProjectTask copyTask(ProjectTask source) {
         ProjectTask target = new ProjectTask();
         target.setId(source.getId());
@@ -392,6 +430,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         target.setTitle(source.getTitle());
         target.setDescription(source.getDescription());
         target.setTypeId(source.getTypeId());
+        target.setIterationId(source.getIterationId());
         target.setStatus(source.getStatus());
         target.setPriority(source.getPriority());
         target.setCreatorId(source.getCreatorId());

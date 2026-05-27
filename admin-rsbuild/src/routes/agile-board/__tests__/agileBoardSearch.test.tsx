@@ -5,7 +5,9 @@ import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 import { RequestError } from '@/api/types';
 
 import {
+  buildBoardQueryParams,
   buildAgileBoardTaskShareUrl,
+  filterBoardParentTasks,
   handleBoardTitleSearch,
 } from '../#helper';
 
@@ -29,6 +31,22 @@ function buildRequestError(status: number) {
 }
 
 describe('handleBoardTitleSearch', () => {
+  it('看板查询参数应携带迭代筛选', () => {
+    const params = buildBoardQueryParams({
+      title: '  登录  ',
+      iterationId: 33,
+      priority: 'high',
+    });
+
+    expect(params).toEqual({
+      title: '登录',
+      iterationId: 33,
+      priority: 'high',
+      projectId: undefined,
+      assigneeId: undefined,
+    });
+  });
+
   it('分享链接会包含任务 id 与任务编号', () => {
     const shareUrl = buildAgileBoardTaskShareUrl(
       {
@@ -39,6 +57,41 @@ describe('handleBoardTitleSearch', () => {
     );
 
     expect(shareUrl).toBe('https://demo.local/agile-board/?taskId=1201');
+  });
+
+  it('迭代筛选后仅命中子任务时也应保留渲染', () => {
+    const tasks = [
+      {
+        id: 8,
+        title: '测试1',
+        status: 'todo',
+        parentTaskId: 5,
+      },
+    ] as ProjectTaskDetail[];
+
+    const result = filterBoardParentTasks(tasks);
+
+    expect(result).toEqual(tasks);
+  });
+
+  it('父任务仍在结果集中时子任务不应重复渲染为顶层卡片', () => {
+    const tasks = [
+      {
+        id: 5,
+        title: '父任务',
+        status: 'todo',
+      },
+      {
+        id: 8,
+        title: '测试1',
+        status: 'todo',
+        parentTaskId: 5,
+      },
+    ] as ProjectTaskDetail[];
+
+    const result = filterBoardParentTasks(tasks);
+
+    expect(result).toEqual([tasks[0]]);
   });
 
   it('普通标题输入时直接触发标题搜索', async () => {

@@ -19,6 +19,8 @@ const task: ProjectTaskDetail = {
   description: '原始说明',
   typeId: 501,
   typeName: '任务',
+  iterationId: 12,
+  iterationName: '五月迭代',
   status: 'todo',
   priority: 'high',
   assigneeId: 301,
@@ -36,6 +38,7 @@ describe('taskEditFormHelper', () => {
     expect(initialValues.title).toBe(task.title);
     expect(initialValues.description).toBe(task.description);
     expect(initialValues.typeId).toBe(task.typeId);
+    expect(initialValues.iterationId).toBe(task.iterationId);
     expect(initialValues.startTime?.format('YYYY-MM-DD HH:mm:ss')).toBe(
       task.startTime,
     );
@@ -48,6 +51,7 @@ describe('taskEditFormHelper', () => {
         projectId: task.projectId,
         title: '新标题',
         description: '新说明',
+        iterationId: 13,
         typeId: 502,
         status: 'inProgress',
         priority: 'medium',
@@ -60,6 +64,7 @@ describe('taskEditFormHelper', () => {
     expect(payload.startTime).toBe(task.startTime);
     expect(payload.dueTime).toBe(task.dueTime);
     expect(payload.assigneeId).toBe(0);
+    expect(payload.iterationId).toBe(13);
     expect(payload.typeId).toBe(502);
   });
 
@@ -70,6 +75,7 @@ describe('taskEditFormHelper', () => {
         projectId: task.projectId,
         title: '新标题',
         description: '新说明',
+        iterationId: 14,
         typeId: 503,
         status: 'done',
         priority: 'low',
@@ -84,6 +90,7 @@ describe('taskEditFormHelper', () => {
     expect(payload.startTime).toBe('2026-05-01 09:00:00');
     expect(payload.dueTime).toBe('2026-05-03 18:00:00');
     expect(payload.assigneeId).toBe(302);
+    expect(payload.iterationId).toBe(14);
     expect(payload.typeId).toBe(503);
   });
 

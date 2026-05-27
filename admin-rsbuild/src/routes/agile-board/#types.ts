@@ -37,6 +37,7 @@ export interface AgileBoardColumnMeta {
  */
 export interface AgileBoardFilterState {
   title: string;
+  iterationId?: number;
   projectId?: number;
   assigneeId?: number;
   priority?: TaskPriority;

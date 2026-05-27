@@ -62,6 +62,11 @@ public class ProjectTaskBoardQueryService {
     private final ProjectTaskViewAssembler projectTaskViewAssembler;
 
     /**
+     * 任务迭代服务。
+     */
+    private final TaskIterationService taskIterationService;
+
+    /**
      * 获取兼容旧行为的敏捷面板任务列表。
      *
      * @param request 列表请求
@@ -101,9 +106,13 @@ public class ProjectTaskBoardQueryService {
 
         String title = normalizeKeyword(request.getTitle());
         String priority = normalizeValue(request.getPriority());
+        Long iterationId = taskIterationService.validateIterationId(
+                request.getIterationId()
+        );
         return projectTaskMapper.selectList(new LambdaQueryWrapper<ProjectTask>()
                 .in(ProjectTask::getProjectId, projectIds)
                 .eq(ProjectTask::getDeleted, 0)
+                .eq(iterationId != null, ProjectTask::getIterationId, iterationId)
                 .like(StringUtils.hasText(title), ProjectTask::getTitle, title)
                 .eq(StringUtils.hasText(priority), ProjectTask::getPriority, priority)
                 .eq(request.getAssigneeId() != null, ProjectTask::getAssigneeId, request.getAssigneeId())

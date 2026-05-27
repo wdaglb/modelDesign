@@ -23,7 +23,7 @@ const DISABLE_STATUS_FILTER_VALUE = 'disabled';
  */
 const TenantInfoCell = ({ item }: { item: Tenant }) => {
   return (
-    <Space direction={'vertical'} size={0}>
+    <Space orientation={'vertical'} size={0}>
       <Space>
         <Typography.Text strong>{item.name}</Typography.Text>
         {item.id === 1 ? <Tag color={'gold'}>默认租户</Tag> : null}

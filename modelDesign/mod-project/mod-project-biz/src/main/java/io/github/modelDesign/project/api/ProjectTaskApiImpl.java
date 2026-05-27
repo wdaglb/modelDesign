@@ -155,6 +155,7 @@ public class ProjectTaskApiImpl implements ProjectTaskApi {
         serviceRequest.setTitle(command.getTitle());
         serviceRequest.setDescription(command.getDescription());
         serviceRequest.setTypeId(command.getTypeId());
+        serviceRequest.setIterationId(command.getIterationId());
         serviceRequest.setStatus(command.getStatus());
         serviceRequest.setPriority(command.getPriority());
         serviceRequest.setWorkDays(command.getWorkDays());
@@ -212,6 +213,7 @@ public class ProjectTaskApiImpl implements ProjectTaskApi {
         serviceRequest.setTitle(currentTask.getTitle());
         serviceRequest.setDescription(currentTask.getDescription());
         serviceRequest.setTypeId(currentTask.getTypeId());
+        serviceRequest.setIterationId(currentTask.getIterationId());
         serviceRequest.setStatus(command.getStatus());
         serviceRequest.setPriority(currentTask.getPriority());
         serviceRequest.setWorkDays(currentTask.getWorkDays());
@@ -294,6 +296,8 @@ public class ProjectTaskApiImpl implements ProjectTaskApi {
                 .latestDynamicSummary(item.getLatestDynamicSummary())
                 .typeId(item.getTypeId())
                 .typeName(item.getTypeName())
+                .iterationId(item.getIterationId())
+                .iterationName(item.getIterationName())
                 .status(item.getStatus())
                 .priority(item.getPriority())
                 .canStart(item.getCanStart())

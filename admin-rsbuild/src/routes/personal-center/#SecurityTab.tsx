@@ -45,7 +45,7 @@ const SecurityTab = (props: SecurityTabProps) => {
   });
 
   return (
-    <Space direction={'vertical'} size={16} style={{ width: '100%' }}>
+    <Space orientation={'vertical'} size={16} style={{ width: '100%' }}>
       <Card title={'当前会话'}>
         <Descriptions column={2} size={'small'}>
           <Descriptions.Item label={'登录 IP'}>

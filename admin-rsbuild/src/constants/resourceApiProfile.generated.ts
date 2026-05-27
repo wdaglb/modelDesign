@@ -6,7 +6,12 @@
 export const GENERATED_MENU_RESOURCE_API_PROFILE = {
   "/agile-board": [
     "/project/list",
+    "/project/task-iteration/create",
+    "/project/task-iteration/deleted",
+    "/project/task-iteration/edit",
+    "/project/task-iteration/list",
     "/project/task-status/list",
+    "/project/task-type/list",
     "/project/task/agile-board",
     "/project/task/detail",
     "/project/task/detail/by-code",
@@ -14,13 +19,21 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
   ],
   "/agile-board/v2": [
     "/project/list",
+    "/project/task-iteration/create",
+    "/project/task-iteration/deleted",
+    "/project/task-iteration/edit",
+    "/project/task-iteration/list",
     "/project/task-status/list",
+    "/project/task-type/list",
     "/project/task/agile-board",
     "/project/task/detail",
-    "/project/task/detail/by-code"
+    "/project/task/detail/by-code",
+    "/project/task/edit"
   ],
   "/asset/category": [
     "/asset/category/create",
+    "/asset/category/delete",
+    "/asset/category/delete-check",
     "/asset/category/edit",
     "/asset/category/list"
   ],
@@ -89,6 +102,10 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
     "/project/task/deleted",
     "/project/task/edit",
     "/project/task/list"
+  ],
+  "/project/task-status": [
+    "/project/task-status/list",
+    "/project/task-status/save"
   ],
   "/project/task-type": [
     "/project/task-type/create",

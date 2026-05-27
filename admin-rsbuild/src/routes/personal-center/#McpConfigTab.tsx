@@ -41,7 +41,7 @@ const McpConfigTab = () => {
   const promptExamples = buildPromptExamples();
 
   return (
-    <Space direction={'vertical'} size={16} style={{ width: '100%' }}>
+    <Space orientation={'vertical'} size={16} style={{ width: '100%' }}>
       <Alert
         type={config.enabled ? 'success' : 'warning'}
         showIcon
@@ -55,7 +55,7 @@ const McpConfigTab = () => {
       <Card title={'MCP 基础配置'}>
         <Descriptions column={1} size={'small'}>
           <Descriptions.Item label={'启用状态'}>
-            <Tag color={config.enabled ? 'success' : 'default'} bordered={false}>
+            <Tag color={config.enabled ? 'success' : 'default'} variant="filled">
               {config.enabled ? '已启用' : '未启用'}
             </Tag>
           </Descriptions.Item>
@@ -75,7 +75,7 @@ const McpConfigTab = () => {
       </Card>
 
       <Card title={'接入参考'}>
-        <Space direction={'vertical'} size={16} style={{ width: '100%' }}>
+        <Space orientation={'vertical'} size={16} style={{ width: '100%' }}>
           <Alert
             type={'info'}
             showIcon
@@ -172,7 +172,7 @@ const McpConfigTab = () => {
       </Card>
 
       <Card title={'测试指令示例'}>
-        <Space direction={'vertical'} size={16} style={{ width: '100%' }}>
+        <Space orientation={'vertical'} size={16} style={{ width: '100%' }}>
           <Alert
             type={'info'}
             showIcon
@@ -198,7 +198,7 @@ const McpConfigTab = () => {
                     marginBottom: 8,
                   }}
                 >
-                  <Space direction={'vertical'} size={4}>
+                  <Space orientation={'vertical'} size={4}>
                     <Typography.Text strong>{item.title}</Typography.Text>
                     <Typography.Text type={'secondary'}>
                       {item.description}

@@ -83,17 +83,42 @@ export const V2BoardColumnsGrid = styled.div<{ $columnCount: number }>`
 /**
  * v2 单列容器。
  */
-export const V2ColumnFrame = styled.section`
+export const V2ColumnFrame = styled.section<{
+  $accentColor: string;
+  $isOver?: boolean;
+}>`
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: ${(props) => {
+    if (props.$isOver) {
+      return `${props.$accentColor}14`;
+    }
+
+    return 'rgba(255, 255, 255, 0.75)';
+  }};
+  border: 1px solid ${(props) => {
+    if (props.$isOver) {
+      return `${props.$accentColor}66`;
+    }
+
+    return 'rgba(15, 23, 42, 0.06)';
+  }};
+  box-shadow: ${(props) => {
+    if (props.$isOver) {
+      return `0 0 0 3px ${props.$accentColor}18 inset`;
+    }
+
+    return 'inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+  }};
   overflow: hidden;
   contain: content;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 `;
 
 /**
@@ -180,7 +205,11 @@ export const V2TaskList = styled.div`
 /**
  * v2 单卡容器。
  */
-export const V2TaskCard = styled.button<{ $accentColor: string }>`
+export const V2TaskCard = styled.button<{
+  $accentColor: string;
+  $isDragging?: boolean;
+  $isOverlay?: boolean;
+}>`
   width: 100%;
   min-height: 152px;
   padding: 14px;
@@ -188,20 +217,47 @@ export const V2TaskCard = styled.button<{ $accentColor: string }>`
   border-top: 3px solid ${(props) => props.$accentColor};
   border-radius: 18px;
   background: linear-gradient(180deg, #ffffff, #f8fbff);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: ${(props) => {
+    if (props.$isOverlay) {
+      return '0 18px 38px rgba(15, 23, 42, 0.16)';
+    }
+
+    return '0 10px 24px rgba(15, 23, 42, 0.06)';
+  }};
   text-align: left;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  opacity: ${(props) => {
+    if (props.$isDragging) {
+      return 0;
+    }
+
+    return 1;
+  }};
   cursor: pointer;
+  touch-action: none;
   transition:
+    opacity 0.12s ease,
     transform 0.18s ease,
     box-shadow 0.18s ease,
     border-color 0.18s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
+    transform: ${(props) => {
+      if (props.$isOverlay) {
+        return 'none';
+      }
+
+      return 'translateY(-2px)';
+    }};
+    box-shadow: ${(props) => {
+      if (props.$isOverlay) {
+        return '0 18px 38px rgba(15, 23, 42, 0.16)';
+      }
+
+      return '0 16px 32px rgba(15, 23, 42, 0.1)';
+    }};
     border-color: ${(props) => `${props.$accentColor}55`};
   }
 `;

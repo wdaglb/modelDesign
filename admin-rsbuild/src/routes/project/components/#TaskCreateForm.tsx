@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 
 import { ApiProject, ApiProjectTask, ApiProjectTaskType } from '@/api';
 import type { Project } from '@/api/modules/project.types';
+import type { ProjectTaskIteration } from '@/api/modules/project-task-iteration';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import {
@@ -25,12 +26,17 @@ import {
   getRememberedProjectIdFromStorage,
   saveRememberedProjectIdToStorage,
 } from './#taskCreateFormHelper';
+import TaskIterationSelect from './#TaskIterationSelect';
 
 interface TaskCreateFormProps {
   /** 默认项目 ID。 */
   projectId?: number;
   /** 新建时默认负责人 ID。 */
   defaultAssigneeId?: number;
+  /** 新建时默认迭代 ID。 */
+  defaultIterationId?: number;
+  /** 已加载的迭代列表。 */
+  iterations?: ProjectTaskIteration[];
   /** 状态配置列表。 */
   statusConfigs?: TaskStatusConfig[];
   /** 编辑时传入的任务详情。 */
@@ -207,6 +213,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
         title: props.task?.title,
         description: props.task?.description,
         assigneeId: props.task?.assigneeId ?? props.defaultAssigneeId,
+        iterationId: props.task?.iterationId ?? props.defaultIterationId,
         typeId: props.task?.typeId ?? typeConfigs[0]?.id,
         status: props.task?.status ?? TaskStatus.Todo,
         priority: props.task?.priority ?? TaskPriority.Low,
@@ -221,6 +228,7 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
           title: values.title,
           description: values.description,
           typeId: values.typeId,
+          iterationId: values.iterationId,
           status: values.status,
           priority: values.priority,
           workDays: values.workDays,
@@ -342,6 +350,16 @@ const TaskCreateForm = (props: TaskCreateFormProps) => {
                 <Select
                   placeholder={'请选择任务类型'}
                   options={typeOptions}
+                />
+              </Form.Item>
+
+              <Form.Item name={'iterationId'} label={'迭代'}>
+                <TaskIterationSelect
+                  iterations={props.iterations}
+                  selectedIteration={{
+                    id: props.task?.iterationId,
+                    name: props.task?.iterationName,
+                  }}
                 />
               </Form.Item>
 

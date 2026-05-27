@@ -5,9 +5,11 @@ import io.github.modelDesign.auth.api.AuthUserApi;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
 import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
+import io.github.modelDesign.project.domain.TaskIteration;
 import io.github.modelDesign.project.domain.TaskType;
 import io.github.modelDesign.project.mapper.ProjectMapper;
 import io.github.modelDesign.project.mapper.ProjectTaskMapper;
+import io.github.modelDesign.project.mapper.TaskIterationMapper;
 import io.github.modelDesign.project.mapper.TaskTypeMapper;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import io.github.modelDesign.project.response.ProjectTaskPredecessorVo;
@@ -78,6 +80,11 @@ public class ProjectTaskViewAssembler {
     private final TaskTypeMapper taskTypeMapper;
 
     /**
+     * 任务迭代 Mapper。
+     */
+    private final TaskIterationMapper taskIterationMapper;
+
+    /**
      * 任务时间指标支持类。
      */
     private final ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport;
@@ -97,6 +104,7 @@ public class ProjectTaskViewAssembler {
         Set<Long> parentTaskIds = new LinkedHashSet<>();
         Set<Long> projectIds = new LinkedHashSet<>();
         Set<Long> typeIds = new LinkedHashSet<>();
+        Set<Long> iterationIds = new LinkedHashSet<>();
         Set<Long> userIds = new LinkedHashSet<>();
         for (ProjectTask task : tasks) {
             taskIds.add(task.getId());
@@ -108,6 +116,9 @@ public class ProjectTaskViewAssembler {
             }
             if (task.getTypeId() != null) {
                 typeIds.add(task.getTypeId());
+            }
+            if (task.getIterationId() != null) {
+                iterationIds.add(task.getIterationId());
             }
             if (task.getCreatorId() != null) {
                 userIds.add(task.getCreatorId());
@@ -123,6 +134,7 @@ public class ProjectTaskViewAssembler {
         Map<Long, String> projectCodeMap = getProjectCodeMap(projectMap);
         Map<Long, String> parentTaskTitleMap = getParentTaskTitleMap(parentTaskIds);
         Map<Long, String> typeNameMap = getTypeNameMap(typeIds);
+        Map<Long, String> iterationNameMap = getIterationNameMap(iterationIds);
         Map<Long, Integer> childTaskCountMap = getChildTaskCountMap(taskIds);
         Map<Long, Integer> completedChildTaskCountMap = getCompletedChildTaskCountMap(taskIds);
         Map<Long, List<Long>> predecessorIdMap = projectTaskDependencyService.findPredecessorIdMapByTaskIds(taskIds);
@@ -174,6 +186,8 @@ public class ProjectTaskViewAssembler {
                     )
                     .typeId(task.getTypeId())
                     .typeName(typeNameMap.getOrDefault(task.getTypeId(), ""))
+                    .iterationId(task.getIterationId())
+                    .iterationName(iterationNameMap.getOrDefault(task.getIterationId(), ""))
                     .status(task.getStatus())
                     .projectName(projectNameMap.getOrDefault(task.getProjectId(), ""))
                     .priority(task.getPriority())
@@ -358,6 +372,27 @@ public class ProjectTaskViewAssembler {
             typeNameMap.put(taskType.getId(), taskType.getName());
         }
         return typeNameMap;
+    }
+
+    /**
+     * 提取任务迭代名称映射，避免任务列表组装时逐条查询迭代表。
+     *
+     * @param iterationIds 迭代 ID 集合
+     * @return 迭代名称映射
+     */
+    private Map<Long, String> getIterationNameMap(Set<Long> iterationIds) {
+        if (iterationIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<TaskIteration> iterations = taskIterationMapper.selectBatchIds(iterationIds);
+        if (iterations.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, String> iterationNameMap = new LinkedHashMap<>();
+        for (TaskIteration iteration : iterations) {
+            iterationNameMap.put(iteration.getId(), iteration.getName());
+        }
+        return iterationNameMap;
     }
 
     private String resolveUserNickname(AuthUserSimpleDto user) {

@@ -49,7 +49,7 @@ const MessageListItem = (props: MessageListItemProps) => {
       }}
     >
       <Space
-        direction={'vertical'}
+        orientation={'vertical'}
         size={8}
         style={{ width: '100%' }}
         styles={{ item: { width: '100%' } }}

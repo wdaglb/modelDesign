@@ -21,6 +21,7 @@ import {
 } from '@/api';
 import type { Project } from '@/api/modules/project.types';
 import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
+import type { ProjectTaskIteration } from '@/api/modules/project-task-iteration';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import {
@@ -43,6 +44,7 @@ import {
   TaskEditTitleCard,
 } from '@/routes/agile-board/styles/task-detail-drawer.styled';
 
+import TaskIterationSelect from './#TaskIterationSelect';
 import {
   buildTaskEditInitialValues,
   buildTaskEditPayload,
@@ -90,6 +92,11 @@ interface TaskEditFormProps {
    * 状态配置。
    */
   statusConfigs?: TaskStatusConfig[];
+
+  /**
+   * 已加载的迭代列表。
+   */
+  iterations?: ProjectTaskIteration[];
 
   /**
    * demo 或自定义提交时的覆盖提交逻辑。
@@ -198,8 +205,10 @@ const TaskEditForm = (props: TaskEditFormProps) => {
       >
         {renderFullEditContent({
           form,
+          iterations: props.iterations,
           projectOptions,
           statusOptions,
+          task: props.task,
           typeOptions,
         })}
       </KModal.Form>
@@ -285,6 +294,19 @@ const TaskEditForm = (props: TaskEditFormProps) => {
                     style={{ marginBottom: 0 }}
                   >
                     <Select options={typeOptions} />
+                  </Form.Item>
+                </div>
+
+                <div>
+                  <TaskEditFieldLabel>迭代</TaskEditFieldLabel>
+                  <Form.Item name={'iterationId'} style={{ marginBottom: 0 }}>
+                    <TaskIterationSelect
+                      iterations={props.iterations}
+                      selectedIteration={{
+                        id: props.task.iterationId,
+                        name: props.task.iterationName,
+                      }}
+                    />
                   </Form.Item>
                 </div>
 
@@ -383,8 +405,10 @@ const TaskEditForm = (props: TaskEditFormProps) => {
 
 interface FullEditContentProps {
   form: ReturnType<typeof Form.useForm<TaskEditFormValues>>[0];
+  iterations?: ProjectTaskIteration[];
   projectOptions: Array<{ label: string; value: number }>;
   statusOptions: Array<{ label: string; value: string; disabled?: boolean }>;
+  task: ProjectTaskDetail;
   typeOptions: Array<{ label: string; value: number; disabled?: boolean }>;
 }
 
@@ -466,6 +490,16 @@ function renderFullEditContent(props: FullEditContentProps) {
               rules={[{ required: true, message: '请选择任务类型' }]}
             >
               <Select options={props.typeOptions} />
+            </Form.Item>
+
+            <Form.Item name={'iterationId'} label={'迭代'}>
+              <TaskIterationSelect
+                iterations={props.iterations}
+                selectedIteration={{
+                  id: props.task.iterationId,
+                  name: props.task.iterationName,
+                }}
+              />
             </Form.Item>
 
             <Form.Item

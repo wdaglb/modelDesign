@@ -57,6 +57,16 @@ public class ProjectTaskDto {
     private String typeName;
 
     /**
+     * 任务迭代 ID。
+     */
+    private Long iterationId;
+
+    /**
+     * 任务迭代名称。
+     */
+    private String iterationName;
+
+    /**
      * 状态编码。
      */
     private String status;

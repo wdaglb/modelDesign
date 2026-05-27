@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
-import { Button, Dropdown } from 'antd';
+import { Button, Dropdown, Space } from 'antd';
 import type { MenuProps } from 'antd';
 
 import {
@@ -24,6 +24,8 @@ interface AgileBoardToolbarProps {
   extraActions?: ReactNode;
   enterV2ButtonRef?: RefObject<HTMLDivElement | null>;
   hasFilters: boolean;
+  iterationId?: number;
+  iterationOptions: Array<{ label: string; value: number }>;
   priority?: TaskPriority;
   projectId?: number;
   projectOptions: Array<{ label: string; value: number }>;
@@ -32,6 +34,8 @@ interface AgileBoardToolbarProps {
   onCreate: () => Promise<void>;
   onEnterV2?: () => Promise<void>;
   onEnterV2AndRemember?: () => Promise<void>;
+  onIterationChange: (value?: number) => void;
+  onManageIterations: () => Promise<void>;
   onPriorityChange: (value?: TaskPriority) => void;
   onProjectChange: (value?: number) => void;
   onReset: () => void;
@@ -54,23 +58,33 @@ const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
       });
     }
 
-    enterV2ButtonNode = (
-      <div ref={props.enterV2ButtonRef}>
-        <Dropdown.Button
-          menu={{
-            items: enterV2MenuItems,
-            onClick: async (info) => {
-              if (info.key === 'remember-v2' && props.onEnterV2AndRemember) {
-                await props.onEnterV2AndRemember();
-              }
-            },
-          }}
-          onClick={props.onEnterV2}
-        >
-          进入新版
-        </Dropdown.Button>
-      </div>
-    );
+    if (enterV2MenuItems.length === 0) {
+      enterV2ButtonNode = (
+        <div ref={props.enterV2ButtonRef}>
+          <Button onClick={props.onEnterV2}>进入新版</Button>
+        </div>
+      );
+    } else {
+      enterV2ButtonNode = (
+        <div ref={props.enterV2ButtonRef}>
+          <Space.Compact>
+            <Button onClick={props.onEnterV2}>进入新版</Button>
+            <Dropdown
+              menu={{
+                items: enterV2MenuItems,
+                onClick: async (info) => {
+                  if (info.key === 'remember-v2' && props.onEnterV2AndRemember) {
+                    await props.onEnterV2AndRemember();
+                  }
+                },
+              }}
+            >
+              <Button>更多</Button>
+            </Dropdown>
+          </Space.Compact>
+        </div>
+      );
+    }
   }
 
   return (
@@ -88,6 +102,19 @@ const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
                 props.onTitleSearchChange(event.target.value);
               }}
               onSearch={props.onTitleSearchChange}
+            />
+          </ToolbarField>
+
+          <ToolbarField $width={180}>
+            <ToolbarSelect
+              allowClear
+              placeholder="选择迭代"
+              value={props.iterationId}
+              options={props.iterationOptions}
+              showSearch={{
+                optionFilterProp: 'label',
+              }}
+              onChange={props.onIterationChange}
             />
           </ToolbarField>
 
@@ -126,6 +153,8 @@ const AgileBoardToolbar = (props: AgileBoardToolbarProps) => {
           <Button disabled={!props.hasFilters} onClick={props.onReset}>
             重置筛选
           </Button>
+
+          <Button onClick={props.onManageIterations}>管理迭代</Button>
 
           <Button
             type="primary"

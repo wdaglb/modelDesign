@@ -102,7 +102,7 @@ const UserListCard = ({
         }}
       >
         <Typography.Text strong>{title}</Typography.Text>
-        <Tag bordered={false}>{users.length}</Tag>
+        <Tag variant="filled">{users.length}</Tag>
       </Flex>
 
       <div

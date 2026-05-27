@@ -4,6 +4,7 @@ import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.mapper.ProjectMapper;
 import io.github.modelDesign.project.mapper.ProjectTaskMapper;
+import io.github.modelDesign.project.mapper.TaskIterationMapper;
 import io.github.modelDesign.project.mapper.TaskTypeMapper;
 import io.github.modelDesign.project.response.ProjectTaskDetailVo;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,7 @@ class ProjectTaskViewAssemblerTest {
                 taskDynamicService,
                 taskStatusConfigService,
                 taskTypeMapper,
+                mock(TaskIterationMapper.class),
                 projectTaskTimeMetricsSupport
         );
 

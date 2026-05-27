@@ -10,9 +10,15 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { Tour, message } from 'antd';
+import { Button, Empty, Tour, message } from 'antd';
 import { z } from 'zod';
-import { ApiProject, ApiProjectTask, ApiProjectTaskStatus, ApiProjectTaskType } from '@/api';
+import {
+  ApiProject,
+  ApiProjectTask,
+  ApiProjectTaskIteration,
+  ApiProjectTaskStatus,
+  ApiProjectTaskType,
+} from '@/api';
 import {
   TaskPriority,
   type ProjectTaskDetail,
@@ -24,6 +30,7 @@ import queryKey from '@/constants/queryKey';
 import { openTaskModal } from '@/service/taskModalService.tsx';
 import useDebounce from '@/hooks/useDebounce';
 import { AgileBoardTaskCardPreview } from './components/AgileBoardTaskCard';
+import TaskIterationManager from './#TaskIterationManager';
 import AgileBoardColumn from './components/BoardColumn';
 import AgileBoardToolbar from './components/BoardToolbar';
 import {
@@ -41,6 +48,7 @@ import {
   handleBoardTitleSearch,
   resolveDropStatus,
 } from './#helper';
+import { resolveDefaultBoardIteration } from './#iterationHelper';
 import {
   buildAgileBoardVersionSearch,
   getPreferredAgileBoardVersionFromStorage,
@@ -83,6 +91,7 @@ function RouteComponent() {
     return getPreferredAgileBoardVersionFromStorage();
   });
   const [isV2TourOpen, setIsV2TourOpen] = useState(false);
+  const [isIterationInitialized, setIsIterationInitialized] = useState(false);
   const [filters, setFilters] = useState<AgileBoardFilterState>({
     title: '',
   });
@@ -102,9 +111,19 @@ function RouteComponent() {
     queryKey: [...queryKey.project.list(), 'agile-board'],
     queryFn: () => ApiProject.getList({ current: 1, pageSize: 999 }),
   });
+  const {
+    data: taskIterations = [],
+    isFetched: isTaskIterationFetched,
+    refetch: refetchTaskIterations,
+  } = useQuery({
+    queryKey: queryKey.project.taskIterationList(),
+    queryFn: () => ApiProjectTaskIteration.getList(),
+  });
+  const hasTaskIterations = taskIterations.length > 0;
   const { data: boardTasks = [], refetch: refetchBoardTasks } = useQuery({
     queryKey: [...queryKey.project.taskBoard(), params],
     queryFn: () => ApiProjectTask.getAgileBoard(params),
+    enabled: isIterationInitialized && hasTaskIterations,
   });
   const parentTasks = useMemo(() => {
     return filterBoardParentTasks(boardTasks);
@@ -129,6 +148,14 @@ function RouteComponent() {
       value: item.id,
     }));
   }, [projectListData]);
+  const iterationOptions = useMemo(() => {
+    return taskIterations.map((item) => {
+      return {
+        label: `${item.name}（${item.startDate} ~ ${item.endDate}）`,
+        value: item.id,
+      };
+    });
+  }, [taskIterations]);
   const agileBoardColumns = useMemo(
     () => buildAgileBoardColumns(statusConfigs, parentTasks),
     [statusConfigs, parentTasks],
@@ -140,11 +167,87 @@ function RouteComponent() {
   const hasFilters = useMemo(() => {
     return Boolean(
       filters.title ||
+      filters.iterationId !== undefined ||
       filters.projectId !== undefined ||
       filters.assigneeId !== undefined ||
       filters.priority !== undefined,
     );
   }, [filters]);
+
+  /**
+   * 首次加载迭代后初始化默认看板迭代。
+   *
+   * 没有迭代时只标记初始化完成，页面会展示创建引导而不请求任务列表。
+   */
+  useEffect(() => {
+    if (isIterationInitialized) {
+      return;
+    }
+
+    if (!isTaskIterationFetched) {
+      return;
+    }
+
+    const defaultIteration = resolveDefaultBoardIteration(taskIterations);
+    if (!defaultIteration) {
+      setIsIterationInitialized(true);
+      return;
+    }
+
+    setFilters((previous) => {
+      return {
+        ...previous,
+        iterationId: defaultIteration.id,
+      };
+    });
+    setIsIterationInitialized(true);
+  }, [isIterationInitialized, isTaskIterationFetched, taskIterations]);
+
+  /**
+   * 迭代被删除后，如果当前筛选值已不存在，则回落到新的默认迭代。
+   */
+  useEffect(() => {
+    if (!isIterationInitialized || !isTaskIterationFetched) {
+      return;
+    }
+
+    if (taskIterations.length === 0) {
+      if (filters.iterationId === undefined) {
+        return;
+      }
+      setFilters((previous) => {
+        return {
+          ...previous,
+          iterationId: undefined,
+        };
+      });
+      return;
+    }
+
+    if (filters.iterationId === undefined) {
+      return;
+    }
+
+    const currentIterationExists = taskIterations.some((item) => {
+      return item.id === filters.iterationId;
+    });
+    if (currentIterationExists) {
+      return;
+    }
+
+    const defaultIteration = resolveDefaultBoardIteration(taskIterations);
+    setFilters((previous) => {
+      return {
+        ...previous,
+        iterationId: defaultIteration?.id,
+      };
+    });
+  }, [
+    filters.iterationId,
+    isIterationInitialized,
+    isTaskIterationFetched,
+    taskIterations,
+  ]);
 
   /**
    * 当用户已明确记住 v2 时，进入旧版后自动跳到 v2。
@@ -231,6 +334,32 @@ function RouteComponent() {
       }),
     ]);
   }, [queryClient]);
+
+  /**
+   * 刷新迭代配置与看板数据，供迭代管理弹窗在变更后统一调用。
+   */
+  const refreshIterationAndBoard = useCallback(async () => {
+    const iterationResult = await refetchTaskIterations();
+    const refreshedIterations = iterationResult.data ?? [];
+    if (filters.iterationId === undefined && refreshedIterations.length > 0) {
+      const defaultIteration = resolveDefaultBoardIteration(refreshedIterations);
+      setFilters((previous) => {
+        if (previous.iterationId !== undefined) {
+          return previous;
+        }
+        return {
+          ...previous,
+          iterationId: defaultIteration?.id,
+        };
+      });
+    }
+
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: queryKey.project.taskBoard(),
+      }),
+    ]);
+  }, [filters.iterationId, queryClient, refetchTaskIterations]);
 
   /**
    * 刷新看板任务变更最小依赖，避免每次状态/优先级调整都触发任务列表刷新。
@@ -385,6 +514,8 @@ function RouteComponent() {
 
       try {
         const submitted = await openTaskModal(modal, {
+          defaultIterationId: filters.iterationId,
+          iterations: taskIterations,
           statusConfigs,
           task,
         });
@@ -398,7 +529,14 @@ function RouteComponent() {
         setIsTaskFormOpen(false);
       }
     },
-    [invalidateBoardQueries, modal, setIsTaskFormOpen, statusConfigs],
+    [
+      filters.iterationId,
+      invalidateBoardQueries,
+      modal,
+      setIsTaskFormOpen,
+      statusConfigs,
+      taskIterations,
+    ],
   );
   const openTaskPreview = useCallback(
     async (
@@ -536,6 +674,18 @@ function RouteComponent() {
   }, []);
 
   /**
+   * 迭代筛选变化事件。
+   */
+  const handleIterationChange = useCallback((value?: number) => {
+    setFilters((previous) => {
+      return {
+        ...previous,
+        iterationId: value,
+      };
+    });
+  }, []);
+
+  /**
    * 顶部优先级筛选变化事件。
    */
   const handleFilterPriorityChange = useCallback((value?: TaskPriority) => {
@@ -556,6 +706,23 @@ function RouteComponent() {
       title: '',
     });
   }, []);
+
+  /**
+   * 打开敏捷面板内的迭代管理弹窗。
+   */
+  const handleManageIterations = useCallback(async () => {
+    try {
+      await modal.open({
+        title: '管理迭代',
+        width: 760,
+        children: <TaskIterationManager onRefresh={refreshIterationAndBoard} />,
+      });
+    } catch (error) {
+      if (error !== 'KModal cancel') {
+        throw error;
+      }
+    }
+  }, [modal, refreshIterationAndBoard]);
 
   /**
    * 打开新建任务弹窗。
@@ -667,6 +834,8 @@ function RouteComponent() {
       <BoardToolbarCard size="small">
         <AgileBoardToolbar
           hasFilters={hasFilters}
+          iterationId={filters.iterationId}
+          iterationOptions={iterationOptions}
           projectId={filters.projectId}
           assigneeId={filters.assigneeId}
           priority={filters.priority}
@@ -683,45 +852,60 @@ function RouteComponent() {
           onTitleSearchChange={handleTitleSearchChange}
           onProjectChange={handleProjectChange}
           onAssigneeChange={handleAssigneeChange}
+          onIterationChange={handleIterationChange}
+          onManageIterations={handleManageIterations}
           onPriorityChange={handleFilterPriorityChange}
           onReset={handleResetFilters}
         />
       </BoardToolbarCard>
       <BoardContentCard size="small">
-        <DndContext
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragCancel={handleDragCancel}
-          onDragEnd={handleDragEnd}
-        >
-          <BoardColumnsScroller>
-            <BoardColumnsGrid $columnCount={agileBoardColumns.length}>
-              {agileBoardColumns.map((column) => {
-                return (
-                  <AgileBoardColumn
-                    key={column.status}
-                    column={column}
-                    disabled={updatingTaskId !== undefined}
-                    tasks={groupedTasks[column.status]}
-                    taskTypes={taskTypes}
-                    onOpenSubtasks={handleOpenSubtasks}
-                    onPreview={openTaskPreview}
-                    onPriorityChange={handlePriorityChange}
-                  />
-                );
-              })}
-            </BoardColumnsGrid>
-          </BoardColumnsScroller>
-          <DragOverlay dropAnimation={null}>
-            {activeTask && (
-              <AgileBoardTaskCardPreview
-                task={activeTask}
-                taskTypes={taskTypes}
-                accentColor={activeTaskAccentColor}
-              />
-            )}
-          </DragOverlay>
-        </DndContext>
+        {isTaskIterationFetched && !hasTaskIterations && (
+          <Empty
+            description="暂无任务迭代，请先创建迭代后再使用敏捷面板"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          >
+            <Button type="primary" onClick={handleManageIterations}>
+              创建迭代
+            </Button>
+          </Empty>
+        )}
+
+        {hasTaskIterations && (
+          <DndContext
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragCancel={handleDragCancel}
+            onDragEnd={handleDragEnd}
+          >
+            <BoardColumnsScroller>
+              <BoardColumnsGrid $columnCount={agileBoardColumns.length}>
+                {agileBoardColumns.map((column) => {
+                  return (
+                    <AgileBoardColumn
+                      key={column.status}
+                      column={column}
+                      disabled={updatingTaskId !== undefined}
+                      tasks={groupedTasks[column.status]}
+                      taskTypes={taskTypes}
+                      onOpenSubtasks={handleOpenSubtasks}
+                      onPreview={openTaskPreview}
+                      onPriorityChange={handlePriorityChange}
+                    />
+                  );
+                })}
+              </BoardColumnsGrid>
+            </BoardColumnsScroller>
+            <DragOverlay dropAnimation={null}>
+              {activeTask && (
+                <AgileBoardTaskCardPreview
+                  task={activeTask}
+                  taskTypes={taskTypes}
+                  accentColor={activeTaskAccentColor}
+                />
+              )}
+            </DragOverlay>
+          </DndContext>
+        )}
       </BoardContentCard>
     </BoardPageRoot>
   );

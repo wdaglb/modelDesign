@@ -47,6 +47,11 @@ public class ProjectTaskGuardService {
     private final TaskTypeService taskTypeService;
 
     /**
+     * 任务迭代服务。
+     */
+    private final TaskIterationService taskIterationService;
+
+    /**
      * 用户查询接口。
      */
     private final AuthUserApi authUserApi;
@@ -84,6 +89,16 @@ public class ProjectTaskGuardService {
      */
     public Long validateTypeId(Long typeId) {
         return taskTypeService.validateTypeId(typeId);
+    }
+
+    /**
+     * 校验任务迭代并返回标准迭代 ID。
+     *
+     * @param iterationId 任务迭代 ID
+     * @return 规范化迭代 ID；未选择时返回 null
+     */
+    public Long validateIterationId(Long iterationId) {
+        return taskIterationService.validateIterationId(iterationId);
     }
 
     /**

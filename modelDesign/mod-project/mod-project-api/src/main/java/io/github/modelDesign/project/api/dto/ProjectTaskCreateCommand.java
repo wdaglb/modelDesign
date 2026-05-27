@@ -36,6 +36,11 @@ public class ProjectTaskCreateCommand {
     private Long typeId;
 
     /**
+     * 任务迭代 ID。
+     */
+    private Long iterationId;
+
+    /**
      * 状态编码。
      */
     private String status;

@@ -56,7 +56,7 @@ const RoleListCard = ({
         }}
       >
         <Typography.Text strong>{title}</Typography.Text>
-        <Tag bordered={false}>{roles.length}</Tag>
+        <Tag variant="filled">{roles.length}</Tag>
       </Flex>
 
       <div

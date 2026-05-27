@@ -108,7 +108,7 @@ function RouteComponent() {
   }
 
   return (
-    <Space direction={'vertical'} size={16} style={{ width: '100%' }}>
+    <Space orientation={'vertical'} size={16} style={{ width: '100%' }}>
       <AccountSummary currentInfo={currentInfoQuery.data} />
 
       <Card styles={{ body: { padding: 20 } }}>

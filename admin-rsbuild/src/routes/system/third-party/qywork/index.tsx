@@ -134,7 +134,7 @@ function RouteComponent() {
 
   return (
     <Card>
-      <Space direction={'vertical'} size={20} style={{ width: '100%' }}>
+      <Space orientation={'vertical'} size={20} style={{ width: '100%' }}>
         <Alert
           type={'info'}
           showIcon

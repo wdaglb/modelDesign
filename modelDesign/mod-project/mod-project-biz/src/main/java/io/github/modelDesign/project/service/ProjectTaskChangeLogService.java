@@ -8,9 +8,11 @@ import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.domain.ProjectTaskChangeLog;
+import io.github.modelDesign.project.domain.TaskIteration;
 import io.github.modelDesign.project.domain.TaskType;
 import io.github.modelDesign.project.enums.ProjectTaskChangeOperationTypeEnum;
 import io.github.modelDesign.project.mapper.ProjectTaskChangeLogMapper;
+import io.github.modelDesign.project.mapper.TaskIterationMapper;
 import io.github.modelDesign.project.mapper.TaskTypeMapper;
 import io.github.modelDesign.project.request.ProjectTaskChangeLogListRequest;
 import io.github.modelDesign.project.response.PageResponse;
@@ -70,6 +72,11 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
     private final TaskTypeMapper taskTypeMapper;
 
     /**
+     * 任务迭代 Mapper。
+     */
+    private final TaskIterationMapper taskIterationMapper;
+
+    /**
      * 记录任务创建日志。
      *
      * @param task 任务实体
@@ -79,6 +86,7 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
         changes.add(buildChangeItem("title", "任务标题", "-", formatText(task.getTitle())));
         changes.add(buildChangeItem("description", "任务描述", "-", formatText(task.getDescription())));
         changes.add(buildChangeItem("typeId", "任务类型", "-", formatType(task.getTypeId())));
+        changes.add(buildChangeItem("iterationId", "任务迭代", "-", formatIteration(task.getIterationId())));
         changes.add(buildChangeItem("status", "任务状态", "-", formatStatus(task.getStatus())));
         changes.add(buildChangeItem("priority", "任务优先级", "-", formatPriority(task.getPriority())));
         changes.add(buildChangeItem("workDays", "预计工时", "-", formatWorkDays(task.getWorkDays())));
@@ -99,6 +107,7 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
         appendChangeIfChanged(changes, "title", "任务标题", formatText(beforeTask.getTitle()), formatText(afterTask.getTitle()));
         appendChangeIfChanged(changes, "description", "任务描述", formatText(beforeTask.getDescription()), formatText(afterTask.getDescription()));
         appendChangeIfChanged(changes, "typeId", "任务类型", formatType(beforeTask.getTypeId()), formatType(afterTask.getTypeId()));
+        appendChangeIfChanged(changes, "iterationId", "任务迭代", formatIteration(beforeTask.getIterationId()), formatIteration(afterTask.getIterationId()));
         appendChangeIfChanged(changes, "status", "任务状态", formatStatus(beforeTask.getStatus()), formatStatus(afterTask.getStatus()));
         appendChangeIfChanged(changes, "priority", "任务优先级", formatPriority(beforeTask.getPriority()), formatPriority(afterTask.getPriority()));
         appendChangeIfChanged(changes, "workDays", "预计工时", formatWorkDays(beforeTask.getWorkDays()), formatWorkDays(afterTask.getWorkDays()));
@@ -368,6 +377,26 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
             return "类型#" + typeId;
         }
         return taskType.getName();
+    }
+
+    /**
+     * 格式化任务迭代展示文案。
+     *
+     * 迭代允许在未被任务使用时删除；历史日志查不到名称时回退为编号，
+     * 避免变更记录因为配置缺失而无法读懂。
+     *
+     * @param iterationId 迭代 ID
+     * @return 展示文本
+     */
+    private String formatIteration(Long iterationId) {
+        if (iterationId == null) {
+            return "-";
+        }
+        TaskIteration iteration = taskIterationMapper.selectById(iterationId);
+        if (iteration == null || !StringUtils.hasText(iteration.getName())) {
+            return "迭代#" + iterationId;
+        }
+        return iteration.getName();
     }
 
     private String formatPriority(String priority) {

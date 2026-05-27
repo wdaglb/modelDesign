@@ -103,7 +103,7 @@ const BaseUpload = (props: BaseUploadProps) => {
   };
 
   return (
-    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={8} style={{ width: '100%' }}>
       <Upload
         accept={getAccept(props.mode)}
         maxCount={1}

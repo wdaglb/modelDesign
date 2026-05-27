@@ -17,6 +17,12 @@ public class ProjectTaskBoardRequest {
     private Long projectId;
 
     /**
+     * 任务迭代 ID。
+     */
+    @Schema(description = "任务迭代 ID")
+    private Long iterationId;
+
+    /**
      * 任务标题关键字。
      */
     @Schema(description = "任务标题关键字")

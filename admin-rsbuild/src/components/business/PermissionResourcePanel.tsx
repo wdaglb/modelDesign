@@ -465,7 +465,7 @@ const PermissionResourcePanel = (props: PermissionResourcePanelProps) => {
                       <Spin spinning={Boolean(props.loading)}>
                         {filteredApiResources.length > 0 ? (
                           <Space
-                            direction={'vertical'}
+                            orientation={'vertical'}
                             size={12}
                             style={{ width: '100%' }}
                           >
@@ -484,7 +484,7 @@ const PermissionResourcePanel = (props: PermissionResourcePanelProps) => {
                                   }}
                                   style={{ width: '100%' }}
                                 >
-                                  <Space direction={'vertical'} size={2}>
+                                  <Space orientation={'vertical'} size={2}>
                                     <Typography.Text>{item.title}</Typography.Text>
                                     <Typography.Text type={'secondary'}>
                                       {item.resource}
