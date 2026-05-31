@@ -187,7 +187,7 @@ export const V2ColumnBody = styled.div`
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px 10px 18px;
+  padding: 8px 8px 14px;
   box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-gutter: stable;
@@ -199,7 +199,7 @@ export const V2ColumnBody = styled.div`
 export const V2TaskList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 `;
 
 /**
@@ -211,11 +211,11 @@ export const V2TaskCard = styled.button<{
   $isOverlay?: boolean;
 }>`
   width: 100%;
-  min-height: 152px;
-  padding: 14px;
+  min-height: 108px;
+  padding: 10px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-top: 3px solid ${(props) => props.$accentColor};
-  border-radius: 18px;
+  border-radius: 14px;
   background: linear-gradient(180deg, #ffffff, #f8fbff);
   box-shadow: ${(props) => {
     if (props.$isOverlay) {
@@ -227,7 +227,7 @@ export const V2TaskCard = styled.button<{
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   opacity: ${(props) => {
     if (props.$isDragging) {
       return 0;
@@ -269,7 +269,7 @@ export const V2TaskCardTop = styled.div`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 `;
 
 /**
@@ -286,10 +286,10 @@ export const V2TaskCode = styled(Typography.Text)<{ $accentColor: string }>`
  */
 export const V2PriorityTag = styled.span<{ $color: string }>`
   flex: 0 0 auto;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 999px;
   font-size: 12px;
-  line-height: 18px;
+  line-height: 16px;
   color: ${(props) => props.$color};
   background: ${(props) => `${props.$color}14`};
 `;
@@ -299,8 +299,8 @@ export const V2PriorityTag = styled.span<{ $color: string }>`
  */
 export const V2TaskTitle = styled(Typography.Title)`
   margin: 0 !important;
-  font-size: 15px !important;
-  line-height: 22px !important;
+  font-size: 14px !important;
+  line-height: 20px !important;
   color: #0f172a;
 `;
 
@@ -310,7 +310,7 @@ export const V2TaskTitle = styled(Typography.Title)`
 export const V2TaskTitleRow = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 6px;
 `;
 
 /**
@@ -318,12 +318,12 @@ export const V2TaskTitleRow = styled.div`
  */
 export const V2TaskTypeTag = styled.span`
   flex: 0 0 auto;
-  padding: 2px 8px;
+  padding: 1px 7px;
   border-radius: 999px;
   background: rgba(37, 99, 235, 0.1);
   color: #1d4ed8;
   font-size: 12px;
-  line-height: 18px;
+  line-height: 16px;
   font-weight: 600;
 `;
 
@@ -342,9 +342,9 @@ export const V2TaskSummary = styled(Typography.Paragraph)`
  * v2 卡片元信息网格。
  */
 export const V2TaskMetaGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: auto;
 `;
 
@@ -352,8 +352,13 @@ export const V2TaskMetaGrid = styled.div`
  * v2 元信息块。
  */
 export const V2TaskMetaItem = styled.div`
-  padding: 8px 10px;
-  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
   background: rgba(248, 250, 252, 0.95);
 `;
 
@@ -362,7 +367,7 @@ export const V2TaskMetaItem = styled.div`
  */
 export const V2TaskMetaLabel = styled.div`
   font-size: 11px;
-  line-height: 16px;
+  line-height: 14px;
   color: #64748b;
 `;
 
@@ -370,9 +375,8 @@ export const V2TaskMetaLabel = styled.div`
  * v2 元信息值。
  */
 export const V2TaskMetaValue = styled.div`
-  margin-top: 2px;
   font-size: 12px;
-  line-height: 18px;
+  line-height: 14px;
   color: #0f172a;
   word-break: break-word;
 `;

@@ -35,9 +35,18 @@ function resolveTaskCardCursor(isOverlay: boolean, disabled: boolean) {
  *
  * @param isCompact 是否紧凑态
  * @param isSubtask 是否子任务态
+ * @param isDense 是否密集态
  * @returns CSS padding 字符串
  */
-function resolveTaskCardPadding(isCompact: boolean, isSubtask: boolean) {
+function resolveTaskCardPadding(
+  isCompact: boolean,
+  isSubtask: boolean,
+  isDense: boolean,
+) {
+  if (isDense) {
+    return '12px 12px 10px';
+  }
+
   if (isCompact || isSubtask) {
     return '14px 12px 12px';
   }
@@ -45,7 +54,15 @@ function resolveTaskCardPadding(isCompact: boolean, isSubtask: boolean) {
   return '20px 16px 16px';
 }
 
-function resolveTitleFontSize(isCompact: boolean, isSubtask: boolean) {
+function resolveTitleFontSize(
+  isCompact: boolean,
+  isSubtask: boolean,
+  isDense: boolean,
+) {
+  if (isDense) {
+    return 14;
+  }
+
   if (isCompact || isSubtask) {
     return 14;
   }
@@ -53,7 +70,15 @@ function resolveTitleFontSize(isCompact: boolean, isSubtask: boolean) {
   return 15;
 }
 
-function resolveTitleLineHeight(isCompact: boolean, isSubtask: boolean) {
+function resolveTitleLineHeight(
+  isCompact: boolean,
+  isSubtask: boolean,
+  isDense: boolean,
+) {
+  if (isDense) {
+    return '20px';
+  }
+
   if (isCompact || isSubtask) {
     return '20px';
   }
@@ -64,10 +89,15 @@ function resolveTitleLineHeight(isCompact: boolean, isSubtask: boolean) {
 function resolveTitleMinHeight(
   isCompact: boolean,
   isSubtask: boolean,
+  isDense: boolean,
   isCompletedSubtask: boolean,
 ) {
   if (isCompletedSubtask) {
     return 20;
+  }
+
+  if (isDense) {
+    return 40;
   }
 
   if (isCompact || isSubtask) {
@@ -92,6 +122,7 @@ export const TaskCardContainer = styled(Card)<{
   $disabled: boolean;
   $compact: boolean;
   $isSubtask: boolean;
+  $dense: boolean;
 }>`
   width: 100%;
   box-shadow: ${(props) =>
@@ -102,7 +133,11 @@ export const TaskCardContainer = styled(Card)<{
 
   .ant-card-body {
     padding: ${(props) =>
-      resolveTaskCardPadding(props.$compact, props.$isSubtask)};
+      resolveTaskCardPadding(
+        props.$compact,
+        props.$isSubtask,
+        props.$dense,
+      )};
   }
 `;
 
@@ -201,6 +236,7 @@ export const TaskHeaderText = styled(Typography.Text)`
 export const TaskTitleText = styled(Typography.Text)<{
   $compact: boolean;
   $isSubtask: boolean;
+  $dense: boolean;
   $isCompletedSubtask: boolean;
 }>`
   display: -webkit-box;
@@ -208,6 +244,7 @@ export const TaskTitleText = styled(Typography.Text)<{
     resolveTitleMinHeight(
       props.$compact,
       props.$isSubtask,
+      props.$dense,
       props.$isCompletedSubtask,
     )}px;
   overflow: hidden;
@@ -220,9 +257,17 @@ export const TaskTitleText = styled(Typography.Text)<{
     return 2;
   }};
   font-size: ${(props) =>
-    resolveTitleFontSize(props.$compact, props.$isSubtask)}px;
+    resolveTitleFontSize(
+      props.$compact,
+      props.$isSubtask,
+      props.$dense,
+    )}px;
   line-height: ${(props) =>
-    resolveTitleLineHeight(props.$compact, props.$isSubtask)};
+    resolveTitleLineHeight(
+      props.$compact,
+      props.$isSubtask,
+      props.$dense,
+    )};
   white-space: ${(props) => {
     if (props.$isCompletedSubtask) {
       return 'nowrap';
@@ -284,10 +329,36 @@ export const TaskTypeTag = styled(Tag)<{
 /**
  * 任务卡片信息列表。
  */
-export const TaskMetaList = styled.div`
+export const TaskMetaList = styled.div<{ $dense: boolean }>`
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: ${(props) => {
+    if (props.$dense) {
+      return 'row';
+    }
+
+    return 'column';
+  }};
+  flex-wrap: ${(props) => {
+    if (props.$dense) {
+      return 'wrap';
+    }
+
+    return 'nowrap';
+  }};
+  gap: ${(props) => {
+    if (props.$dense) {
+      return '4px 8px';
+    }
+
+    return '4px';
+  }};
+  align-items: ${(props) => {
+    if (props.$dense) {
+      return 'center';
+    }
+
+    return 'stretch';
+  }};
 `;
 
 /**

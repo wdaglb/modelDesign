@@ -118,10 +118,10 @@ const TodoTable = () => {
           });
 
           if (!submitted) {
-            return;
+            return false;
           }
 
-          await refreshTaskRelatedQueries();
+          return true;
         },
       });
     } catch (error) {

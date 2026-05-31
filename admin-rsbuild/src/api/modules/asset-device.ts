@@ -1,4 +1,12 @@
+import axios from 'axios';
+
+import useAuthStore from '@/store/auth';
 import request from '@/utils/request';
+
+/**
+ * 设备库存导入模板下载地址。
+ */
+export const IMPORT_TEMPLATE_DOWNLOAD_URL = '/api/asset/device/import/template';
 
 /**
  * 设备台账项。
@@ -181,6 +189,16 @@ export interface AssetDeviceCreateData {
 }
 
 /**
+ * 设备批量入库结果。
+ */
+export interface AssetDeviceImportResult {
+  /**
+   * 成功导入数量。
+   */
+  importedCount: number;
+}
+
+/**
  * 获取设备台账列表。
  */
 export const getList = (params?: AssetDeviceListParams) => {
@@ -212,6 +230,36 @@ export const create = (data: AssetDeviceCreateData) => {
     method: 'post',
     data,
   });
+};
+
+/**
+ * 批量导入设备库存。
+ */
+export const importDevices = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request<AssetDeviceImportResult>('/asset/device/import', {
+    method: 'post',
+    data: formData,
+  });
+};
+
+/**
+ * 下载设备库存导入模板。
+ */
+export const downloadImportTemplate = async () => {
+  const token =
+    useAuthStore.getState().token || localStorage.getItem('token') || '';
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = token;
+  }
+
+  const response = await axios.get('/api/asset/device/import/template', {
+    responseType: 'blob',
+    headers,
+  });
+  downloadBlob(response.data, resolveImportTemplateFileName(response.headers));
 };
 
 /**
@@ -264,3 +312,41 @@ export const scrap = (data: Record<string, unknown>) => {
     data,
   });
 };
+
+/**
+ * 从模板下载响应头中解析文件名。
+ *
+ * @param headers HTTP 响应头
+ * @returns 下载文件名
+ */
+function resolveImportTemplateFileName(headers: Record<string, unknown>) {
+  const contentDisposition = String(headers['content-disposition'] || '');
+  const encodedMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch && encodedMatch[1]) {
+    return decodeURIComponent(encodedMatch[1]);
+  }
+
+  const plainMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  if (plainMatch && plainMatch[1]) {
+    return plainMatch[1];
+  }
+
+  return '设备库存导入模板.xlsx';
+}
+
+/**
+ * 触发浏览器下载。
+ *
+ * @param blob 文件内容
+ * @param fileName 文件名
+ */
+function downloadBlob(blob: Blob, fileName: string) {
+  const downloadUrl = URL.createObjectURL(blob);
+  const linkElement = document.createElement('a');
+  linkElement.href = downloadUrl;
+  linkElement.download = fileName;
+  document.body.appendChild(linkElement);
+  linkElement.click();
+  document.body.removeChild(linkElement);
+  URL.revokeObjectURL(downloadUrl);
+}

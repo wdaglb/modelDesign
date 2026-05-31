@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Skeleton } from 'antd';
 
@@ -8,7 +8,6 @@ import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 import { useKDrawer } from '@/components/KDrawer';
 import queryKey from '@/constants/queryKey';
-import TaskEditForm from '@/routes/project/components/#TaskEditForm';
 
 import TaskDetailView from './#TaskDetailView';
 import type { TaskPreviewDrawerTabKey } from './#previewDrawerService';
@@ -25,26 +24,23 @@ interface TaskPreviewDrawerProps {
    * 一套与看板不同步的迭代数据来源。
    */
   iterations?: ProjectTaskIteration[];
-  onEdit: (task: ProjectTaskDetail) => Promise<void>;
+  onEdit: (task: ProjectTaskDetail) => Promise<boolean>;
   onTaskUpdated: () => Promise<void>;
   statusConfigs: TaskStatusConfig[];
   taskId: number;
 }
-
-type DrawerMode = 'view' | 'edit';
 
 /**
  * 任务详情抽屉容器。
  *
  * 这个容器只负责三件事：
  * 1. 拉取并刷新任务详情；
- * 2. 维护查看态 / 编辑态切换；
+ * 2. 把编辑入口转交统一任务编辑弹窗；
  * 3. 把保存后的刷新责任集中到一个地方。
  */
 const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
   const drawer = useKDrawer();
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<DrawerMode>('view');
 
   const detailQueryKey = useMemo(() => {
     return ['projectTaskDetail', props.taskId];
@@ -54,10 +50,6 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
     queryKey: detailQueryKey,
     queryFn: () => ApiProjectTask.getDetail(props.taskId),
   });
-
-  useEffect(() => {
-    setMode('view');
-  }, [props.taskId]);
 
   /**
    * 保存成功后统一刷新详情、子任务、变更日志和外层列表。
@@ -75,7 +67,6 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
         queryKey: queryKey.project.taskChangeLog(props.taskId),
       }),
     ]);
-    setMode('view');
   };
 
   /**
@@ -110,6 +101,25 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
     });
   };
 
+  /**
+   * 打开统一任务编辑弹窗。
+   *
+   * 任务详情抽屉只负责查看和刷新，不再内嵌一套编辑表单，避免字段、校验和
+   * 保存 payload 在抽屉与任务编辑窗口之间重复维护。
+   */
+  const openTaskEditModal = async () => {
+    if (!detailQuery.data) {
+      return;
+    }
+
+    const submitted = await props.onEdit(detailQuery.data);
+    if (!submitted) {
+      return;
+    }
+
+    await handleTaskMutated();
+  };
+
   if (detailQuery.isLoading) {
     return (
       <div style={{ padding: 20 }}>
@@ -130,30 +140,13 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
     );
   }
 
-  if (mode === 'edit') {
-    return (
-      <TaskEditForm
-        mode={'drawer'}
-        task={detailQuery.data}
-        statusConfigs={props.statusConfigs}
-        onCancel={() => {
-          setMode('view');
-        }}
-        onSuccess={handleTaskMutated}
-        onOpenFullEdit={props.onEdit}
-      />
-    );
-  }
-
   return (
     <TaskDetailView
       task={detailQuery.data}
       iterations={props.iterations}
       statusConfigs={props.statusConfigs}
       initialTabKey={props.initialTabKey}
-      onEnterEdit={() => {
-        setMode('edit');
-      }}
+      onEnterEdit={openTaskEditModal}
       onTaskUpdated={handleTaskMutated}
       onEditTask={openNestedTaskPreviewDrawer}
     />

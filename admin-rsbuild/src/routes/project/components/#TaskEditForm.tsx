@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Button,
-  Card,
   Col,
   DatePicker,
   Form,
@@ -10,8 +8,6 @@ import {
   InputNumber,
   Row,
   Select,
-  Typography,
-  message,
 } from 'antd';
 
 import {
@@ -20,7 +16,6 @@ import {
   ApiProjectTaskType,
 } from '@/api';
 import type { Project } from '@/api/modules/project.types';
-import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
 import type { ProjectTaskIteration } from '@/api/modules/project-task-iteration';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskType } from '@/api/modules/project-task-type';
@@ -34,50 +29,16 @@ import {
 import { KMarkdownEditor, UserSelect } from '@/components';
 import KModal from '@/components/KModal';
 import queryKey from '@/constants/queryKey';
-import {
-  TaskDetailDrawerFooterBar,
-  TaskDetailDrawerScrollArea,
-  TaskDetailDrawerStack,
-  TaskDetailPanelCard,
-  TaskEditFieldLabel,
-  TaskEditMetaGrid,
-  TaskEditTitleCard,
-} from '@/routes/agile-board/styles/task-detail-drawer.styled';
 
 import TaskIterationSelect from './#TaskIterationSelect';
 import {
   buildTaskEditInitialValues,
   buildTaskEditPayload,
-  type TaskEditFormMode,
   type TaskEditFormValues,
   validateWorkDaysValue,
 } from './#taskEditFormHelper';
 
-/**
- * 抽屉编辑态的 Markdown 编辑区高度。
- *
- * 抽屉场景下顶部基础信息区占用了较多纵向空间，原先 320px 的编辑区在录入
- * 较长任务说明时需要频繁滚动，编辑体验明显偏紧。这里继续上调到 560，
- * 让抽屉态更接近完整编辑态的可用面积，但仍保留底部操作栏的可见空间。
- */
-const TASK_EDIT_FORM_DRAWER_MARKDOWN_HEIGHT = 560;
-
 interface TaskEditFormProps {
-  /**
-   * 编辑模式。
-   */
-  mode?: TaskEditFormMode;
-
-  /**
-   * 外部取消回调。
-   */
-  onCancel?: () => void;
-
-  /**
-   * 打开完整编辑模式。
-   */
-  onOpenFullEdit?: (task: ProjectTaskDetail) => Promise<void>;
-
   /**
    * 保存成功后的回调。
    */
@@ -105,39 +66,20 @@ interface TaskEditFormProps {
     values: TaskEditFormValues,
     payload: ReturnType<typeof buildTaskEditPayload>,
   ) => Promise<void>;
-
-  /**
-   * demo 路由预置的子任务预览数据。
-   */
-  previewSubtasks?: ProjectTaskDetail[];
-
-  /**
-   * demo 路由预置的变更日志数据。
-   */
-  previewChangeLogs?: ProjectTaskChangeLogItem[];
 }
 
 /**
  * 任务编辑表单。
  *
- * 一个组件同时承接抽屉编辑态与独立完整编辑表单，避免后续出现两套
- * payload 组装逻辑继续漂移。
+ * 任务详情、项目任务列表和待办入口都通过任务编辑弹窗进入这里，避免不同页面
+ * 分别维护字段布局与提交 payload。
  */
 const TaskEditForm = (props: TaskEditFormProps) => {
   const [form] = Form.useForm<TaskEditFormValues>();
-  const [submitting, setSubmitting] = useState(false);
-
-  let mode: TaskEditFormMode = 'full';
-  if (props.mode !== undefined) {
-    mode = props.mode;
-  }
-
-  const isDrawerMode = mode === 'drawer';
 
   const projectListQuery = useQuery({
     queryKey: [...queryKey.project.list(), 'task-edit'],
     queryFn: () => ApiProject.getList({ current: 1, pageSize: 999 }),
-    enabled: !isDrawerMode,
   });
   const taskTypeQuery = useQuery({
     queryKey: queryKey.project.taskTypeList(),
@@ -150,13 +92,8 @@ const TaskEditForm = (props: TaskEditFormProps) => {
       return [];
     }
 
-    return items.map((item: Project) => {
-      return {
-        label: item.name,
-        value: item.id,
-      };
-    });
-  }, [projectListQuery.data]);
+    return buildProjectOptions(items, props.task);
+  }, [projectListQuery.data, props.task]);
 
   const statusOptions = useMemo(() => {
     return buildStatusOptions(props.statusConfigs, props.task.status);
@@ -178,7 +115,7 @@ const TaskEditForm = (props: TaskEditFormProps) => {
   }, [form, props.task]);
 
   const submitForm = async (values: TaskEditFormValues) => {
-    const payload = buildTaskEditPayload(props.task, values, mode);
+    const payload = buildTaskEditPayload(props.task, values);
 
     if (props.onSubmitOverride) {
       await props.onSubmitOverride(values, payload);
@@ -191,220 +128,29 @@ const TaskEditForm = (props: TaskEditFormProps) => {
     }
   };
 
-  if (!isDrawerMode) {
-    return (
-      <KModal.Form
-        form={form}
-        layout={'vertical'}
-        style={{ height: '100%' }}
-        initialValues={buildTaskEditInitialValues(props.task)}
-        onFinish={async (values) => {
-          await submitForm(values);
-          return true;
-        }}
-      >
-        {renderFullEditContent({
-          form,
-          iterations: props.iterations,
-          projectOptions,
-          statusOptions,
-          task: props.task,
-          typeOptions,
-        })}
-      </KModal.Form>
-    );
-  }
-
   return (
-    <Form<TaskEditFormValues>
+    <KModal.Form
       form={form}
       layout={'vertical'}
+      style={{ height: '100%' }}
       initialValues={buildTaskEditInitialValues(props.task)}
-      style={{ height: '100%', minHeight: 0 }}
       onFinish={async (values) => {
-        setSubmitting(true);
-
-        try {
-          await submitForm(values);
-          message.success('任务已保存');
-        } catch (error) {
-          message.error('保存失败，请稍后重试');
-          throw error;
-        } finally {
-          setSubmitting(false);
-        }
+        await submitForm(values);
+        return true;
       }}
     >
-      <TaskDetailDrawerStack style={{ height: '100%', gap: 0 }}>
-        <TaskDetailDrawerScrollArea>
-          <TaskDetailDrawerStack>
-            <TaskEditTitleCard size={'small'}>
-              <Typography.Text type={'secondary'}>
-                {`任务编号 ${resolveTaskNumber(props.task)}`}
-              </Typography.Text>
-              <Form.Item
-                name={'title'}
-                rules={[{ required: true, message: '请输入任务标题' }]}
-                style={{ marginBottom: 0 }}
-              >
-                <Input
-                  placeholder={'请输入任务标题'}
-                  maxLength={128}
-                  showCount
-                />
-              </Form.Item>
-            </TaskEditTitleCard>
-
-            <TaskDetailPanelCard
-              size={'small'}
-              title={
-                <Typography.Text strong style={{ fontSize: 16 }}>
-                  基础信息
-                </Typography.Text>
-              }
-            >
-              <TaskEditMetaGrid>
-                <div>
-                  <TaskEditFieldLabel>优先级</TaskEditFieldLabel>
-                  <Form.Item
-                    name={'priority'}
-                    rules={[{ required: true, message: '请选择优先级' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select options={TaskPriorityOptions} />
-                  </Form.Item>
-                </div>
-
-                <div>
-                  <TaskEditFieldLabel>状态</TaskEditFieldLabel>
-                  <Form.Item
-                    name={'status'}
-                    rules={[{ required: true, message: '请选择状态' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select options={statusOptions} />
-                  </Form.Item>
-                </div>
-
-                <div>
-                  <TaskEditFieldLabel>类型</TaskEditFieldLabel>
-                  <Form.Item
-                    name={'typeId'}
-                    rules={[{ required: true, message: '请选择任务类型' }]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Select options={typeOptions} />
-                  </Form.Item>
-                </div>
-
-                <div>
-                  <TaskEditFieldLabel>迭代</TaskEditFieldLabel>
-                  <Form.Item name={'iterationId'} style={{ marginBottom: 0 }}>
-                    <TaskIterationSelect
-                      iterations={props.iterations}
-                      selectedIteration={{
-                        id: props.task.iterationId,
-                        name: props.task.iterationName,
-                      }}
-                    />
-                  </Form.Item>
-                </div>
-
-                <div>
-                  <TaskEditFieldLabel>负责人</TaskEditFieldLabel>
-                  <Form.Item name={'assigneeId'} style={{ marginBottom: 0 }}>
-                    <UserSelect valueLabel={props.task.assignee} />
-                  </Form.Item>
-                </div>
-
-                <div>
-                  <TaskEditFieldLabel>预计工时（人天）</TaskEditFieldLabel>
-                  <Form.Item
-                    name={'workDays'}
-                    rules={[
-                      {
-                        validator: async (_, value) => {
-                          if (validateWorkDaysValue(value)) {
-                            return;
-                          }
-
-                          throw new Error(
-                            '预计工时必须大于 0 且按 0.5 人天递增',
-                          );
-                        },
-                      },
-                    ]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    <InputNumber
-                      min={0.5}
-                      step={0.5}
-                      precision={1}
-                      placeholder={'请输入预计工时'}
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                </div>
-              </TaskEditMetaGrid>
-            </TaskDetailPanelCard>
-
-            <TaskDetailPanelCard
-              size={'small'}
-              title={
-                <Typography.Text strong style={{ fontSize: 16 }}>
-                  任务详情（Markdown）
-                </Typography.Text>
-              }
-            >
-              <Form.Item
-                name={'description'}
-                style={{ marginBottom: 0 }}
-              >
-                <KMarkdownEditor
-                  placeholder={'请输入任务详情，支持粘贴图片上传'}
-                  height={TASK_EDIT_FORM_DRAWER_MARKDOWN_HEIGHT}
-                  toolbarPreset={'compact'}
-                />
-              </Form.Item>
-            </TaskDetailPanelCard>
-          </TaskDetailDrawerStack>
-        </TaskDetailDrawerScrollArea>
-
-        <TaskDetailDrawerFooterBar>
-          <div>
-            <Typography.Text type={'secondary'}>
-              操作区固定在抽屉底部，滚动正文时始终可见。
-            </Typography.Text>
-            {props.onOpenFullEdit ? (
-              <div style={{ marginTop: 4 }}>
-                <Button
-                  type={'link'}
-                  style={{ padding: 0 }}
-                  onClick={async () => {
-                    await props.onOpenFullEdit?.(props.task);
-                  }}
-                >
-                  完整编辑更多字段
-                </Button>
-              </div>
-            ) : null}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button onClick={props.onCancel} disabled={submitting}>
-              取消
-            </Button>
-            <Button type={'primary'} htmlType={'submit'} loading={submitting}>
-              保存变更
-            </Button>
-          </div>
-        </TaskDetailDrawerFooterBar>
-      </TaskDetailDrawerStack>
-    </Form>
+      {renderEditContent({
+        iterations: props.iterations,
+        projectOptions,
+        statusOptions,
+        task: props.task,
+        typeOptions,
+      })}
+    </KModal.Form>
   );
 };
 
-interface FullEditContentProps {
-  form: ReturnType<typeof Form.useForm<TaskEditFormValues>>[0];
+interface TaskEditContentProps {
   iterations?: ProjectTaskIteration[];
   projectOptions: Array<{ label: string; value: number }>;
   statusOptions: Array<{ label: string; value: string; disabled?: boolean }>;
@@ -413,9 +159,15 @@ interface FullEditContentProps {
 }
 
 /**
- * 完整编辑模式沿用旧弹窗字段集合，只把提交逻辑切换到新组件。
+ * 渲染任务编辑窗口字段。
+ *
+ * 字段布局只保留在任务编辑弹窗中，任务详情抽屉通过打开该弹窗完成编辑，
+ * 避免两处字段增减和校验规则长期漂移。
+ *
+ * @param props 编辑窗口字段渲染参数
+ * @return 任务编辑窗口内容
  */
-function renderFullEditContent(props: FullEditContentProps) {
+function renderEditContent(props: TaskEditContentProps) {
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       <Row gutter={16} align={'stretch'} style={{ height: '100%' }}>
@@ -477,7 +229,13 @@ function renderFullEditContent(props: FullEditContentProps) {
             }}
           >
             <Form.Item name={'projectId'} label={'项目'}>
-              <Select options={props.projectOptions} disabled />
+              <Select
+                options={props.projectOptions}
+                placeholder={'请选择所属项目'}
+                showSearch={{
+                  optionFilterProp: 'label',
+                }}
+              />
             </Form.Item>
 
             <Form.Item name={'assigneeId'} label={'负责人'}>
@@ -566,6 +324,45 @@ function renderFullEditContent(props: FullEditContentProps) {
       </Row>
     </div>
   );
+}
+
+/**
+ * 构造项目下拉选项。
+ *
+ * 项目列表采用分页接口一次拉取较大页数，极端情况下当前任务所属项目可能不在
+ * 当前结果中。此处补充当前项目兜底项，避免编辑历史任务时选择器只显示数字 ID。
+ *
+ * @param projects 项目分页结果
+ * @param task 当前任务
+ * @return 可展示的项目选项
+ */
+function buildProjectOptions(projects: Project[], task: ProjectTaskDetail) {
+  const options = projects.map((item) => {
+    return {
+      label: item.name,
+      value: item.id,
+    };
+  });
+
+  const currentProjectExists = projects.some((item) => {
+    return item.id === task.projectId;
+  });
+  if (currentProjectExists) {
+    return options;
+  }
+
+  let currentProjectName = `项目#${task.projectId}`;
+  if (task.projectName) {
+    currentProjectName = task.projectName;
+  }
+
+  return [
+    ...options,
+    {
+      label: `${currentProjectName}（当前项目）`,
+      value: task.projectId,
+    },
+  ];
 }
 
 /**
@@ -665,40 +462,6 @@ function buildTypeOptions(
       disabled: true,
     },
   ];
-}
-
-/**
- * 解析任务编号展示文本。
- *
- * @param task 当前任务
- * @return 任务编号
- */
-function resolveTaskNumber(task: ProjectTaskDetail) {
-  if (task.taskNo) {
-    return task.taskNo;
-  }
-
-  if (task.taskCode) {
-    return task.taskCode;
-  }
-
-  if (task.code) {
-    return task.code;
-  }
-
-  if (task.serialNumber !== undefined) {
-    if (task.projectCode) {
-      return `${task.projectCode}-${task.serialNumber}`;
-    }
-
-    return String(task.serialNumber);
-  }
-
-  if (task.projectCode) {
-    return `${task.projectCode}-${task.id}`;
-  }
-
-  return String(task.id);
 }
 
 export default TaskEditForm;

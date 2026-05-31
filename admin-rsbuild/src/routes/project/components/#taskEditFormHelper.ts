@@ -21,8 +21,6 @@ export interface TaskEditFormValues {
   workDays?: number;
 }
 
-export type TaskEditFormMode = 'drawer' | 'full';
-
 /**
  * 规范化提交到接口的负责人值。
  *
@@ -42,7 +40,7 @@ export function getSubmitAssigneeId(value?: number) {
 /**
  * 校验预计工时输入值。
  *
- * 任务工时沿用现有 0.5 人天步进规则，避免抽屉编辑态与旧表单行为不一致。
+ * 任务工时沿用现有 0.5 人天步进规则，避免不同入口保存后的工时口径不一致。
  *
  * @param value 当前工时值
  * @return 是否通过校验
@@ -72,7 +70,7 @@ export function validateWorkDaysValue(value?: number | null) {
 export function buildTaskEditInitialValues(
   task: ProjectTaskDetail,
 ): TaskEditFormValues {
-  return {
+  const initialValues: TaskEditFormValues = {
     projectId: task.projectId,
     title: task.title,
     description: task.description,
@@ -82,29 +80,52 @@ export function buildTaskEditInitialValues(
     status: task.status,
     priority: task.priority,
     workDays: task.workDays,
-    startTime: task.startTime ? dayjs(task.startTime) : undefined,
-    dueTime: task.dueTime ? dayjs(task.dueTime) : undefined,
   };
+
+  if (task.startTime) {
+    initialValues.startTime = dayjs(task.startTime);
+  }
+  if (task.dueTime) {
+    initialValues.dueTime = dayjs(task.dueTime);
+  }
+
+  return initialValues;
+}
+
+/**
+ * 格式化提交给后端的日期时间字段。
+ *
+ * Ant Design DatePicker 返回 Dayjs 对象，接口仍使用项目统一的字符串时间格式；
+ * 未选择时显式返回 undefined，交给后端按清空排期处理。
+ *
+ * @param value 表单日期值
+ * @return 接口日期字符串
+ */
+function formatSubmitDateTime(value?: Dayjs) {
+  if (!value) {
+    return undefined;
+  }
+
+  return dayjs(value).format('YYYY-MM-DD HH:mm:ss');
 }
 
 /**
  * 组装编辑接口 payload。
  *
- * drawer 模式只编辑设计稿显式暴露的核心字段，其余字段必须回填旧值，
- * 否则会把后端已有排期信息意外清空。
+ * 任务编辑只保留弹窗入口后，所有字段统一由弹窗表单提交，避免详情抽屉和
+ * 编辑窗口分别维护排期、项目、负责人等字段的回填规则。
  *
  * @param task 当前任务详情
  * @param values 表单值
- * @param mode 当前编辑模式
  * @return 编辑接口请求参数
  */
 export function buildTaskEditPayload(
   task: ProjectTaskDetail,
   values: TaskEditFormValues,
-  mode: TaskEditFormMode,
 ): EditProjectTaskParams {
-  const payload: EditProjectTaskParams = {
-    parentTaskId: task.parentTaskId,
+  return {
+    projectId: values.projectId,
+    parentTaskId: resolveSubmitParentTaskId(task, values),
     title: values.title,
     description: values.description,
     typeId: values.typeId as number,
@@ -113,19 +134,29 @@ export function buildTaskEditPayload(
     priority: values.priority,
     workDays: values.workDays,
     assigneeId: getSubmitAssigneeId(values.assigneeId),
+    startTime: formatSubmitDateTime(values.startTime),
+    dueTime: formatSubmitDateTime(values.dueTime),
   };
+}
 
-  if (mode === 'full') {
-    payload.startTime = values.startTime
-      ? dayjs(values.startTime).format('YYYY-MM-DD HH:mm:ss')
-      : undefined;
-    payload.dueTime = values.dueTime
-      ? dayjs(values.dueTime).format('YYYY-MM-DD HH:mm:ss')
-      : undefined;
-    return payload;
+/**
+ * 解析提交时的父任务 ID。
+ *
+ * 跨项目移动任务时，旧父任务一定属于原项目，继续提交会让后端校验失败并产生
+ * 跨项目父子关系风险。因此前端在项目变化时不再回填旧父任务，由后端按移动
+ * 语义解除父子关系。
+ *
+ * @param task 当前任务详情
+ * @param values 表单值
+ * @return 可提交给后端的父任务 ID
+ */
+function resolveSubmitParentTaskId(
+  task: ProjectTaskDetail,
+  values: TaskEditFormValues,
+) {
+  if (values.projectId !== task.projectId) {
+    return undefined;
   }
 
-  payload.startTime = task.startTime;
-  payload.dueTime = task.dueTime;
-  return payload;
+  return task.parentTaskId;
 }

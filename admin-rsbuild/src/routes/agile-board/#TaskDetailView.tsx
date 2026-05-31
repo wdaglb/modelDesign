@@ -258,9 +258,9 @@ interface TaskDetailViewProps {
   onEditTask: (task: ProjectTaskDetail) => Promise<void>;
 
   /**
-   * 进入抽屉编辑态。
+   * 打开统一任务编辑窗口。
    */
-  onEnterEdit: () => void;
+  onEnterEdit: () => Promise<void> | void;
 
   /**
    * 外层任务更新回调。
@@ -1760,8 +1760,8 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
           </Button>
           <Button
             type={'primary'}
-            onClick={() => {
-              props.onEnterEdit();
+            onClick={async () => {
+              await props.onEnterEdit();
             }}
           >
             编辑任务

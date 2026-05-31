@@ -123,6 +123,8 @@ export interface CreateProjectTaskParams {
  * 编辑项目任务请求参数。
  */
 export interface EditProjectTaskParams {
+  /** 项目 ID；不传时后端沿用任务当前所属项目。 */
+  projectId?: number;
   /** 父任务 ID。 */
   parentTaskId?: number;
   /** 任务标题。 */

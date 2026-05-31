@@ -229,17 +229,21 @@ public class ProjectTaskGuardService {
     /**
      * 校验编辑任务时的父任务设置是否合法。
      *
-     * @param task         当前任务
-     * @param parentTaskId 目标父任务 ID
+     * @param task            当前任务
+     * @param parentTaskId    目标父任务 ID
+     * @param targetProjectId 目标项目 ID
      */
-    public void validateParentTaskForEdit(ProjectTask task, Long parentTaskId) {
+    public void validateParentTaskForEdit(
+            ProjectTask task,
+            Long parentTaskId,
+            Long targetProjectId) {
         if (parentTaskId == null) {
             return;
         }
         if (parentTaskId.equals(task.getId())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "父任务不能是当前任务自身");
         }
-        ProjectTask parentTask = requireTaskInProject(task.getProjectId(), parentTaskId);
+        ProjectTask parentTask = requireTaskInProject(targetProjectId, parentTaskId);
         if (parentTask.getParentTaskId() != null) {
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "暂不支持多级子任务");
         }

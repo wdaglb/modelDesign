@@ -52,12 +52,6 @@ vi.mock('@/components/KDrawer', () => {
   };
 });
 
-vi.mock('@/routes/project/components/#TaskEditForm', () => {
-  return {
-    default: () => null,
-  };
-});
-
 /**
  * 任务详情抽屉测试。
  */
@@ -100,8 +94,8 @@ describe('TaskPreviewDrawer', () => {
   });
 
   it('子任务详情应继续打开任务详情抽屉，而不是走编辑弹窗回调', async () => {
-    const onEdit = vi.fn<(task: ProjectTaskDetail) => Promise<void>>()
-      .mockResolvedValue(undefined);
+    const onEdit = vi.fn<(task: ProjectTaskDetail) => Promise<boolean>>()
+      .mockResolvedValue(true);
     const onTaskUpdated = vi.fn<() => Promise<void>>()
       .mockResolvedValue(undefined);
 
@@ -129,6 +123,52 @@ describe('TaskPreviewDrawer', () => {
     expect(openProps.size).toBe(840);
     expect(openProps.children.props.taskId).toBe(nestedTask.id);
     expect(openProps.children.props.onEdit).toBe(onEdit);
+  });
+
+  it('点击编辑任务应打开统一编辑弹窗回调', async () => {
+    const onEdit = vi.fn<(task: ProjectTaskDetail) => Promise<boolean>>()
+      .mockResolvedValue(true);
+    const onTaskUpdated = vi.fn<() => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    renderWithQuery(
+      <TaskPreviewDrawer
+        taskId={task.id}
+        statusConfigs={statusConfigs}
+        onTaskUpdated={onTaskUpdated}
+        onEdit={onEdit}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '编辑任务' }));
+
+    await waitFor(() => {
+      expect(onEdit).toHaveBeenCalledWith(task);
+    });
+    expect(onTaskUpdated).toHaveBeenCalledTimes(1);
+  });
+
+  it('取消编辑任务时不应触发详情刷新回调', async () => {
+    const onEdit = vi.fn<(task: ProjectTaskDetail) => Promise<boolean>>()
+      .mockResolvedValue(false);
+    const onTaskUpdated = vi.fn<() => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    renderWithQuery(
+      <TaskPreviewDrawer
+        taskId={task.id}
+        statusConfigs={statusConfigs}
+        onTaskUpdated={onTaskUpdated}
+        onEdit={onEdit}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '编辑任务' }));
+
+    await waitFor(() => {
+      expect(onEdit).toHaveBeenCalledWith(task);
+    });
+    expect(onTaskUpdated).not.toHaveBeenCalled();
   });
 });
 

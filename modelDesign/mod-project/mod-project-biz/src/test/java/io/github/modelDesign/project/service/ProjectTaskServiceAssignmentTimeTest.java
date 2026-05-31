@@ -56,7 +56,11 @@ class ProjectTaskServiceAssignmentTimeTest {
                 projectTaskTagBindingService,
                 projectTaskViewAssembler,
                 projectTaskChangeLogService,
-                projectTaskTimeMetricsSupport
+                projectTaskTimeMetricsSupport,
+                new ProjectTaskEditMoveSupport(
+                        projectTaskGuardService,
+                        projectTaskDependencyService
+                )
         ));
 
         Project project = new Project();
@@ -133,7 +137,11 @@ class ProjectTaskServiceAssignmentTimeTest {
                 projectTaskTagBindingService,
                 projectTaskViewAssembler,
                 projectTaskChangeLogService,
-                projectTaskTimeMetricsSupport
+                projectTaskTimeMetricsSupport,
+                new ProjectTaskEditMoveSupport(
+                        projectTaskGuardService,
+                        projectTaskDependencyService
+                )
         ));
 
         ProjectTask existedTask = new ProjectTask();
@@ -225,7 +233,11 @@ class ProjectTaskServiceAssignmentTimeTest {
                 projectTaskTagBindingService,
                 projectTaskViewAssembler,
                 projectTaskChangeLogService,
-                projectTaskTimeMetricsSupport
+                projectTaskTimeMetricsSupport,
+                new ProjectTaskEditMoveSupport(
+                        projectTaskGuardService,
+                        projectTaskDependencyService
+                )
         ));
 
         ProjectTask existedTask = new ProjectTask();

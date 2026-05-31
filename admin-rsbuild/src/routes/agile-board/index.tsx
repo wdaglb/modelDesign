@@ -46,6 +46,7 @@ import {
   getTaskDragId,
   groupBoardTasks,
   handleBoardTitleSearch,
+  normalizeBoardKeyword,
   resolveDropStatus,
 } from './#helper';
 import { resolveDefaultBoardIteration } from './#iterationHelper';
@@ -86,6 +87,7 @@ function RouteComponent() {
   const queryClient = useQueryClient();
   const enterV2ButtonRef = useRef<HTMLDivElement>(null);
   const sharedPreviewOpeningTaskIdRef = useRef<number>();
+  const lastAutoPreviewSearchCodeRef = useRef<string>();
   const [activeTaskDragId, setActiveTaskDragId] = useState<string>();
   const [preferredBoardVersion, setPreferredBoardVersion] = useState(() => {
     return getPreferredAgileBoardVersionFromStorage();
@@ -521,10 +523,11 @@ function RouteComponent() {
         });
 
         if (!submitted) {
-          return;
+          return false;
         }
 
         await invalidateBoardQueries();
+        return true;
       } finally {
         setIsTaskFormOpen(false);
       }
@@ -570,7 +573,7 @@ function RouteComponent() {
           initialTabKey,
           onTaskUpdated: invalidateBoardQueries,
           onEdit: async (detailTask) => {
-            await openTaskForm(detailTask);
+            return openTaskForm(detailTask);
           },
         });
       } catch (error) {
@@ -599,13 +602,35 @@ function RouteComponent() {
    */
   const executeTitleSearch = useCallback(
     async (value: string) => {
+      const normalizedValue = normalizeBoardKeyword(value);
+
+      if (lastAutoPreviewSearchCodeRef.current === normalizedValue) {
+        return;
+      }
+
       try {
         await handleBoardTitleSearch(value, {
           getDetailByCode: ApiProjectTask.getDetailByCode,
           onOpenPreview: async (task) => {
-            await openTaskPreview(task);
+            if (lastAutoPreviewSearchCodeRef.current === normalizedValue) {
+              return;
+            }
+
+            /**
+             * 编号搜索会通过抽屉 Promise 的 finally 释放 previewTaskId。
+             * 释放后 useCallback 依赖变化会再次触发防抖 effect，如果不记录已自动
+             * 打开的编号，用户关闭抽屉后会被同一个输入值立即重新打开。
+             */
+            lastAutoPreviewSearchCodeRef.current = normalizedValue;
+            try {
+              await openTaskPreview(task);
+            } catch (error) {
+              lastAutoPreviewSearchCodeRef.current = undefined;
+              throw error;
+            }
           },
           onFallbackSearch: (title) => {
+            lastAutoPreviewSearchCodeRef.current = undefined;
             setFilters((previous) => {
               return {
                 ...previous,
@@ -636,6 +661,16 @@ function RouteComponent() {
    * 标题输入变化事件。
    */
   const handleTitleSearchChange = useCallback((value: string) => {
+    const normalizedValue = normalizeBoardKeyword(value);
+
+    if (lastAutoPreviewSearchCodeRef.current !== normalizedValue) {
+      /**
+       * 只有输入内容发生实质变化时才允许下一次编号自动开抽屉。
+       * 单纯关闭抽屉不会改变输入值，因此不会再次触发同一编号的自动打开。
+       */
+      lastAutoPreviewSearchCodeRef.current = undefined;
+    }
+
     setTitleSearchInput(value);
   }, []);
 

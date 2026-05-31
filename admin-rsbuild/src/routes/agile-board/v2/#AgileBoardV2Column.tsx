@@ -4,23 +4,15 @@ import type { ReactNode } from 'react';
 import { memo } from 'react';
 import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import { TaskPriorityLabel } from '@/api/modules/project-task.types';
-import useAuthStore from '@/store/auth.ts';
 import {
   getColumnDragId,
   getColumnSubtitle,
   getTaskAssigneeText,
-  getTaskDueTimeText,
   getTaskDragId,
   getTaskProjectText,
-  getTaskWorkDaysText,
   getBoardPriorityAccentColor,
   resolveTaskNumberText,
 } from '../#helper';
-import {
-  getTaskBranchUnavailableMessage,
-  resolveTaskBranchName,
-  resolveTaskBranchUnavailableReason,
-} from '../#taskDetailTypeHelper';
 import type { AgileBoardColumnMeta, AgileBoardTask } from '../#types';
 import {
   V2ColumnBody,
@@ -57,7 +49,6 @@ interface AgileBoardV2ColumnProps {
 
 interface AgileBoardV2TaskCardBodyProps {
   accentColor: string;
-  currentGitUsername?: string;
   onOpenSubtasks?: (task: AgileBoardTask) => Promise<void>;
   onPreview?: (task: AgileBoardTask) => Promise<void>;
   showSubtaskAction: boolean;
@@ -103,18 +94,6 @@ function resolveTaskTypeText(task: AgileBoardTask) {
 function AgileBoardV2TaskCardBody(props: AgileBoardV2TaskCardBodyProps) {
   const priorityColor = getBoardPriorityAccentColor(props.task.priority);
   const childTaskCount = props.task.childTaskCount ?? 0;
-  const taskBranchName = resolveTaskBranchName(
-    props.task,
-    props.currentGitUsername,
-    props.taskTypes,
-  );
-  const taskBranchUnavailableMessage = getTaskBranchUnavailableMessage(
-    resolveTaskBranchUnavailableReason(
-      props.task,
-      props.currentGitUsername,
-      props.taskTypes,
-    ),
-  );
   let subtaskActionNode: ReactNode = null;
 
   if (props.showSubtaskAction && props.onOpenSubtasks) {
@@ -156,22 +135,8 @@ function AgileBoardV2TaskCardBody(props: AgileBoardV2TaskCardBodyProps) {
           <V2TaskMetaValue>{getTaskProjectText(props.task)}</V2TaskMetaValue>
         </V2TaskMetaItem>
         <V2TaskMetaItem>
-          <V2TaskMetaLabel>分支名</V2TaskMetaLabel>
-          <V2TaskMetaValue>
-            {taskBranchName || taskBranchUnavailableMessage}
-          </V2TaskMetaValue>
-        </V2TaskMetaItem>
-        <V2TaskMetaItem>
           <V2TaskMetaLabel>负责人</V2TaskMetaLabel>
           <V2TaskMetaValue>{getTaskAssigneeText(props.task)}</V2TaskMetaValue>
-        </V2TaskMetaItem>
-        <V2TaskMetaItem>
-          <V2TaskMetaLabel>截止时间</V2TaskMetaLabel>
-          <V2TaskMetaValue>{getTaskDueTimeText(props.task)}</V2TaskMetaValue>
-        </V2TaskMetaItem>
-        <V2TaskMetaItem>
-          <V2TaskMetaLabel>工时</V2TaskMetaLabel>
-          <V2TaskMetaValue>{getTaskWorkDaysText(props.task)}</V2TaskMetaValue>
         </V2TaskMetaItem>
       </V2TaskMetaGrid>
 
@@ -208,7 +173,6 @@ function AgileBoardV2TaskCardButton(props: AgileBoardV2TaskCardButtonProps) {
     >
       <AgileBoardV2TaskCardBody
         accentColor={props.accentColor}
-        currentGitUsername={props.currentGitUsername}
         onOpenSubtasks={props.onOpenSubtasks}
         showSubtaskAction
         task={props.task}
@@ -227,10 +191,6 @@ function AgileBoardV2TaskCardButton(props: AgileBoardV2TaskCardButtonProps) {
 export function AgileBoardV2TaskCardPreview(
   props: Omit<AgileBoardV2TaskCardBodyProps, 'showSubtaskAction'>,
 ) {
-  const currentInfo = useAuthStore((state) => state.currentInfo);
-  const currentGitUsername =
-    props.currentGitUsername ?? currentInfo?.gitUsername;
-
   return (
     <V2TaskCard
       as="div"
@@ -240,7 +200,6 @@ export function AgileBoardV2TaskCardPreview(
     >
       <AgileBoardV2TaskCardBody
         accentColor={props.accentColor}
-        currentGitUsername={currentGitUsername}
         showSubtaskAction={false}
         task={props.task}
         taskTypes={props.taskTypes}
@@ -258,7 +217,6 @@ export function AgileBoardV2TaskCardPreview(
  * - 所有展示文案都在本层规整，避免把大而全的通用卡片树带入此页面。
  */
 const AgileBoardV2Column = memo((props: AgileBoardV2ColumnProps) => {
-  const currentInfo = useAuthStore((state) => state.currentInfo);
   const { setNodeRef, isOver } = useDroppable({
     id: getColumnDragId(props.column.status),
     disabled: props.disabled,
@@ -311,7 +269,6 @@ const AgileBoardV2Column = memo((props: AgileBoardV2ColumnProps) => {
                 <AgileBoardV2TaskCardButton
                   key={task.id}
                   accentColor={props.column.accentColor}
-                  currentGitUsername={currentInfo?.gitUsername}
                   disabled={props.disabled}
                   onOpenSubtasks={props.onOpenSubtasks}
                   onPreview={props.onPreview}

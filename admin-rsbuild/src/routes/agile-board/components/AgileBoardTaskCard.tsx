@@ -63,6 +63,7 @@ const AgileBoardTaskCard = memo((props: AgileBoardTaskCardProps) => {
       $opacity={dragOpacity}
     >
       <TaskCard
+        dense
         task={adaptedTask}
         disabled={props.disabled}
         onPreview={async () => {
@@ -101,7 +102,7 @@ export function AgileBoardTaskCardPreview(
       $opacity={1}
       $isOverlay
     >
-      <TaskCard isOverlay task={adaptedTask} />
+      <TaskCard dense isOverlay task={adaptedTask} />
     </OverlayTaskCardShell>
   );
 }

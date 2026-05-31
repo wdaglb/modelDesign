@@ -38,6 +38,7 @@ import {
   filterBoardParentTasks,
   groupBoardTasks,
   handleBoardTitleSearch,
+  normalizeBoardKeyword,
 } from '../#helper';
 import { resolveDefaultBoardIteration } from '../#iterationHelper';
 import {
@@ -107,6 +108,7 @@ function RouteComponent() {
   const [activeTaskDragId, setActiveTaskDragId] = useState<string>();
   const [updatingTaskId, setUpdatingTaskId] = useState<number>();
   const sharedPreviewOpeningTaskIdRef = useRef<number>();
+  const lastAutoPreviewSearchCodeRef = useRef<string>();
   const [titleSearchInput, setTitleSearchInput] = useState('');
   const debouncedTitleSearchValue = useDebounce(titleSearchInput, 400);
   const sensors = useSensors(
@@ -380,10 +382,11 @@ function RouteComponent() {
       });
 
       if (!submitted) {
-        return;
+        return false;
       }
 
       await refetchBoardTasks();
+      return true;
     },
     [
       filters.iterationId,
@@ -491,7 +494,7 @@ function RouteComponent() {
             await refetchBoardTasks();
           },
           onEdit: async (detailTask) => {
-            await openTaskForm(detailTask);
+            return openTaskForm(detailTask);
           },
         });
       } catch (error) {
@@ -520,13 +523,35 @@ function RouteComponent() {
    */
   const executeTitleSearch = useCallback(
     async (value: string) => {
+      const normalizedValue = normalizeBoardKeyword(value);
+
+      if (lastAutoPreviewSearchCodeRef.current === normalizedValue) {
+        return;
+      }
+
       try {
         await handleBoardTitleSearch(value, {
           getDetailByCode: ApiProjectTask.getDetailByCode,
           onOpenPreview: async (task) => {
-            await openTaskPreview(task);
+            if (lastAutoPreviewSearchCodeRef.current === normalizedValue) {
+              return;
+            }
+
+            /**
+             * 编号搜索自动开抽屉后，关闭动作会释放 previewTaskId 并导致
+             * executeTitleSearch 依赖更新。记录本次编号可避免同一输入值
+             * 在关闭后被 effect 重新消费，从而出现抽屉无法关闭的体验。
+             */
+            lastAutoPreviewSearchCodeRef.current = normalizedValue;
+            try {
+              await openTaskPreview(task);
+            } catch (error) {
+              lastAutoPreviewSearchCodeRef.current = undefined;
+              throw error;
+            }
           },
           onFallbackSearch: (title) => {
+            lastAutoPreviewSearchCodeRef.current = undefined;
             setFilters((previous) => {
               if (previous.title === title) {
                 return previous;
@@ -624,6 +649,16 @@ function RouteComponent() {
    * 为了降低心智负担，筛选交互继续沿用现有工具栏。
    */
   const handleTitleSearchChange = useCallback((value: string) => {
+    const normalizedValue = normalizeBoardKeyword(value);
+
+    if (lastAutoPreviewSearchCodeRef.current !== normalizedValue) {
+      /**
+       * 用户修改搜索内容后才解除编号自动打开抑制；
+       * 关闭抽屉但保留原输入时不应再次自动打开同一任务。
+       */
+      lastAutoPreviewSearchCodeRef.current = undefined;
+    }
+
     setTitleSearchInput(value);
   }, []);
 

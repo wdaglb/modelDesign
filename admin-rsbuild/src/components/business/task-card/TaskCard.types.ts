@@ -50,6 +50,8 @@ export interface TaskCardProps {
   task: TaskCardTask;
   /** 是否启用紧凑信息展示。 */
   compact?: boolean;
+  /** 是否启用敏捷面板密集展示。 */
+  dense?: boolean;
   /** 是否为子任务卡片。 */
   isSubtask?: boolean;
   disabled?: boolean;

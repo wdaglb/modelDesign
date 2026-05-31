@@ -19,7 +19,7 @@ interface OpenTaskPreviewDrawerOptions {
    * 抽屉首次打开时默认激活的 Tab。
    */
   initialTabKey?: TaskPreviewDrawerTabKey;
-  onEdit: (task: ProjectTaskDetail) => Promise<void>;
+  onEdit: (task: ProjectTaskDetail) => Promise<boolean>;
   onTaskUpdated: () => Promise<void>;
   /**
    * 已加载的迭代列表。

@@ -1,14 +1,16 @@
 import React from 'react';
 import dayjs from 'dayjs';
-import { describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 
 import { buildDeviceCreatePayload } from '../#DeviceFormModal';
 import DeviceTable from '../#DeviceTable';
 
-const { mockDeviceItem } = vi.hoisted(() => {
+const { mockDeviceItem, mockOpen } = vi.hoisted(() => {
   return {
+    mockOpen: vi.fn(),
     mockDeviceItem: {
       id: 11,
       tenantId: 1001,
@@ -27,7 +29,7 @@ const { mockDeviceItem } = vi.hoisted(() => {
 vi.mock('@/components/KModal', () => {
   return {
     useKModal: () => ({
-      open: vi.fn(),
+      open: mockOpen,
     }),
   };
 });
@@ -49,7 +51,11 @@ vi.mock('@/components', async () => {
   };
 
   MockKTable.Button = (props: any) => {
-    return <button type={'button'}>{props.children}</button>;
+    return (
+      <button type={'button'} onClick={props.onClick}>
+        {props.children}
+      </button>
+    );
   };
 
   MockKTable.ConfirmButton = (props: any) => {
@@ -63,6 +69,10 @@ vi.mock('@/components', async () => {
 });
 
 describe('DeviceTable', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('should show receive action for in-stock device', async () => {
     const queryClient = new QueryClient();
 
@@ -73,6 +83,26 @@ describe('DeviceTable', () => {
     );
 
     expect(await screen.findByText('领用')).toBeTruthy();
+  });
+
+  it('should open import modal from toolbar', async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DeviceTable />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: '批量导入' }));
+
+    expect(mockOpen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '批量导入库存',
+        width: 640,
+      }),
+    );
   });
 
   it('should convert device create form values to api payload', () => {

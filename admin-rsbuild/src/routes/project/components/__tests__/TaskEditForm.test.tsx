@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 
-import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change-log';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 
@@ -30,7 +29,21 @@ vi.mock('@/components', async (importOriginal) => {
 vi.mock('@/api', () => {
   return {
     ApiProject: {
-      getList: vi.fn(),
+      getList: vi.fn(() => {
+        return Promise.resolve({
+          items: [
+            {
+              id: 88,
+              name: '研发项目',
+            },
+            {
+              id: 99,
+              name: '交付项目',
+            },
+          ],
+          total: 2,
+        });
+      }),
     },
     ApiProjectTask: {
       edit: vi.fn(),
@@ -81,67 +94,32 @@ const task: ProjectTaskDetail = {
   workDays: 2,
 };
 
-const previewChangeLogs: ProjectTaskChangeLogItem[] = [];
 describe('TaskEditForm', () => {
-  it('full 模式应正确渲染类型下拉，不应出现未定义变量错误', async () => {
+  it('应正确渲染统一任务编辑窗口字段', async () => {
     renderWithQuery(
       <TaskEditForm
-        mode={'full'}
         task={task}
         statusConfigs={statusConfigs}
-        previewChangeLogs={previewChangeLogs}
       />,
     );
 
     expect(screen.getByText('任务标题')).toBeDefined();
+    expect(screen.getByText('项目')).toBeDefined();
     expect(screen.getByText('类型')).toBeDefined();
     const taskTexts = await screen.findAllByText('任务');
     expect(taskTexts.length).toBeGreaterThan(0);
   });
 
-  it('drawer 模式应展示类型字段', async () => {
+  it('应为统一编辑窗口提供固定 Markdown 编辑高度', async () => {
     renderWithQuery(
       <TaskEditForm
-        mode={'drawer'}
         task={task}
         statusConfigs={statusConfigs}
-        previewSubtasks={[]}
-        previewChangeLogs={previewChangeLogs}
-      />,
-    );
-
-    expect(screen.getByText('类型')).toBeDefined();
-    expect(await screen.findByText('任务')).toBeDefined();
-  });
-
-  it('drawer 模式应为 Markdown 编辑区提供更大的编辑高度', async () => {
-    renderWithQuery(
-      <TaskEditForm
-        mode={'drawer'}
-        task={task}
-        statusConfigs={statusConfigs}
-        previewSubtasks={[]}
-        previewChangeLogs={previewChangeLogs}
       />,
     );
 
     const markdownEditor = await screen.findByTestId('markdown-editor');
-    expect(markdownEditor.getAttribute('data-height')).toBe('560');
-  });
-
-  it('drawer 编辑态不再展示子任务和变更日志 Tab', async () => {
-    renderWithQuery(
-      <TaskEditForm
-        mode={'drawer'}
-        task={task}
-        statusConfigs={statusConfigs}
-        previewChangeLogs={previewChangeLogs}
-      />,
-    );
-
-    expect(screen.queryByText(/^子任务/)).toBeNull();
-    expect(screen.queryByText(/^变更日志/)).toBeNull();
-    expect(screen.getByText('任务详情（Markdown）')).toBeDefined();
+    expect(markdownEditor.getAttribute('data-height')).toBe('520');
   });
 });
 

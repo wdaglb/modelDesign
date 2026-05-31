@@ -174,6 +174,33 @@ describe('TaskCard', () => {
     expect(cardBodyStyle.paddingLeft).toBe('16px');
   });
 
+  it('密集态压缩卡片内边距，并保留独立标记便于敏捷面板断言', () => {
+    const { container } = render(<TaskCard task={baseTask} dense />);
+
+    const rootNode = container.querySelector('[data-task-card-root="true"]');
+    const cardBody = container.querySelector('.ant-card-body');
+
+    expect(rootNode).toBeTruthy();
+    expect(cardBody).toBeTruthy();
+
+    if (!rootNode || !cardBody) {
+      return;
+    }
+
+    const cardBodyStyle = window.getComputedStyle(cardBody);
+
+    expect(rootNode.getAttribute('data-task-card-dense')).toBe('true');
+    expect(screen.getByText('火星项目')).toBeTruthy();
+    expect(screen.getByText('小王')).toBeTruthy();
+    expect(screen.queryByText('bugfix/alice-dev/TASK-101')).toBeNull();
+    expect(screen.queryByText('2 人天')).toBeNull();
+    expect(screen.queryByText('截止 2026-04-06')).toBeNull();
+    expect(cardBodyStyle.paddingTop).toBe('12px');
+    expect(cardBodyStyle.paddingRight).toBe('12px');
+    expect(cardBodyStyle.paddingBottom).toBe('10px');
+    expect(cardBodyStyle.paddingLeft).toBe('12px');
+  });
+
   it('常见类型会映射到固定深色标签', () => {
     expect(resolveTaskTypeTagTone('需求')).toEqual({
       background: '#7c3aed',

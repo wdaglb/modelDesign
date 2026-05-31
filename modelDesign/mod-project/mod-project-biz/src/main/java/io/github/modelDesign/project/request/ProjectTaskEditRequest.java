@@ -19,6 +19,14 @@ import java.util.List;
 @Schema(description = "编辑项目任务请求")
 public class ProjectTaskEditRequest {
     /**
+     * 项目 ID。
+     *
+     * 为空时保持任务当前所属项目；传入新项目时按任务移动处理。
+     */
+    @Schema(description = "项目 ID；为空时保持当前所属项目")
+    private Long projectId;
+
+    /**
      * 父任务 ID。
      */
     @Schema(description = "父任务 ID")

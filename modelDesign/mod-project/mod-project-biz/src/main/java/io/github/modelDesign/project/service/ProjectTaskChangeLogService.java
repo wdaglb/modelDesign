@@ -104,6 +104,13 @@ public class ProjectTaskChangeLogService extends ServiceImpl<ProjectTaskChangeLo
      */
     public void logUpdate(ProjectTask beforeTask, ProjectTask afterTask) {
         List<ProjectTaskChangeContentItem> changes = new ArrayList<>();
+        appendChangeIfChanged(
+                changes,
+                "projectId",
+                "所属项目",
+                formatId(beforeTask.getProjectId()),
+                formatId(afterTask.getProjectId())
+        );
         appendChangeIfChanged(changes, "title", "任务标题", formatText(beforeTask.getTitle()), formatText(afterTask.getTitle()));
         appendChangeIfChanged(changes, "description", "任务描述", formatText(beforeTask.getDescription()), formatText(afterTask.getDescription()));
         appendChangeIfChanged(changes, "typeId", "任务类型", formatType(beforeTask.getTypeId()), formatType(afterTask.getTypeId()));

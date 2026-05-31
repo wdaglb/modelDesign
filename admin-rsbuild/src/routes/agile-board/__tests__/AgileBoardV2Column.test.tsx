@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
@@ -14,13 +14,6 @@ import type {
 } from '@/routes/agile-board/#types';
 import type { ProjectTaskType } from '@/api/modules/project-task-type';
 import AgileBoardV2Column from '@/routes/agile-board/v2/#AgileBoardV2Column';
-import useAuthStore from '@/store/auth.ts';
-
-vi.mock('@/store/auth.ts', () => {
-  return {
-    default: vi.fn(),
-  };
-});
 
 const column: AgileBoardColumnMeta = {
   status: 'todo',
@@ -70,17 +63,6 @@ function createTasks(count: number): AgileBoardTask[] {
     } as AgileBoardTask;
   });
 }
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.mocked(useAuthStore).mockImplementation((selector) => {
-    return selector({
-      currentInfo: {
-        gitUsername: 'alice-dev',
-      },
-    });
-  });
-});
 
 /**
  * 复用页面实际传感器配置，避免测试环境把普通点击误判成拖拽起手。
@@ -144,7 +126,7 @@ describe('AgileBoardV2Column', () => {
 
     const style = window.getComputedStyle(columnBody);
 
-    expect(style.paddingBottom).toBe('18px');
+    expect(style.paddingBottom).toBe('14px');
     expect(style.overflowY).toBe('auto');
   });
 
@@ -171,7 +153,7 @@ describe('AgileBoardV2Column', () => {
 
     const style = window.getComputedStyle(card);
 
-    expect(style.minHeight).toBe('152px');
+    expect(style.minHeight).toBe('108px');
   });
 
   it('标题前方展示任务类型标签', () => {
@@ -191,7 +173,7 @@ describe('AgileBoardV2Column', () => {
     expect(screen.getByText('恢复列底部完整滚动')).toBeDefined();
   });
 
-  it('卡片中展示建议分支名', () => {
+  it('卡片附加字段只展示项目和负责人', () => {
     render(
       <TestDndContext>
         <AgileBoardV2Column
@@ -204,54 +186,16 @@ describe('AgileBoardV2Column', () => {
       </TestDndContext>,
     );
 
-    expect(screen.getByText('bugfix/alice-dev/TASK-101')).toBeDefined();
-  });
-
-  it('未配置个人 Git 用户名时展示去个人中心配置提示', () => {
-    vi.mocked(useAuthStore).mockImplementation((selector) => {
-      return selector({
-        currentInfo: {
-          gitUsername: '',
-        },
-      });
-    });
-
-    render(
-      <TestDndContext>
-        <AgileBoardV2Column
-          column={column}
-          tasks={[task]}
-          taskTypes={taskTypes}
-          onOpenSubtasks={vi.fn()}
-          onPreview={vi.fn()}
-        />
-      </TestDndContext>,
-    );
-
-    expect(screen.getByText('请先在个人中心配置 Git 用户名')).toBeDefined();
-  });
-
-  it('未配置前缀时展示未配置提示', () => {
-    render(
-      <TestDndContext>
-        <AgileBoardV2Column
-          column={column}
-          tasks={[task]}
-          taskTypes={[
-            {
-              id: 2,
-              name: '缺陷',
-              sort: 1,
-              gitBranchPrefixGroup: '',
-            },
-          ]}
-          onOpenSubtasks={vi.fn()}
-          onPreview={vi.fn()}
-        />
-      </TestDndContext>,
-    );
-
-    expect(screen.getByText('当前任务类型未配置分支前缀')).toBeDefined();
+    expect(screen.getByText('项目')).toBeDefined();
+    expect(screen.getByText('火星项目')).toBeDefined();
+    expect(screen.getByText('负责人')).toBeDefined();
+    expect(screen.getByText('小王')).toBeDefined();
+    expect(screen.queryByText('分支名')).toBeNull();
+    expect(screen.queryByText('截止时间')).toBeNull();
+    expect(screen.queryByText('工时')).toBeNull();
+    expect(screen.queryByText('bugfix/alice-dev/TASK-101')).toBeNull();
+    expect(screen.queryByText('2026-04-07')).toBeNull();
+    expect(screen.queryByText('3 人天')).toBeNull();
   });
 
   it('卡片中不展示任务说明文本', () => {

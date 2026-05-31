@@ -85,6 +85,11 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     private final ProjectTaskTimeMetricsSupport projectTaskTimeMetricsSupport;
 
     /**
+     * 任务跨项目移动支持服务。
+     */
+    private final ProjectTaskEditMoveSupport projectTaskEditMoveSupport;
+
+    /**
      * 获取我的待办列表（当前登录用户作为负责人的任务）。
      *
      * @param request 列表请求
@@ -232,7 +237,12 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     @Transactional(rollbackFor = Exception.class)
     public ProjectTaskDetailVo edit(Long id, ProjectTaskEditRequest request) {
         ProjectTask task = requireTask(id);
-        Project project = projectService.requireProject(task.getProjectId());
+        Long targetProjectId = projectTaskEditMoveSupport.resolveProjectId(
+                task.getProjectId(),
+                request.getProjectId()
+        );
+        boolean projectChanged = projectTaskEditMoveSupport.isProjectChanged(task, targetProjectId);
+        Project project = projectService.requireProject(targetProjectId);
         ProjectTask beforeTask = copyTask(task);
         List<Long> beforePredecessorTaskIds = projectTaskDependencyService.findPredecessorIdsByTaskId(task.getId());
         List<Long> beforeTagIds = projectTaskTagBindingService.findTagIdsByTaskId(task.getId());
@@ -246,23 +256,32 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         projectTaskGuardService.validateWorkDays(request.getWorkDays());
         projectTaskGuardService.validateTimeRange(request.getStartTime(), request.getDueTime());
         projectTaskGuardService.validateAssignee(request.getAssigneeId());
-        projectTaskGuardService.ensureProjectMember(task.getProjectId(), request.getAssigneeId());
+        projectTaskGuardService.ensureProjectMember(targetProjectId, request.getAssigneeId());
+        projectTaskEditMoveSupport.validateProjectMove(task, projectChanged);
 
-        Long targetParentTaskId = resolveEditParentTaskId(task.getParentTaskId(), request.getParentTaskId());
-        projectTaskGuardService.validateParentTaskForEdit(task, targetParentTaskId);
+        Long targetParentTaskId = projectTaskEditMoveSupport.resolveParentTaskId(
+                task,
+                request,
+                projectChanged
+        );
+        projectTaskGuardService.validateParentTaskForEdit(task, targetParentTaskId, targetProjectId);
 
-        List<Long> targetPredecessorTaskIds = resolveEditRelationIds(beforePredecessorTaskIds, request.getPredecessorTaskIds());
-        projectTaskGuardService.validateBlockedStatusForDependencies(status, task.getProjectId(), targetPredecessorTaskIds);
+        List<Long> targetPredecessorTaskIds = projectTaskEditMoveSupport.resolveTaskRelationIds(
+                beforePredecessorTaskIds,
+                request.getPredecessorTaskIds(),
+                projectChanged
+        );
+        projectTaskGuardService.validateBlockedStatusForDependencies(status, targetProjectId, targetPredecessorTaskIds);
         projectTaskGuardService.validateCompleteStatusWithChildren(task.getId(), status);
 
         List<Long> targetTagIds = resolveEditRelationIds(beforeTagIds, request.getTagIds());
-        applyTaskUpdate(task, request, typeId, iterationId, status, targetParentTaskId);
+        applyTaskUpdate(task, request, targetProjectId, typeId, iterationId, status, targetParentTaskId);
         updateById(task);
         syncNullableAssigneeFields(task);
         syncNullableIterationFields(beforeTask, task);
 
         projectTaskGuardService.ensureAssigneeMember(task);
-        projectTaskDependencyService.saveDependencies(task.getId(), task.getProjectId(), targetPredecessorTaskIds);
+        projectTaskDependencyService.saveDependencies(task.getId(), targetProjectId, targetPredecessorTaskIds);
         projectTaskTagBindingService.saveBindings(task.getId(), project.getTenantId(), targetTagIds);
 
         List<Long> afterPredecessorTaskIds = projectTaskDependencyService.findPredecessorIdsByTaskId(task.getId());
@@ -337,13 +356,6 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         return task;
     }
 
-    private Long resolveEditParentTaskId(Long currentParentTaskId, Long nextParentTaskId) {
-        if (nextParentTaskId != null) {
-            return nextParentTaskId;
-        }
-        return currentParentTaskId;
-    }
-
     private List<Long> resolveEditRelationIds(List<Long> currentIds, List<Long> nextIds) {
         if (nextIds != null) {
             return projectTaskGuardService.normalizeIdList(nextIds);
@@ -354,6 +366,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
     private void applyTaskUpdate(
             ProjectTask task,
             ProjectTaskEditRequest request,
+            Long targetProjectId,
             Long typeId,
             Long iterationId,
             String status,
@@ -365,6 +378,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
                 task.getAssigneeAssignedAt(),
                 now
         );
+        task.setProjectId(targetProjectId);
         task.setParentTaskId(parentTaskId);
         task.setTitle(request.getTitle().trim());
         task.setDescription(projectTaskGuardService.normalizeDescription(request.getDescription()));

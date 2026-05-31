@@ -39,6 +39,8 @@ export const GENERATED_MENU_RESOURCE_API_PROFILE = {
   ],
   "/asset/device": [
     "/asset/device/create",
+    "/asset/device/import",
+    "/asset/device/import/template",
     "/asset/device/list",
     "/asset/device/receive",
     "/asset/device/return",

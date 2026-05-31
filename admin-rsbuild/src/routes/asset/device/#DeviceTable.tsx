@@ -15,6 +15,7 @@ import queryKey from '@/constants/queryKey';
 import Icons from '@/icons';
 
 import DeviceFormModal from './#DeviceFormModal';
+import DeviceImportModal from './#DeviceImportModal';
 import ReceiveModal from './#ReceiveModal';
 import ReturnModal from './#ReturnModal';
 import ScrapModal from './#ScrapModal';
@@ -162,20 +163,35 @@ const DeviceTable = () => {
             }}
           />
 
-          <KTable.Button
-            type={'primary'}
-            icon={<Icons.Plus />}
-            permissionCode={PERMISSION_RESOURCE.assetDeviceManage}
-            onClick={async () => {
-              await modal.open({
-                title: '新增入库',
-                width: 640,
-                children: <DeviceFormModal />,
-              });
-            }}
-          >
-            新增入库
-          </KTable.Button>
+          <Space wrap>
+            <KTable.Button
+              permissionCode={PERMISSION_RESOURCE.assetDeviceManage}
+              onClick={async () => {
+                await modal.open({
+                  title: '批量导入库存',
+                  width: 640,
+                  children: <DeviceImportModal />,
+                });
+              }}
+            >
+              批量导入
+            </KTable.Button>
+
+            <KTable.Button
+              type={'primary'}
+              icon={<Icons.Plus />}
+              permissionCode={PERMISSION_RESOURCE.assetDeviceManage}
+              onClick={async () => {
+                await modal.open({
+                  title: '新增入库',
+                  width: 640,
+                  children: <DeviceFormModal />,
+                });
+              }}
+            >
+              新增入库
+            </KTable.Button>
+          </Space>
         </Flex>
       }
     />

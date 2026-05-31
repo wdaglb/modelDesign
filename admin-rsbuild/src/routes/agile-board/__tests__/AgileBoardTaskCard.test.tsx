@@ -67,6 +67,10 @@ describe('AgileBoardTaskCardPreview', () => {
     expect(shellStyle.width).toBe('248px');
     expect(shellStyle.borderTopWidth).toBe('1px');
     expect(shellStyle.boxShadow).not.toBe('none');
-    expect(screen.getByText('bugfix/alice-dev/TASK-201')).toBeTruthy();
+    expect(screen.getByText('火星项目')).toBeTruthy();
+    expect(screen.getByText('小王')).toBeTruthy();
+    expect(screen.queryByText('bugfix/alice-dev/TASK-201')).toBeNull();
+    expect(screen.queryByText('2 人天')).toBeNull();
+    expect(screen.queryByText('截止 2026-04-07')).toBeNull();
   });
 });

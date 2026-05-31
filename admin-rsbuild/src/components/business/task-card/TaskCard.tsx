@@ -319,9 +319,14 @@ export function resolveTaskTypeTagTone(typeName: string): TaskTypeTagTone {
  * 解析卡片内容间距。
  *
  * @param isCompact 是否为紧凑模式
+ * @param isDense 是否为密集模式
  * @returns 卡片间距
  */
-function resolveCardStackSize(isCompact: boolean) {
+function resolveCardStackSize(isCompact: boolean, isDense: boolean) {
+  if (isDense) {
+    return 8;
+  }
+
   if (isCompact) {
     return 8;
   }
@@ -338,6 +343,7 @@ function resolveCardStackSize(isCompact: boolean) {
 const TaskCard = (props: TaskCardProps) => {
   const rootProps = props.rootProps;
   const isCompact = Boolean(props.compact || props.isSubtask);
+  const isDense = Boolean(props.dense);
   const shouldHideMeta = Boolean(props.compact) && !props.isSubtask;
   /**
    * 仅子任务完成态展示单行删除线，父任务保持原样。
@@ -400,8 +406,6 @@ const TaskCard = (props: TaskCardProps) => {
 
   const projectText = getTaskProjectText(props.task);
   const assigneeText = getTaskAssigneeText(props.task);
-  const dueTimeText = getTaskDueTimeText(props.task);
-  const workDaysText = getTaskWorkDaysText(props.task);
   const taskNumberText = getTaskNumberText(props.task);
   const taskNumberDisplayText = getTaskNumberDisplayText(props.task);
   const taskBranchText = getTaskBranchText(props.task);
@@ -423,7 +427,7 @@ const TaskCard = (props: TaskCardProps) => {
       </TaskTypeTag>
     );
   }
-  const stackSize = resolveCardStackSize(isCompact);
+  const stackSize = resolveCardStackSize(isCompact, isDense);
   const dataAttributes: Record<string, string> = {
     'data-task-card-root': 'true',
   };
@@ -438,6 +442,10 @@ const TaskCard = (props: TaskCardProps) => {
 
   if (isCompletedSubtask) {
     dataAttributes['data-task-card-completed-subtask'] = 'true';
+  }
+
+  if (isDense) {
+    dataAttributes['data-task-card-dense'] = 'true';
   }
 
   /**
@@ -506,26 +514,41 @@ const TaskCard = (props: TaskCardProps) => {
     );
   }
 
-  let metaProjectNode: ReactNode = null;
-  if (taskNumberText) {
-    metaProjectNode = (
-      <>
-        <TaskMetaText type="secondary">{projectText}</TaskMetaText>
-        {taskBranchText ? <TaskBranchText>{taskBranchText}</TaskBranchText> : null}
-      </>
-    );
-  }
-
   let metaNode: ReactNode = null;
   if (!shouldHideMeta) {
-    metaNode = (
-      <TaskMetaList>
-        {metaProjectNode}
-        <TaskMetaText type="secondary">{workDaysText}</TaskMetaText>
-        <TaskMetaText type="secondary">{assigneeText}</TaskMetaText>
-        <TaskMetaText type="secondary">{dueTimeText}</TaskMetaText>
-      </TaskMetaList>
-    );
+    if (isDense) {
+      metaNode = (
+        <TaskMetaList $dense={isDense}>
+          <TaskMetaText type="secondary">{projectText}</TaskMetaText>
+          <TaskMetaText type="secondary">{assigneeText}</TaskMetaText>
+        </TaskMetaList>
+      );
+    } else {
+      const dueTimeText = getTaskDueTimeText(props.task);
+      const workDaysText = getTaskWorkDaysText(props.task);
+      let metaProjectNode: ReactNode = null;
+      let metaBranchNode: ReactNode = null;
+
+      if (taskNumberText) {
+        metaProjectNode = (
+          <TaskMetaText type="secondary">{projectText}</TaskMetaText>
+        );
+      }
+
+      if (taskNumberText && taskBranchText) {
+        metaBranchNode = <TaskBranchText>{taskBranchText}</TaskBranchText>;
+      }
+
+      metaNode = (
+        <TaskMetaList $dense={isDense}>
+          {metaProjectNode}
+          {metaBranchNode}
+          <TaskMetaText type="secondary">{workDaysText}</TaskMetaText>
+          <TaskMetaText type="secondary">{assigneeText}</TaskMetaText>
+          <TaskMetaText type="secondary">{dueTimeText}</TaskMetaText>
+        </TaskMetaList>
+      );
+    }
   }
 
   return (
@@ -541,6 +564,7 @@ const TaskCard = (props: TaskCardProps) => {
         $isOverlay={Boolean(props.isOverlay)}
         $compact={Boolean(props.compact)}
         $isSubtask={Boolean(props.isSubtask)}
+        $dense={isDense}
       >
         <TaskCardStack
           orientation="vertical"
@@ -573,6 +597,7 @@ const TaskCard = (props: TaskCardProps) => {
               strong
               $compact={Boolean(props.compact)}
               $isSubtask={Boolean(props.isSubtask)}
+              $dense={isDense}
               $isCompletedSubtask={isCompletedSubtask}
               title={props.task.title}
             >

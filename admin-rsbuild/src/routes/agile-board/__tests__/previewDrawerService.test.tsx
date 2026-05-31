@@ -42,8 +42,8 @@ describe('openTaskPreviewDrawer', () => {
     ];
 
     const onEdit = vi.fn<
-      (task: ProjectTaskDetail) => Promise<void>
-    >().mockResolvedValue(undefined);
+      (task: ProjectTaskDetail) => Promise<boolean>
+    >().mockResolvedValue(true);
     const onTaskUpdated = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
     await openTaskPreviewDrawer(drawer, {

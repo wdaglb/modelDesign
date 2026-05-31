@@ -7,22 +7,29 @@ import io.github.modelDesign.asset.request.AssetDeviceReceiveRequest;
 import io.github.modelDesign.asset.request.AssetDeviceReturnRequest;
 import io.github.modelDesign.asset.request.AssetDeviceScrapRequest;
 import io.github.modelDesign.asset.request.AssetDeviceTransferRequest;
+import io.github.modelDesign.asset.response.AssetDeviceImportResultVo;
 import io.github.modelDesign.asset.response.AssetDeviceVo;
 import io.github.modelDesign.asset.response.PageResponse;
+import io.github.modelDesign.asset.service.AssetDeviceImportService;
+import io.github.modelDesign.asset.service.AssetDeviceImportTemplateService;
 import io.github.modelDesign.asset.service.AssetDeviceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 设备台账控制器。
@@ -37,6 +44,16 @@ public class AssetDeviceController {
      * 设备台账服务。
      */
     private final AssetDeviceService assetDeviceService;
+
+    /**
+     * 设备批量入库导入服务。
+     */
+    private final AssetDeviceImportService assetDeviceImportService;
+
+    /**
+     * 设备导入模板服务。
+     */
+    private final AssetDeviceImportTemplateService assetDeviceImportTemplateService;
 
     /**
      * 分页查询设备台账。
@@ -60,6 +77,31 @@ public class AssetDeviceController {
     @PostMapping("/create")
     public AssetDeviceVo create(@Valid @RequestBody AssetDeviceCreateRequest request) {
         return assetDeviceService.create(request);
+    }
+
+    /**
+     * 批量导入设备库存。
+     *
+     * @param file Excel 文件
+     * @return 导入结果
+     */
+    @Operation(summary = "批量导入设备库存")
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public AssetDeviceImportResultVo importDevices(
+            @Parameter(description = "设备库存 Excel 文件", required = true)
+            @RequestPart("file") MultipartFile file) {
+        return assetDeviceImportService.importDevices(file);
+    }
+
+    /**
+     * 下载设备库存导入模板。
+     *
+     * @param response HTTP 响应
+     */
+    @Operation(summary = "下载设备库存导入模板")
+    @GetMapping("/import/template")
+    public void downloadImportTemplate(HttpServletResponse response) {
+        assetDeviceImportTemplateService.downloadTemplate(response);
     }
 
     /**

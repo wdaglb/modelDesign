@@ -104,7 +104,6 @@ export async function openTaskModal(
   if (options.task) {
     children = (
       <TaskEditForm
-        mode={'full'}
         iterations={options.iterations}
         task={options.task}
         statusConfigs={options.statusConfigs}

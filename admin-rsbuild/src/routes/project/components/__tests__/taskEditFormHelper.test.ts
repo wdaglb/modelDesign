@@ -13,6 +13,7 @@ import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 const task: ProjectTaskDetail = {
   id: 1001,
   projectId: 88,
+  parentTaskId: 77,
   projectCode: 'TASK',
   taskNo: 'TASK-1001',
   title: '原始标题',
@@ -44,7 +45,7 @@ describe('taskEditFormHelper', () => {
     );
   });
 
-  it('drawer 模式应回填开始和截止时间', () => {
+  it('应组装统一编辑窗口提交字段', () => {
     const payload = buildTaskEditPayload(
       task,
       {
@@ -57,18 +58,21 @@ describe('taskEditFormHelper', () => {
         priority: 'medium',
         assigneeId: undefined,
         workDays: 3.5,
+        startTime: dayjs('2026-05-01 09:00:00'),
+        dueTime: dayjs('2026-05-03 18:00:00'),
       },
-      'drawer',
     );
 
-    expect(payload.startTime).toBe(task.startTime);
-    expect(payload.dueTime).toBe(task.dueTime);
+    expect(payload.startTime).toBe('2026-05-01 09:00:00');
+    expect(payload.dueTime).toBe('2026-05-03 18:00:00');
+    expect(payload.projectId).toBe(task.projectId);
+    expect(payload.parentTaskId).toBe(task.parentTaskId);
     expect(payload.assigneeId).toBe(0);
     expect(payload.iterationId).toBe(13);
     expect(payload.typeId).toBe(502);
   });
 
-  it('full 模式应使用表单中的排期字段', () => {
+  it('未选择排期时应提交空排期', () => {
     const payload = buildTaskEditPayload(
       task,
       {
@@ -81,17 +85,35 @@ describe('taskEditFormHelper', () => {
         priority: 'low',
         assigneeId: 302,
         workDays: 1,
-        startTime: dayjs('2026-05-01 09:00:00'),
-        dueTime: dayjs('2026-05-03 18:00:00'),
       },
-      'full',
     );
 
-    expect(payload.startTime).toBe('2026-05-01 09:00:00');
-    expect(payload.dueTime).toBe('2026-05-03 18:00:00');
+    expect(payload.startTime).toBeUndefined();
+    expect(payload.dueTime).toBeUndefined();
+    expect(payload.projectId).toBe(task.projectId);
     expect(payload.assigneeId).toBe(302);
     expect(payload.iterationId).toBe(14);
     expect(payload.typeId).toBe(503);
+  });
+
+  it('修改项目时应不再回填旧父任务', () => {
+    const payload = buildTaskEditPayload(
+      task,
+      {
+        projectId: 99,
+        title: '迁移项目',
+        description: '迁移项目说明',
+        iterationId: 14,
+        typeId: 503,
+        status: 'todo',
+        priority: 'low',
+        assigneeId: 302,
+        workDays: 1,
+      },
+    );
+
+    expect(payload.projectId).toBe(99);
+    expect(payload.parentTaskId).toBeUndefined();
   });
 
   it('应校验 0.5 人天步进规则', () => {
