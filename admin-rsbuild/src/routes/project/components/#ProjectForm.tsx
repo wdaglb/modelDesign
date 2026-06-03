@@ -1,20 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { Col, Form, Input, Row, Select } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Col, Form, Input, notification, Row, Select } from 'antd';
 import KModal from '@/components/KModal';
-import { ApiProject } from '@/api';
+import { ApiGitlab } from '@/api';
+import type { GitlabProject } from '@/api/modules/gitlab';
 import {
   DatabaseTypeOptions,
-  Project,
   ProjectStatus,
   ProjectStatusOptions,
 } from '@/api/modules/project.types';
+import type {
+  Project,
+  ProjectGitlabRepositoryBinding,
+} from '@/api/modules/project.types';
 import { getPinyinInitials } from '@/utils/pinyin';
+import { submitProjectWithGitlabFallback } from './#ProjectFormGitlabFallback';
 
 /**
  * 项目表单属性。
  */
 interface ProjectFormProps {
   record?: Project;
+}
+
+/**
+ * GitLab 仓库选择项。
+ */
+export interface GitlabRepositoryOption {
+  label: string;
+  value: number;
+  repository: ProjectGitlabRepositoryBinding;
 }
 
 /**
@@ -30,12 +44,184 @@ function buildInitialValues(record?: Project) {
     return {
       ...record,
       status: record.status,
+      gitlabRepositories: record.gitlabRepositories || [],
     };
   }
 
   return {
     status: ProjectStatus.Planning,
+    gitlabRepositories: [],
   };
+}
+
+/**
+ * 将 GitLab 项目转换为本地绑定快照。
+ *
+ * @param project GitLab 项目
+ * @returns 项目绑定快照
+ */
+export function toGitlabRepositoryBinding(
+  project: GitlabProject,
+): ProjectGitlabRepositoryBinding {
+  return {
+    gitlabProjectId: project.id,
+    name: project.name,
+    pathWithNamespace: project.pathWithNamespace,
+    webUrl: project.webUrl,
+  };
+}
+
+/**
+ * 构造 GitLab 仓库选择项。
+ *
+ * @param repository GitLab 仓库绑定快照
+ * @returns 下拉选择项
+ */
+export function buildGitlabRepositoryOption(
+  repository: ProjectGitlabRepositoryBinding,
+): GitlabRepositoryOption {
+  return {
+    label: `${repository.pathWithNamespace}（${repository.name}）`,
+    value: repository.gitlabProjectId,
+    repository,
+  };
+}
+
+/**
+ * 合并已选仓库与搜索结果。
+ *
+ * 已选仓库必须始终保留在 options 中，否则远程搜索结果刷新后，
+ * Ant Design Select 无法稳定展示编辑态回显文本。
+ *
+ * @param selectedRepositories 已选择仓库
+ * @param searchedOptions 当前远程搜索结果
+ * @returns 去重后的选择项
+ */
+export function mergeGitlabRepositoryOptions(
+  selectedRepositories: ProjectGitlabRepositoryBinding[],
+  searchedOptions: GitlabRepositoryOption[],
+) {
+  const optionMap = new Map<number, GitlabRepositoryOption>();
+  for (const repository of selectedRepositories) {
+    optionMap.set(
+      repository.gitlabProjectId,
+      buildGitlabRepositoryOption(repository),
+    );
+  }
+  for (const option of searchedOptions) {
+    if (!optionMap.has(option.value)) {
+      optionMap.set(option.value, option);
+    }
+  }
+  return Array.from(optionMap.values());
+}
+
+/**
+ * 根据选中的 GitLab 项目 ID 还原绑定快照。
+ *
+ * @param selectedIds 当前选择的 GitLab 项目 ID
+ * @param options 当前可用选择项
+ * @returns 待提交的绑定快照列表
+ */
+export function resolveSelectedGitlabRepositories(
+  selectedIds: number[],
+  options: GitlabRepositoryOption[],
+) {
+  const optionMap = new Map<number, GitlabRepositoryOption>();
+  for (const option of options) {
+    optionMap.set(option.value, option);
+  }
+
+  const repositories: ProjectGitlabRepositoryBinding[] = [];
+  for (const selectedId of selectedIds) {
+    const option = optionMap.get(selectedId);
+    if (option) {
+      repositories.push(option.repository);
+    }
+  }
+  return repositories;
+}
+
+/**
+ * GitLab 仓库远程搜索选择器。
+ *
+ * @param props 组件属性
+ * @returns 仓库选择组件
+ */
+export function ProjectGitlabRepositorySelect(props: {
+  value?: ProjectGitlabRepositoryBinding[];
+  onChange?: (value: ProjectGitlabRepositoryBinding[]) => void;
+}) {
+  const selectedRepositories = props.value || [];
+  const [searchedOptions, setSearchedOptions] = useState<
+    GitlabRepositoryOption[]
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const mergedOptions = useMemo(
+    () => mergeGitlabRepositoryOptions(selectedRepositories, searchedOptions),
+    [searchedOptions, selectedRepositories],
+  );
+  const selectedIds = selectedRepositories.map((repository) => {
+    return repository.gitlabProjectId;
+  });
+
+  const searchRepositories = async (keyword?: string) => {
+    setLoading(true);
+    try {
+      const response = await ApiGitlab.getProjects(
+        {
+          current: 1,
+          pageSize: 20,
+          keyword,
+        },
+        {
+          skipErrorHandler: true,
+        },
+      );
+      const nextOptions = response.items.map((project) => {
+        return buildGitlabRepositoryOption(toGitlabRepositoryBinding(project));
+      });
+      setSearchedOptions(nextOptions);
+      setLoaded(true);
+    } catch {
+      setSearchedOptions([]);
+      notification.warning({
+        key: 'project-gitlab-search-error',
+        message: '当前租户 GitLab 未配置或项目搜索失败。',
+      });
+      setLoaded(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Select
+        mode={'multiple'}
+        showSearch
+        value={selectedIds}
+        options={mergedOptions}
+        loading={loading}
+        filterOption={false}
+        placeholder={'搜索并选择 GitLab 仓库，可绑定多个'}
+        onFocus={() => {
+          if (!loaded) {
+            searchRepositories();
+          }
+        }}
+        onSearch={(keyword) => {
+          searchRepositories(keyword);
+        }}
+        onChange={(nextSelectedIds) => {
+          props.onChange?.(
+            resolveSelectedGitlabRepositories(nextSelectedIds, mergedOptions),
+          );
+        }}
+      />
+    </>
+  );
 }
 
 /**
@@ -64,12 +250,7 @@ const ProjectForm = (props: ProjectFormProps) => {
       layout={'vertical'}
       initialValues={buildInitialValues(props.record)}
       onFinish={async (values) => {
-        if (props.record) {
-          await ApiProject.edit(props.record.id, values);
-          return;
-        }
-
-        await ApiProject.create(values);
+        await submitProjectWithGitlabFallback(props.record, values);
       }}
     >
       <Row gutter={12}>
@@ -165,6 +346,10 @@ const ProjectForm = (props: ProjectFormProps) => {
           showCount
           maxLength={1000}
         />
+      </Form.Item>
+
+      <Form.Item name={'gitlabRepositories'} label={'GitLab 仓库'}>
+        <ProjectGitlabRepositorySelect />
       </Form.Item>
     </KModal.Form>
   );

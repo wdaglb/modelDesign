@@ -43,8 +43,34 @@ export interface Project {
    * 数据库类型
    */
   dbType: DatabaseType;
+  /**
+   * GitLab 仓库绑定列表
+   */
+  gitlabRepositories?: ProjectGitlabRepositoryBinding[];
   updatedAt?: string;
   [property: string]: any;
+}
+
+/**
+ * 项目 GitLab 仓库绑定快照
+ */
+export interface ProjectGitlabRepositoryBinding {
+  /**
+   * GitLab 项目 ID
+   */
+  gitlabProjectId: number;
+  /**
+   * GitLab 项目名称
+   */
+  name: string;
+  /**
+   * GitLab 完整命名空间路径
+   */
+  pathWithNamespace: string;
+  /**
+   * GitLab 项目网页地址
+   */
+  webUrl: string;
 }
 
 /**
@@ -184,6 +210,7 @@ export interface CreateProjectParams {
   projectGroup?: string;
   progressSummary?: string;
   completedModuleCount?: number;
+  gitlabRepositories?: ProjectGitlabRepositoryBinding[];
 }
 
 /**
@@ -197,4 +224,5 @@ export interface EditProjectParams {
   projectGroup?: string;
   progressSummary?: string;
   completedModuleCount?: number;
+  gitlabRepositories?: ProjectGitlabRepositoryBinding[];
 }

@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 项目详情。
  */
@@ -88,4 +90,10 @@ public class ProjectDetailVo {
      */
     @Schema(description = "数据库类型")
     private String dbType;
+
+    /**
+     * GitLab 仓库绑定列表。
+     */
+    @Schema(description = "GitLab 仓库绑定列表")
+    private List<ProjectGitlabRepositoryVo> gitlabRepositories;
 }

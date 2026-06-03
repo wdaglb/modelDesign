@@ -8,6 +8,16 @@ import {
 } from './project.types';
 
 /**
+ * 项目接口请求选项。
+ */
+interface ProjectRequestOptions {
+  /**
+   * 是否跳过统一错误提示。
+   */
+  skipErrorHandler?: boolean;
+}
+
+/**
  * 获取项目列表。
  *
  * @param params 列表查询参数
@@ -30,27 +40,38 @@ export const getDetail = (id: number) => {
 
 /**
  * 创建项目
- * @param data
+ * @param data 创建项目参数
+ * @param options 请求控制选项
  * @returns
  */
-export const create = (data: CreateProjectParams) => {
+export const create = (
+  data: CreateProjectParams,
+  options?: ProjectRequestOptions,
+) => {
   return request<Project>('/project/create', {
     method: 'post',
     data,
+    skipErrorHandler: options?.skipErrorHandler,
   });
 };
 
 /**
  * 修改项目信息
- * @param id
- * @param data
+ * @param id 项目 ID
+ * @param data 编辑项目参数
+ * @param options 请求控制选项
  * @returns
  */
-export const edit = (id: number, data: EditProjectParams) => {
+export const edit = (
+  id: number,
+  data: EditProjectParams,
+  options?: ProjectRequestOptions,
+) => {
   return request<Project>('/project/edit', {
     method: 'post',
     params: { id },
     data,
+    skipErrorHandler: options?.skipErrorHandler,
   });
 };
 

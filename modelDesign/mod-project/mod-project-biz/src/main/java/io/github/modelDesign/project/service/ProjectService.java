@@ -19,6 +19,7 @@ import io.github.modelDesign.project.response.ProjectStatusSummaryVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -51,6 +52,11 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      * 用户查询接口。
      */
     private final AuthUserApi authUserApi;
+
+    /**
+     * 项目 GitLab 仓库绑定服务。
+     */
+    private final ProjectGitlabRepositoryService projectGitlabRepositoryService;
 
     /**
      * 获取项目列表。
@@ -108,7 +114,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      */
     public ProjectDetailVo getDetail(Long id) {
         Project project = requireProject(id);
-        return toProjectVo(project, getCreatorMap(Set.of(project.getCreatorId())));
+        return toProjectVoWithGitlabRepositories(project, getCreatorMap(Set.of(project.getCreatorId())));
     }
 
     /**
@@ -117,6 +123,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      * @param request 创建请求
      * @return 项目详情
      */
+    @Transactional(rollbackFor = Exception.class)
     public ProjectDetailVo create(ProjectCreateRequest request) {
         Long tenantId = requireCurrentTenantId();
         boolean exists = lambdaQuery()
@@ -143,11 +150,19 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
         project.setTenantId(tenantId);
         project.setDeleted(0);
         save(project);
+        projectGitlabRepositoryService.saveBindings(
+                tenantId,
+                project.getId(),
+                request.getGitlabRepositories()
+        );
         String resolvedNickname = "";
         if (currentNickname != null) {
             resolvedNickname = currentNickname;
         }
-        return toProjectVo(project, Collections.singletonMap(currentUserId, resolvedNickname));
+        return toProjectVoWithGitlabRepositories(
+                project,
+                Collections.singletonMap(currentUserId, resolvedNickname)
+        );
     }
 
     /**
@@ -157,6 +172,7 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
      * @param request 编辑请求
      * @return 项目详情
      */
+    @Transactional(rollbackFor = Exception.class)
     public ProjectDetailVo edit(Long id, ProjectEditRequest request) {
         Project project = requireProject(id);
         project.setName(request.getName().trim());
@@ -165,9 +181,24 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
         project.setStatus(resolveStatusForUpdate(request.getStatus(), project.getStatus()));
         project.setProjectGroup(resolveOptionalShortText(request.getProjectGroup(), project.getProjectGroup()));
         project.setProgressSummary(resolveOptionalLongText(request.getProgressSummary(), project.getProgressSummary()));
-        project.setCompletedModuleCount(resolveCompletedModuleCount(request.getCompletedModuleCount(), project.getCompletedModuleCount()));
+        project.setCompletedModuleCount(resolveCompletedModuleCount(
+                request.getCompletedModuleCount(),
+                project.getCompletedModuleCount()
+        ));
         updateById(project);
-        return toProjectVo(project, getCreatorMap(Set.of(project.getCreatorId())));
+        /**
+         * 编辑 fallback 会故意不提交 GitLab 绑定字段。
+         * 这表示只保存项目基础信息。
+         * 空数组仍保留“主动清空绑定”的语义，不能与 null 混用。
+         */
+        if (request.getGitlabRepositories() != null) {
+            projectGitlabRepositoryService.saveBindings(
+                    project.getTenantId(),
+                    project.getId(),
+                    request.getGitlabRepositories()
+            );
+        }
+        return toProjectVoWithGitlabRepositories(project, getCreatorMap(Set.of(project.getCreatorId())));
     }
 
     /**
@@ -255,7 +286,17 @@ public class ProjectService extends ServiceImpl<ProjectMapper, Project> implemen
                 .createdAt(formatDateTime(project.getCreateTime()))
                 .updatedAt(formatDateTime(project.getUpdateTime()))
                 .dbType(project.getDbType())
+                .gitlabRepositories(Collections.emptyList())
                 .build();
+    }
+
+    private ProjectDetailVo toProjectVoWithGitlabRepositories(Project project, Map<Long, String> creatorMap) {
+        ProjectDetailVo projectVo = toProjectVo(project, creatorMap);
+        projectVo.setGitlabRepositories(projectGitlabRepositoryService.listByProject(
+                project.getTenantId(),
+                project.getId()
+        ));
+        return projectVo;
     }
 
     private String normalizeDescription(String description) {

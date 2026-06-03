@@ -1,10 +1,13 @@
 package io.github.modelDesign.project.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.util.List;
 
 /**
  * 创建项目请求。
@@ -70,4 +73,11 @@ public class ProjectCreateRequest {
     @NotBlank(message = "数据库类型不能为空")
     @Size(max = 32, message = "数据库类型长度不能超过 32 个字符")
     private String dbType;
+
+    /**
+     * GitLab 仓库绑定列表。
+     */
+    @Valid
+    @Schema(description = "GitLab 仓库绑定列表")
+    private List<@Valid ProjectGitlabRepositoryBindRequest> gitlabRepositories;
 }

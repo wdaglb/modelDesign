@@ -139,9 +139,10 @@ export function ProjectListPage() {
    * @param project 项目记录
    */
   async function handleEditProject(project: Project) {
+    const projectDetail = await ApiProject.getDetail(project.id);
     await modal.open({
       title: '编辑项目',
-      children: <ProjectForm record={project} />,
+      children: <ProjectForm record={projectDetail} />,
     });
     reloadProjectList();
   }

@@ -4,6 +4,7 @@ import * as ApiAssetLocation from './modules/asset-location';
 import * as ApiAssetStocktake from './modules/asset-stocktake';
 import * as ApiFile from './modules/file';
 import * as ApiFileAccessConfig from './modules/file-access-config';
+import * as ApiGitlab from './modules/gitlab';
 import * as ApiPassport from './modules/passport';
 import * as ApiPermissionGroup from './modules/permission-group';
 import * as ApiPermissionResource from './modules/permission-resource';
@@ -34,6 +35,7 @@ export {
   ApiAssetStocktake,
   ApiFile,
   ApiFileAccessConfig,
+  ApiGitlab,
   ApiMenu,
   ApiMcpConfig,
   ApiPassport,

@@ -38,6 +38,7 @@ import { Route as ProjectProjectIdTasksRouteImport } from './routes/project/$pro
 import { Route as ProjectProjectIdTablesRouteImport } from './routes/project/$projectId.tables'
 import { Route as ProjectProjectIdMembersRouteImport } from './routes/project/$projectId.members'
 import { Route as SystemThirdPartyQyworkIndexRouteImport } from './routes/system/third-party/qywork/index'
+import { Route as SystemThirdPartyGitlabIndexRouteImport } from './routes/system/third-party/gitlab/index'
 
 const MyTodoRoute = MyTodoRouteImport.update({
   id: '/my-todo',
@@ -186,6 +187,12 @@ const SystemThirdPartyQyworkIndexRoute =
     path: '/system/third-party/qywork/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const SystemThirdPartyGitlabIndexRoute =
+  SystemThirdPartyGitlabIndexRouteImport.update({
+    id: '/system/third-party/gitlab/',
+    path: '/system/third-party/gitlab/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/system/role/': typeof SystemRoleIndexRoute
   '/system/tenant/': typeof SystemTenantIndexRoute
   '/system/user/': typeof SystemUserIndexRoute
+  '/system/third-party/gitlab/': typeof SystemThirdPartyGitlabIndexRoute
   '/system/third-party/qywork/': typeof SystemThirdPartyQyworkIndexRoute
 }
 export interface FileRoutesByTo {
@@ -246,6 +254,7 @@ export interface FileRoutesByTo {
   '/system/role': typeof SystemRoleIndexRoute
   '/system/tenant': typeof SystemTenantIndexRoute
   '/system/user': typeof SystemUserIndexRoute
+  '/system/third-party/gitlab': typeof SystemThirdPartyGitlabIndexRoute
   '/system/third-party/qywork': typeof SystemThirdPartyQyworkIndexRoute
 }
 export interface FileRoutesById {
@@ -278,6 +287,7 @@ export interface FileRoutesById {
   '/system/role/': typeof SystemRoleIndexRoute
   '/system/tenant/': typeof SystemTenantIndexRoute
   '/system/user/': typeof SystemUserIndexRoute
+  '/system/third-party/gitlab/': typeof SystemThirdPartyGitlabIndexRoute
   '/system/third-party/qywork/': typeof SystemThirdPartyQyworkIndexRoute
 }
 export interface FileRouteTypes {
@@ -311,6 +321,7 @@ export interface FileRouteTypes {
     | '/system/role/'
     | '/system/tenant/'
     | '/system/user/'
+    | '/system/third-party/gitlab/'
     | '/system/third-party/qywork/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -341,6 +352,7 @@ export interface FileRouteTypes {
     | '/system/role'
     | '/system/tenant'
     | '/system/user'
+    | '/system/third-party/gitlab'
     | '/system/third-party/qywork'
   id:
     | '__root__'
@@ -372,6 +384,7 @@ export interface FileRouteTypes {
     | '/system/role/'
     | '/system/tenant/'
     | '/system/user/'
+    | '/system/third-party/gitlab/'
     | '/system/third-party/qywork/'
   fileRoutesById: FileRoutesById
 }
@@ -400,6 +413,7 @@ export interface RootRouteChildren {
   SystemRoleIndexRoute: typeof SystemRoleIndexRoute
   SystemTenantIndexRoute: typeof SystemTenantIndexRoute
   SystemUserIndexRoute: typeof SystemUserIndexRoute
+  SystemThirdPartyGitlabIndexRoute: typeof SystemThirdPartyGitlabIndexRoute
   SystemThirdPartyQyworkIndexRoute: typeof SystemThirdPartyQyworkIndexRoute
 }
 
@@ -608,6 +622,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemThirdPartyQyworkIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/system/third-party/gitlab/': {
+      id: '/system/third-party/gitlab/'
+      path: '/system/third-party/gitlab'
+      fullPath: '/system/third-party/gitlab/'
+      preLoaderRoute: typeof SystemThirdPartyGitlabIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -653,6 +674,7 @@ const rootRouteChildren: RootRouteChildren = {
   SystemRoleIndexRoute: SystemRoleIndexRoute,
   SystemTenantIndexRoute: SystemTenantIndexRoute,
   SystemUserIndexRoute: SystemUserIndexRoute,
+  SystemThirdPartyGitlabIndexRoute: SystemThirdPartyGitlabIndexRoute,
   SystemThirdPartyQyworkIndexRoute: SystemThirdPartyQyworkIndexRoute,
 }
 export const routeTree = rootRouteImport
