@@ -21,10 +21,31 @@ import java.util.Set;
 @Component
 public class SystemMessagePushAdapterRegistry {
     /**
+     * 企业微信 provider 编码。
+     *
+     * <p>默认系统消息需要同步进入企业微信通道，因此在注册表中统一维护默认
+     * provider 编码，避免业务发布方分散硬编码。</p>
+     */
+    public static final String QYWORK_PROVIDER_CODE = "qywork";
+
+    /**
+     * 默认 provider 编码集合。
+     *
+     * <p>默认集合只表达“需要创建哪些渠道任务”，每个 provider 的失败仍由各自
+     * 独立推送任务承接，不能影响其它 provider。</p>
+     */
+    private static final List<String> DEFAULT_PROVIDER_CODES = List.of(QYWORK_PROVIDER_CODE);
+
+    /**
      * 适配器映射。
      */
     private final Map<String, SystemMessagePushAdapter> adapterMap = new LinkedHashMap<>();
 
+    /**
+     * 创建系统消息推送适配器注册表。
+     *
+     * @param adapters Spring 注入的适配器 Bean 集合
+     */
     public SystemMessagePushAdapterRegistry(List<SystemMessagePushAdapter> adapters) {
         for (SystemMessagePushAdapter adapter : adapters) {
             String adapterCode = normalizeBeanAdapterCode(adapter.getAdapterCode());
@@ -33,6 +54,22 @@ public class SystemMessagePushAdapterRegistry {
             }
             adapterMap.put(adapterCode, adapter);
         }
+    }
+
+    /**
+     * 解析最终用于创建推送任务的 provider 编码集合。
+     *
+     * <p>默认 provider 与调用方显式 provider 在这里统一合并并去重。这样既能让
+     * 现有系统消息默认进入企业微信通道，也能避免调用方显式传入 qywork 时重复
+     * 创建同一渠道任务。</p>
+     *
+     * @param requestedAdapterCodes 调用方显式指定的 provider 编码集合
+     * @return 默认 provider 与显式 provider 合并后的编码集合
+     */
+    public List<String> resolvePublishAdapterCodes(Collection<String> requestedAdapterCodes) {
+        Set<String> resolvedCodes = new LinkedHashSet<>(DEFAULT_PROVIDER_CODES);
+        resolvedCodes.addAll(normalizeAdapterCodes(requestedAdapterCodes));
+        return new ArrayList<>(resolvedCodes);
     }
 
     /**

@@ -77,7 +77,7 @@ public class SystemMessagePublishService {
         String title = normalizeRequiredText(command.getTitle(), 255, "消息标题不能为空", "消息标题长度不能超过 255 个字符");
         String content = normalizeRequiredContent(command.getContent());
         String redirectUrl = normalizeOptionalText(command.getRedirectUrl(), 500, "跳转地址长度不能超过 500 个字符");
-        List<String> adapterCodes = systemMessagePushAdapterRegistry.normalizeAdapterCodes(command.getAdapterCodes());
+        List<String> adapterCodes = systemMessagePushAdapterRegistry.resolvePublishAdapterCodes(command.getAdapterCodes());
         systemMessagePushAdapterRegistry.validateAdapterCodes(adapterCodes);
         List<SystemMessage> messages = buildMessages(scopeType, tenantId, command.getReceiverUserIds(), category, title, content, redirectUrl);
         boolean saved = systemMessageService.saveBatch(messages);
@@ -193,7 +193,7 @@ public class SystemMessagePublishService {
         }
     }
 
-    private List<SystemMessagePushTask> buildPushTasks(List<SystemMessage> messages, List<String> adapterCodes) {
+    List<SystemMessagePushTask> buildPushTasks(List<SystemMessage> messages, List<String> adapterCodes) {
         if (adapterCodes.isEmpty()) {
             return new ArrayList<>();
         }
