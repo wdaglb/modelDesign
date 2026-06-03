@@ -42,6 +42,14 @@ let refreshTokenPromise: Promise<string | null> | null = null;
 const createHttpClient = () => {
   return axios.create({
     baseURL: '/api',
+    headers: {
+      /**
+       * 后端仍使用 LocalDateTime 存储用户可见时间，必须按浏览器时区生成
+       * “当前时间”，否则服务器部署时区不同会导致创建时间、更新时间偏移。
+       */
+      'X-Client-Time-Zone':
+        Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+    },
     paramsSerializer: (params) => {
       return qs.stringify(params, { arrayFormat: 'repeat' });
     },

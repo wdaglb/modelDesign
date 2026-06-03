@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
-import { message, Modal } from 'antd';
+import { Modal } from 'antd';
 
 import {
   ApiProjectTask,
@@ -15,7 +15,6 @@ import type { ProjectTaskChangeLogItem } from '@/api/modules/project-task-change
 import type { ProjectTaskDynamicItem } from '@/api/modules/project-task-dynamic';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
-import { copyTextToClipboard } from '@/utils';
 import useAuthStore from '@/store/auth.ts';
 
 import TaskDetailView from '../#TaskDetailView';
@@ -114,12 +113,6 @@ vi.mock('@/api', () => {
   };
 });
 
-vi.mock('@/utils', () => {
-  return {
-    copyTextToClipboard: vi.fn(),
-  };
-});
-
 vi.mock('@/store/auth.ts', () => {
   return {
     default: vi.fn(),
@@ -147,6 +140,7 @@ const task: ProjectTaskDetail = {
   id: 1001,
   projectId: 77,
   projectCode: 'TASK',
+  projectName: '模型设计平台',
   title: '抽屉时间范围测试',
   status: 'todo',
   priority: 'high',
@@ -205,7 +199,6 @@ const previewCreateChangeLogs: ProjectTaskChangeLogItem[] = [
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(copyTextToClipboard).mockResolvedValue(undefined);
   vi.mocked(useAuthStore).mockImplementation((selector) => {
     return selector({
       currentInfo: {
@@ -225,6 +218,27 @@ beforeEach(() => {
 });
 
 describe('TaskDetailView', () => {
+  it('查看态应展示任务所属项目', () => {
+    renderWithQuery(
+      <TaskDetailView
+        task={task}
+        statusConfigs={statusConfigs}
+        previewSubtasks={[]}
+        previewChangeLogs={[]}
+        previewDynamics={[]}
+        onEditTask={vi.fn()}
+        onEnterEdit={vi.fn()}
+        onTaskUpdated={vi.fn()}
+      />,
+    );
+
+    const projectLabel = screen.getByText('所属项目');
+    const projectValue = screen.getByText('模型设计平台');
+
+    expect(projectLabel.closest('.ant-tag')).toBeNull();
+    expect(projectValue.closest('.ant-tag')).toBeNull();
+  });
+
   it('查看态会直接渲染时间范围选择器并回显起止时间', () => {
     renderWithQuery(
       <TaskDetailView
@@ -409,12 +423,8 @@ describe('TaskDetailView', () => {
     );
   });
 
-  it('点击任务标题时会复制标题文案', async () => {
-    const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
-      return undefined as never;
-    });
-
-    renderWithQuery(
+  it('任务标题使用 Typography copyable 提供复制入口', () => {
+    const { container } = renderWithQuery(
       <TaskDetailView
         task={task}
         statusConfigs={statusConfigs}
@@ -427,22 +437,18 @@ describe('TaskDetailView', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText('抽屉时间范围测试'));
+    const titleElement = screen.getByText('抽屉时间范围测试');
+    const copyableTitle = titleElement.closest('.ant-typography');
 
-    await waitFor(() => {
-      expect(copyTextToClipboard).toHaveBeenCalledWith('抽屉时间范围测试');
-    });
-    await waitFor(() => {
-      expect(successMock).toHaveBeenCalledWith('任务标题已复制');
-    });
+    expect(copyableTitle).toBeTruthy();
+    expect(copyableTitle?.classList.contains('task-detail-copyable-title'))
+      .toBe(true);
+    expect(copyableTitle?.querySelector('.ant-typography-copy')).toBeTruthy();
+    expect(container.querySelectorAll('.ant-typography-copy').length)
+      .toBeGreaterThanOrEqual(2);
   });
 
-  it('点击任务编号文本时会复制任务编号文案', async () => {
-    const user = userEvent.setup();
-    const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
-      return undefined as never;
-    });
-
+  it('任务编号文本使用 Typography copyable 提供复制入口', () => {
     renderWithQuery(
       <TaskDetailView
         task={{
@@ -459,30 +465,14 @@ describe('TaskDetailView', () => {
       />,
     );
 
-    const taskNumberCopyTrigger = screen.getByRole('button', {
-      name: 'TASK-1001',
-    });
+    const taskNumberElement = screen.getByText('TASK-1001');
+    const copyableTaskNumber = taskNumberElement.closest('.ant-typography');
 
-    expect(taskNumberCopyTrigger).toBeDefined();
-    expect(taskNumberCopyTrigger.getAttribute('title')).toBe(
-      '点击复制任务编号',
-    );
-
-    await user.click(taskNumberCopyTrigger);
-
-    await waitFor(() => {
-      expect(copyTextToClipboard).toHaveBeenCalledWith('TASK-1001');
-    });
-    await waitFor(() => {
-      expect(successMock).toHaveBeenCalledWith('任务编号已复制');
-    });
+    expect(copyableTaskNumber).toBeTruthy();
+    expect(copyableTaskNumber?.querySelector('.ant-typography-copy')).toBeTruthy();
   });
 
-  it('任务类型配置前缀后点击分支名文本会复制分支名', async () => {
-    const user = userEvent.setup();
-    const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
-      return undefined as never;
-    });
+  it('任务类型配置前缀后分支名使用 Typography copyable 提供复制入口', async () => {
     vi.mocked(ApiProjectTaskType.getList).mockResolvedValue([
       {
         id: 2,
@@ -512,25 +502,11 @@ describe('TaskDetailView', () => {
 
     expect(await screen.findByText('bugfix/alice-dev/TASK-1001')).toBeDefined();
 
-    const branchNameCopyTrigger = screen.getByRole('button', {
-      name: 'bugfix/alice-dev/TASK-1001',
-    });
+    const branchNameElement = screen.getByText('bugfix/alice-dev/TASK-1001');
+    const copyableBranchName = branchNameElement.closest('.ant-typography');
 
-    expect(branchNameCopyTrigger).toBeDefined();
-    expect(branchNameCopyTrigger.getAttribute('title')).toBe(
-      '点击复制任务分支名',
-    );
-
-    await user.click(branchNameCopyTrigger);
-
-    await waitFor(() => {
-      expect(copyTextToClipboard).toHaveBeenCalledWith(
-        'bugfix/alice-dev/TASK-1001',
-      );
-    });
-    await waitFor(() => {
-      expect(successMock).toHaveBeenCalledWith('任务分支名已复制');
-    });
+    expect(copyableBranchName).toBeTruthy();
+    expect(copyableBranchName?.querySelector('.ant-typography-copy')).toBeTruthy();
   });
 
   it('分支名右侧会展示当前迭代并支持快捷修改', async () => {
@@ -595,11 +571,7 @@ describe('TaskDetailView', () => {
     });
   });
 
-  it('未配置个人 Git 用户名时会提示先去个人中心配置', async () => {
-    const user = userEvent.setup();
-    const warningMock = vi.spyOn(message, 'warning').mockImplementation(() => {
-      return undefined as never;
-    });
+  it('未配置个人 Git 用户名时仅展示不可复制提示', async () => {
     vi.mocked(useAuthStore).mockImplementation((selector) => {
       return selector({
         currentInfo: {
@@ -640,14 +612,9 @@ describe('TaskDetailView', () => {
     expect(
       screen.queryByRole('button', { name: '请先在个人中心配置 Git 用户名' }),
     ).toBeNull();
-    expect(warningMock).not.toHaveBeenCalled();
   });
 
-  it('任务类型未配置前缀时会提示未配置而不是生成分支名', async () => {
-    const user = userEvent.setup();
-    const warningMock = vi.spyOn(message, 'warning').mockImplementation(() => {
-      return undefined as never;
-    });
+  it('任务类型未配置前缀时仅展示不可复制提示', async () => {
     vi.mocked(ApiProjectTaskType.getList).mockResolvedValue([
       {
         id: 1,
@@ -679,7 +646,6 @@ describe('TaskDetailView', () => {
     expect(
       screen.queryByRole('button', { name: '当前任务类型未配置分支前缀' }),
     ).toBeNull();
-    expect(warningMock).not.toHaveBeenCalled();
   });
 
   it('子任务快捷创建成功后会重新聚焦输入框，便于连续创建', async () => {

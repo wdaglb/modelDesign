@@ -6,6 +6,7 @@ import io.github.modelDesign.auth.session.CurrentAdmin;
 import io.github.modelDesign.auth.session.SessionRepository;
 import io.github.modelDesign.auth.session.TokenService;
 import io.github.modelDesign.common.exception.UnauthorizedException;
+import io.github.modelDesign.time.ClientTimeZoneContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -24,6 +25,7 @@ class AuthInterceptorTest {
     @AfterEach
     void clearAuthContext() {
         AuthContext.clear();
+        ClientTimeZoneContext.clear();
     }
 
     /**
@@ -50,7 +52,11 @@ class AuthInterceptorTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/ai/mcp");
         request.addHeader("Authorization", "Bearer " + mcpToken);
+        request.addHeader(ClientTimeZoneContext.HEADER_NAME, "Asia/Shanghai");
         request.setRemoteAddr("127.0.0.1");
+        ClientTimeZoneContext.set(
+                request.getHeader(ClientTimeZoneContext.HEADER_NAME)
+        );
 
         boolean result = interceptor.preHandle(
                 request,
@@ -65,6 +71,7 @@ class AuthInterceptorTest {
         assertEquals(1L, resolvedAdmin.getTenantId());
         assertEquals("alice", resolvedAdmin.getUsername());
         assertEquals(null, resolvedAdmin.getGitUsername());
+        assertNotNull(resolvedAdmin.getTokenCreateTime());
     }
 
     /**

@@ -1,4 +1,4 @@
-import { Card } from 'antd';
+import { Card, Typography } from 'antd';
 import styled from 'styled-components';
 
 /**
@@ -82,65 +82,38 @@ export const TaskDetailIdRow = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: 100%;
 `;
 
 /**
- * 详情头部可点击复制的短文本。
+ * 可复制标题容器。
  *
- * 任务编号和分支名都属于高频复制信息，直接在文本本身提供交互，
- * 可以减少额外“复制”按钮占位；下划线用于明确提示这是可点击区域。
+ * Ant Design Typography 的 copyable 图标会作为兄弟节点插到文本后面；
+ * 标题本身若继续使用块级 h3，复制图标会被挤到下一行。这里把外层设为
+ * inline-flex，并让内部标题保持行内布局，确保“任务类型 + 标题 + 复制图标”
+ * 始终在同一行自然换行。
  */
-export const TaskDetailCopyText = styled.button`
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #4e5969;
-  font-size: 10px;
-  line-height: 16px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-  font-family: inherit;
-
-  &:hover {
-    color: #1677ff;
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(22, 119, 255, 0.35);
-    outline-offset: 2px;
-    border-radius: 3px;
-  }
+export const TaskDetailEntityCopyableTitle = styled(Typography.Text).attrs({
+  className: 'task-detail-copyable-title',
+})`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
 `;
 
 /**
  * 实体主标题。
  */
-export const TaskDetailEntityTitle = styled.h3<{ $clickable?: boolean }>`
+export const TaskDetailEntityTitle = styled.h3`
   margin: 0;
+  display: inline;
   color: #1d2129;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  line-height: 24px;
-  cursor: ${(props) => {
-    if (props.$clickable) {
-      return 'pointer';
-    }
-
-    return 'default';
-  }};
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: ${(props) => {
-      if (props.$clickable) {
-        return '#1677ff';
-      }
-
-      return '#1d2129';
-    }};
-  }
+  line-height: 22px;
 `;
 
 /**

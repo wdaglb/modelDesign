@@ -7,7 +7,6 @@ import {
   Radio,
   Space,
   Typography,
-  message,
 } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -16,7 +15,6 @@ import KModal from '@/components/KModal';
 import { modalContext } from '@/components/KModal/Modal.tsx';
 import queryKey from '@/constants/queryKey';
 import useAuthStore from '@/store/auth.ts';
-import { copyTextToClipboard } from '@/utils';
 
 /**
  * 密码录入模式。
@@ -117,18 +115,6 @@ const CreateUserForm = () => {
    */
   const refreshSystemPassword = () => {
     form.setFieldValue('password', generatePassword());
-  };
-
-  /**
-   * 复制新增结果中的初始密码。
-   */
-  const copyPassword = async () => {
-    if (!result?.password) {
-      return;
-    }
-
-    await copyTextToClipboard(result.password);
-    message.success('初始密码已复制');
   };
 
   useEffect(() => {

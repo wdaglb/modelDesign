@@ -119,7 +119,7 @@ describe('TaskPreviewDrawer', () => {
     expect(onEdit).not.toHaveBeenCalled();
 
     const openProps = drawerOpen.mock.calls[0]?.[0];
-    expect(openProps.title).toBe('任务详情');
+    expect(openProps.title).toBeTruthy();
     expect(openProps.size).toBe(840);
     expect(openProps.children.props.taskId).toBe(nestedTask.id);
     expect(openProps.children.props.onEdit).toBe(onEdit);

@@ -97,9 +97,10 @@ export function mapAgileBoardTaskToTaskCardTask(
     typeName: normalizeTaskText(task.typeName),
     title: task.title,
     /**
-     * 敏捷面板卡片不展示最新动态摘要，避免同列卡片出现不同高度。
+     * 敏捷面板卡片展示最新 1 条动态，接口侧只返回摘要，
+     * 这里仅做空值规整，避免卡片层出现空白动态占位。
      */
-    latestDynamicSummary: undefined,
+    latestDynamicSummary: normalizeTaskText(task.latestDynamicSummary),
     priority: task.priority,
     workDays: task.workDays,
     assignee: normalizeTaskText(task.assignee),

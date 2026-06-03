@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Button, Card, Empty, Flex, Typography, message } from 'antd';
+import { Card, Empty, Flex, Typography } from 'antd';
 
 import type { ProjectTaskReportResponse } from '@/api/modules/project-task-report';
 
@@ -14,13 +14,6 @@ interface DailyReportTextCardProps {
    */
   report: ProjectTaskReportResponse;
 
-  /**
-   * 复制函数。
-   *
-   * 默认使用浏览器剪贴板；
-   * 测试场景可显式注入，避免依赖运行环境是否完整实现 clipboard API。
-   */
-  copyText?: (text: string) => Promise<void>;
 }
 
 /**
@@ -38,31 +31,10 @@ function DailyReportTextCard(props: DailyReportTextCardProps) {
     return buildDailyReportText(props.report);
   }, [props.report]);
 
-  const copyText = props.copyText || defaultCopyText;
-
-  const handleCopy = async () => {
-    if (!dailyReportText) {
-      message.warning('当前日报没有可复制内容');
-      return;
-    }
-
-    try {
-      await copyText(dailyReportText);
-      message.success('日报文本已复制');
-    } catch {
-      message.error('复制失败，请检查浏览器剪贴板权限');
-    }
-  };
-
   return (
     <Card
       size={'small'}
       title={'日报文本'}
-      extra={
-        <Button type={'primary'} onClick={handleCopy}>
-          一键复制
-        </Button>
-      }
       styles={{ body: { paddingTop: 12 } }}
     >
       {renderDailyReportText(dailyReportText)}
@@ -84,6 +56,7 @@ function renderDailyReportText(dailyReportText: string) {
   return (
     <Flex vertical gap={12}>
       <Typography.Paragraph
+        copyable={{ text: dailyReportText }}
         style={{
           marginBottom: 0,
           whiteSpace: 'pre-wrap',
@@ -95,16 +68,6 @@ function renderDailyReportText(dailyReportText: string) {
       </Typography.Paragraph>
     </Flex>
   );
-}
-
-/**
- * 默认复制实现。
- *
- * @param text 待复制文本
- * @returns 复制结果
- */
-async function defaultCopyText(text: string) {
-  await navigator.clipboard.writeText(text);
 }
 
 export default DailyReportTextCard;

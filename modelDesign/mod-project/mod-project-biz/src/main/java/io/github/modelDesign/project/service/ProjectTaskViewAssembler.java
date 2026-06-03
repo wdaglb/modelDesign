@@ -3,6 +3,7 @@ package io.github.modelDesign.project.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.github.modelDesign.auth.api.AuthUserApi;
 import io.github.modelDesign.auth.api.dto.AuthUserSimpleDto;
+import io.github.modelDesign.time.ClientTimeZoneContext;
 import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.domain.TaskIteration;
@@ -145,7 +146,7 @@ public class ProjectTaskViewAssembler {
         Map<Long, String> latestDynamicSummaryMap =
                 projectTaskDynamicService.findLatestSummaryMapByTaskIds(taskIds);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = ClientTimeZoneContext.now();
         List<ProjectTaskDetailVo> result = new ArrayList<>();
         for (ProjectTask task : tasks) {
             List<ProjectTaskPredecessorVo> unfinishedPredecessors = unfinishedPredecessorMap.get(task.getId());

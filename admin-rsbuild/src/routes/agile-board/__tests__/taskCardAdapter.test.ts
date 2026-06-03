@@ -74,12 +74,27 @@ describe('mapAgileBoardTaskToTaskCardTask', () => {
     expect(mapAgileBoardTaskToTaskCardTask(task).taskNumber).toBe('TASK-10');
   });
 
-  it('敏捷面板卡片不映射最新动态摘要，避免卡片高度不一致', () => {
+  it('敏捷面板卡片映射最新动态摘要并清理空白字符', () => {
     const task: AgileBoardTask = {
       id: 11,
       projectId: 1,
       title: '映射最新动态摘要',
-      latestDynamicSummary: '已完成摘要映射',
+      latestDynamicSummary: '  已完成摘要映射  ',
+      status: 'todo',
+      priority: 'medium',
+    };
+
+    expect(mapAgileBoardTaskToTaskCardTask(task).latestDynamicSummary).toBe(
+      '已完成摘要映射',
+    );
+  });
+
+  it('敏捷面板卡片遇到空白动态摘要时不生成占位', () => {
+    const task: AgileBoardTask = {
+      id: 15,
+      projectId: 1,
+      title: '过滤空白动态摘要',
+      latestDynamicSummary: '   ',
       status: 'todo',
       priority: 'medium',
     };

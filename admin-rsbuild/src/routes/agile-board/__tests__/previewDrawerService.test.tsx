@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ReactElement } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { openTaskPreviewDrawer } from '../#previewDrawerService';
+import {
+  buildTaskPreviewDrawerTitle,
+  openTaskPreviewDrawer,
+} from '../#previewDrawerService';
+import { copyTextToClipboard } from '@/utils';
 
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 
@@ -10,6 +15,12 @@ import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 vi.mock('../#TaskPreviewDrawer', () => {
   return {
     default: () => null,
+  };
+});
+
+vi.mock('@/utils', () => {
+  return {
+    copyTextToClipboard: vi.fn(),
   };
 });
 
@@ -58,7 +69,7 @@ describe('openTaskPreviewDrawer', () => {
     expect(drawer.open).toHaveBeenCalledTimes(1);
 
     const openProps = drawer.open.mock.calls[0]?.[0];
-    expect(openProps.title).toBe('任务详情');
+    expect(openProps.title).toBeTruthy();
     expect(openProps.size).toBe(840);
     expect(openProps.styles).toEqual({
       body: {
@@ -75,5 +86,19 @@ describe('openTaskPreviewDrawer', () => {
     expect(drawerChildren.props.initialTabKey).toBe('subtask');
     expect(drawerChildren.props.onEdit).toBe(onEdit);
     expect(drawerChildren.props.onTaskUpdated).toBe(onTaskUpdated);
+  });
+
+  it('抽屉标题右侧链接图标应复制任务链接', async () => {
+    vi.mocked(copyTextToClipboard).mockResolvedValue(undefined);
+
+    render(buildTaskPreviewDrawerTitle(1001));
+
+    fireEvent.click(screen.getByRole('button', { name: '复制任务链接' }));
+
+    await waitFor(() => {
+      expect(copyTextToClipboard).toHaveBeenCalledWith(
+        'http://localhost:3000/agile-board/?taskId=1001',
+      );
+    });
   });
 });

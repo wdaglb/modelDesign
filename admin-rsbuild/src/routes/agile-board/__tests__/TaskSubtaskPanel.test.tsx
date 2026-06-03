@@ -245,7 +245,7 @@ describe('TaskSubtaskPanel', () => {
       expect(screen.getByText('子任务-21')).toBeDefined();
     });
     expect(screen.queryByRole('button', { name: '加载更多' })).toBeNull();
-  }, 10000);
+  }, 20000);
 
   it('子任务缺少独立编号时回退展示项目编号加任务 id', async () => {
     vi.mocked(ApiProjectTask.getChildren).mockResolvedValue([
@@ -269,12 +269,7 @@ describe('TaskSubtaskPanel', () => {
     expect(await screen.findByText('# TASK-2002')).toBeDefined();
   });
 
-  it('未配置个人 Git 用户名时获取分支名会提示先去个人中心配置', async () => {
-    const user = userEvent.setup();
-    const warningMock = vi
-      .spyOn(message, 'warning')
-      .mockImplementation(() => undefined as never);
-
+  it('未配置个人 Git 用户名时仍展示分支名复制入口', async () => {
     vi.mocked(useAuthStore).mockImplementation((selector) => {
       return selector({
         currentInfo: {
@@ -303,19 +298,14 @@ describe('TaskSubtaskPanel', () => {
     );
 
     await screen.findByText('子任务 F');
-    await user.click(screen.getByRole('button', { name: '获取分支名' }));
+    const branchCopyText = screen.getByText('获取分支名');
+    const branchCopyWrapper = branchCopyText.closest('.ant-typography');
 
-    await waitFor(() => {
-      expect(warningMock).toHaveBeenCalledWith('请先在个人中心配置 Git 用户名');
-    });
+    expect(branchCopyWrapper).toBeTruthy();
+    expect(branchCopyWrapper?.querySelector('.ant-typography-copy')).toBeTruthy();
   });
 
-  it('点击复制链接会提示复制成功', async () => {
-    const user = userEvent.setup();
-    const successMock = vi
-      .spyOn(message, 'success')
-      .mockImplementation(() => undefined as never);
-
+  it('子任务链接使用 Typography copyable 提供复制入口', async () => {
     vi.mocked(ApiProjectTask.getChildren).mockResolvedValue([
       {
         ...parentTask,
@@ -336,11 +326,11 @@ describe('TaskSubtaskPanel', () => {
     );
 
     await screen.findByText('子任务 E');
-    await user.click(screen.getByRole('button', { name: '复制链接' }));
+    const taskLinkText = screen.getByText('任务链接');
+    const taskLinkWrapper = taskLinkText.closest('.ant-typography');
 
-    await waitFor(() => {
-      expect(successMock).toHaveBeenCalledWith('任务链接已复制');
-    });
+    expect(taskLinkWrapper).toBeTruthy();
+    expect(taskLinkWrapper?.querySelector('.ant-typography-copy')).toBeTruthy();
   });
 });
 

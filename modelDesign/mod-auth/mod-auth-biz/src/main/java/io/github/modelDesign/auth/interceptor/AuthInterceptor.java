@@ -5,6 +5,7 @@ import io.github.modelDesign.auth.session.AuthContext;
 import io.github.modelDesign.auth.session.CurrentAdmin;
 import io.github.modelDesign.auth.session.SessionRepository;
 import io.github.modelDesign.auth.session.TokenService;
+import io.github.modelDesign.time.ClientTimeZoneContext;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,8 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
-
-import java.time.LocalDateTime;
 
 /**
  * 登录鉴权拦截器。
@@ -132,7 +131,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 .gitUsername(claims.get("gitUsername", String.class))
                 .loginId("mcp-" + userId)
                 .loginIp(request.getRemoteAddr())
-                .tokenCreateTime(LocalDateTime.now())
+                .tokenCreateTime(ClientTimeZoneContext.now())
                 .build();
     }
 

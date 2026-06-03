@@ -2,6 +2,7 @@ package io.github.modelDesign.auth.configuration;
 
 import io.github.modelDesign.auth.interceptor.AuthInterceptor;
 import io.github.modelDesign.auth.interceptor.PermissionInterceptor;
+import io.github.modelDesign.time.ClientTimeZoneInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -14,9 +15,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class AuthWebMvcConfigurer implements WebMvcConfigurer {
     private final AuthInterceptor authInterceptor;
     private final PermissionInterceptor permissionInterceptor;
+    private final ClientTimeZoneInterceptor clientTimeZoneInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(clientTimeZoneInterceptor)
+                .addPathPatterns("/**");
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(

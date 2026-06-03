@@ -1,17 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { message } from 'antd';
-
-import { copyTextToClipboard } from '@/utils';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import TaskCard, { resolveTaskTypeTagTone } from '../TaskCard';
 import type { TaskCardTask } from '../TaskCard.types';
-
-vi.mock('@/utils', () => {
-  return {
-    copyTextToClipboard: vi.fn(),
-  };
-});
 
 const baseTask: TaskCardTask = {
   id: 101,
@@ -32,44 +23,22 @@ beforeEach(() => {
 });
 
 describe('TaskCard', () => {
-  it('点击左上角任务编号时复制内容并拦截详情打开', async () => {
+  it('左上角任务编号使用 Typography copyable 并拦截详情打开', () => {
     const onPreview = vi.fn();
-    const successMock = vi.spyOn(message, 'success').mockImplementation(() => {
-      return undefined as never;
-    });
-
-    render(<TaskCard task={baseTask} onPreview={onPreview} />);
+    const { container } = render(
+      <TaskCard task={baseTask} onPreview={onPreview} />,
+    );
 
     const taskNumber = screen.getByText('# TASK-101');
 
     expect(taskNumber).toBeDefined();
     expect(taskNumber.getAttribute('data-task-card-copy-trigger')).toBe('true');
+    expect(taskNumber.closest('.ant-typography')).toBeTruthy();
+    expect(container.querySelector('.ant-typography-copy')).toBeTruthy();
 
     fireEvent.click(taskNumber);
 
-    await waitFor(() => {
-      expect(copyTextToClipboard).toHaveBeenCalledWith('TASK-101');
-    });
-    await waitFor(() => {
-      expect(successMock).toHaveBeenCalledWith('任务编号已复制');
-    });
     expect(onPreview).not.toHaveBeenCalled();
-  });
-
-  it('任务编号复制失败时给出错误提示', async () => {
-    const errorMock = vi.spyOn(message, 'error').mockImplementation(() => {
-      return undefined as never;
-    });
-
-    vi.mocked(copyTextToClipboard).mockRejectedValue(new Error('copy failed'));
-
-    render(<TaskCard task={baseTask} />);
-
-    fireEvent.click(screen.getByText('# TASK-101'));
-
-    await waitFor(() => {
-      expect(errorMock).toHaveBeenCalledWith('任务编号复制失败，请稍后重试');
-    });
   });
 
   it('任务编号在按下阶段阻断拖拽监听', () => {
@@ -88,10 +57,9 @@ describe('TaskCard', () => {
 
     const taskNumber = screen.getByText('# TASK-101');
 
-    fireEvent.mouseDown(taskNumber);
     fireEvent.pointerDown(taskNumber);
 
-    expect(onMouseDown).not.toHaveBeenCalled();
+    expect(onMouseDown).toHaveBeenCalledTimes(0);
     expect(onPointerDown).not.toHaveBeenCalled();
   });
 
@@ -123,19 +91,33 @@ describe('TaskCard', () => {
     expect(screen.getByText('截止 2026-04-06')).toBeTruthy();
   });
 
-  it('非紧凑态在卡片顶部使用单行 Alert 展示最新动态摘要', () => {
+  it('非紧凑态在标题下方使用灰色弱提示展示最新动态摘要', () => {
     render(<TaskCard task={baseTask} />);
 
-    expect(screen.getByText('已补充最新动态摘要展示')).toBeTruthy();
-    expect(screen.getByRole('alert')).toBeTruthy();
+    const titleNode = screen.getByText('补充任务编号展示');
+    const dynamicNode = screen.getByText('已补充最新动态摘要展示');
+
+    expect(dynamicNode).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(dynamicNode.className).toContain('ant-typography-secondary');
+    expect(titleNode.compareDocumentPosition(dynamicNode)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
-  it('紧凑态也在卡片顶部展示最新动态摘要且不显示标签', () => {
+  it('紧凑态也在标题下方展示灰色动态摘要且不显示标签', () => {
     render(<TaskCard task={baseTask} compact />);
 
-    expect(screen.getByText('已补充最新动态摘要展示')).toBeTruthy();
-    expect(screen.getByRole('alert')).toBeTruthy();
+    const titleNode = screen.getByText('补充任务编号展示');
+    const dynamicNode = screen.getByText('已补充最新动态摘要展示');
+
+    expect(dynamicNode).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByText('最新动态')).toBeNull();
+    expect(dynamicNode.className).toContain('ant-typography-secondary');
+    expect(titleNode.compareDocumentPosition(dynamicNode)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
   it('标题前会展示任务类型标签', () => {
@@ -153,6 +135,15 @@ describe('TaskCard', () => {
 
     expect(titleElement).toBeTruthy();
     expect(titleElement?.getAttribute('title')).toBe('补充任务编号展示');
+  });
+
+  it('单行标题不再被固定最小高度撑开', () => {
+    render(<TaskCard task={baseTask} />);
+
+    const titleNode = screen.getByText('补充任务编号展示');
+    const titleStyle = window.getComputedStyle(titleNode);
+
+    expect(titleStyle.minHeight).toBe('');
   });
 
   it('默认卡片顶部内边距大于左右内边距，保证顶部留白更充足', () => {

@@ -11,6 +11,7 @@ import ChevronDown from '~icons/mdi/chevron-down';
 import Magnify from '~icons/mdi/magnify';
 import UnfoldMoreHorizontal from '~icons/mdi/unfold-more-horizontal';
 import Subtasks from '~icons/mdi/subtasks';
+import LinkVariant from '~icons/mdi/link-variant';
 
 const Icons = {
   Plus,
@@ -26,6 +27,7 @@ const Icons = {
   Magnify,
   UnfoldMoreHorizontal,
   Subtasks,
+  LinkVariant,
 };
 
 export default Icons;

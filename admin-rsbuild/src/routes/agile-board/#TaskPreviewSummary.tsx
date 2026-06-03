@@ -17,8 +17,6 @@ interface TaskPreviewSummaryProps {
   canApplyStatus: boolean;
   onApplyStatus: () => Promise<void>;
   onClose: () => void;
-  onCopyTaskLink: () => Promise<void>;
-  onCopyTaskNumber: () => Promise<void>;
   onEdit: () => Promise<void>;
   onStatusChange: (value: TaskStatusCode) => void;
   priorityColor: string;
@@ -28,6 +26,7 @@ interface TaskPreviewSummaryProps {
   statusOptions: Array<{ label: string; value: string }>;
   statusTagColor: string;
   statusText: string;
+  taskLinkText: string;
   taskNumberText: string;
   title: string;
   updatingStatus: boolean;
@@ -46,24 +45,23 @@ const TaskPreviewSummary = (props: TaskPreviewSummaryProps) => {
               <TaskPreviewProjectText>{props.projectText}</TaskPreviewProjectText>
             </Typography.Text>
             <Space wrap size={12}>
-              <Typography.Link
-                onClick={() => {
-                  void props.onCopyTaskNumber();
-                }}
+              <Typography.Text
+                copyable={{ text: props.taskNumberText }}
               >
                 <TaskPreviewTaskNumberText>
                   {`# ${props.taskNumberText}`}
                 </TaskPreviewTaskNumberText>
-              </Typography.Link>
-              <Typography.Link
-                onClick={() => {
-                  void props.onCopyTaskLink();
-                }}
+              </Typography.Text>
+              <Typography.Text
+                copyable={{ text: props.taskLinkText }}
+                type={'secondary'}
               >
-                复制任务链接
-              </Typography.Link>
+                任务链接
+              </Typography.Text>
             </Space>
-            <TaskPreviewTitle>{props.title}</TaskPreviewTitle>
+            <Typography.Text copyable={{ text: props.title }}>
+              <TaskPreviewTitle>{props.title}</TaskPreviewTitle>
+            </Typography.Text>
             <Space wrap size={8}>
               <Tag color={props.priorityColor}>{props.priorityText}</Tag>
               <Tag color={props.statusTagColor}>{props.statusText}</Tag>

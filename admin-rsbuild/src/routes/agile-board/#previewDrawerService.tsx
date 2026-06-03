@@ -1,7 +1,11 @@
+import { message } from 'antd';
+
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
 import type { ProjectTaskDetail } from '@/api/modules/project-task.types';
 import type { ProjectTaskIteration } from '@/api/modules/project-task-iteration';
 import type { OpenProps } from '@/components/KDrawer/types.ts';
+import Icons from '@/icons';
+import { copyTextToClipboard } from '@/utils';
 
 import TaskPreviewDrawer from './#TaskPreviewDrawer';
 
@@ -43,6 +47,52 @@ interface KDrawerInstance {
 }
 
 /**
+ * 构建任务详情抽屉标题。
+ *
+ * 标题右侧直接提供链接图标复制入口，避免详情内容区再占一段“任务链接”
+ * 文案；分享地址仍只依赖 taskId，保证从任意入口打开时都能稳定复制。
+ *
+ * @param taskId 任务 ID
+ * @return 抽屉标题节点
+ */
+export function buildTaskPreviewDrawerTitle(taskId: number) {
+  const taskShareUrl = `${window.location.origin}/agile-board/?taskId=${taskId}`;
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <span>任务详情</span>
+      <button
+        type={'button'}
+        aria-label={'复制任务链接'}
+        title={'复制任务链接'}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: 0,
+          border: 0,
+          background: 'transparent',
+          color: '#4e5969',
+          cursor: 'pointer',
+        }}
+        onClick={async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+
+          try {
+            await copyTextToClipboard(taskShareUrl);
+            message.success('任务链接已复制');
+          } catch {
+            message.error('任务链接复制失败，请稍后重试');
+          }
+        }}
+      >
+        <Icons.LinkVariant />
+      </button>
+    </span>
+  );
+}
+
+/**
  * 打开任务预览抽屉。
  */
 export async function openTaskPreviewDrawer(
@@ -50,7 +100,7 @@ export async function openTaskPreviewDrawer(
   options: OpenTaskPreviewDrawerOptions,
 ) {
   await drawer.open({
-    title: '任务详情',
+    title: buildTaskPreviewDrawerTitle(options.taskId),
     /**
      * 任务说明已支持 Markdown 预览，适当放宽侧栏宽度以减少换行，
      * 让标题、代码块和图片的阅读体验更稳定。

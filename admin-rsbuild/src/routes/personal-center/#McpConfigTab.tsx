@@ -1,9 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Descriptions, Space, Tag, Typography, message } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  Descriptions,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 
 import { ApiMcpConfig, ApiPassport } from '@/api';
 import queryKey from '@/constants/queryKey';
-import { copyTextToClipboard } from '@/utils';
 
 /**
  * MCP 配置页签。
@@ -39,6 +46,11 @@ const McpConfigTab = () => {
   const authorizationHeader = mcpToken?.authorizationHeader || '';
   const configSnippet = buildMcpConfigSnippet(config, authorizationHeader);
   const promptExamples = buildPromptExamples();
+  let endpointCopyable: false | { text: string } = false;
+
+  if (config.enabled && endpoint !== '-') {
+    endpointCopyable = { text: endpoint };
+  }
 
   return (
     <Space orientation={'vertical'} size={16} style={{ width: '100%' }}>
@@ -66,7 +78,9 @@ const McpConfigTab = () => {
             {getDisplayText(config.transportType)}
           </Descriptions.Item>
           <Descriptions.Item label={'服务地址'}>
-            {endpoint}
+            <Typography.Text copyable={endpointCopyable}>
+              {endpoint}
+            </Typography.Text>
           </Descriptions.Item>
           <Descriptions.Item label={'配置说明'}>
             {getDisplayText(config.description)}
@@ -85,53 +99,6 @@ const McpConfigTab = () => {
                 : '当前缺少可用的 MCP 服务地址，暂时只能查看基础配置。'
             }
           />
-
-          <Space wrap>
-            <Button
-              disabled={!config.enabled || endpoint === '-'}
-              onClick={async () => {
-                await handleCopy(endpoint, 'MCP 服务地址已复制', 'MCP 服务地址复制失败，请稍后重试');
-              }}
-            >
-              复制服务地址
-            </Button>
-            <Button
-              disabled={!config.enabled || endpoint === '-'}
-              onClick={async () => {
-                await handleCopy(
-                  configSnippet,
-                  'MCP 配置片段已复制',
-                  'MCP 配置片段复制失败，请稍后重试',
-                );
-              }}
-            >
-              复制配置片段
-            </Button>
-            <Button
-              disabled={!mcpToken}
-              onClick={async () => {
-                await handleCopy(
-                  mcpToken?.token || '',
-                  'MCP token 已复制',
-                  'MCP token 复制失败，请稍后重试',
-                );
-              }}
-            >
-              复制 MCP token
-            </Button>
-            <Button
-              disabled={!mcpToken}
-              onClick={async () => {
-                await handleCopy(
-                  authorizationHeader,
-                  'Authorization 头已复制',
-                  'Authorization 头复制失败，请稍后重试',
-                );
-              }}
-            >
-              复制 Authorization 头
-            </Button>
-          </Space>
 
           <div
             style={{
@@ -154,6 +121,7 @@ const McpConfigTab = () => {
               下面片段已包含当前登录用户的 Authorization 头，可直接复制使用。
             </Typography.Text>
             <Typography.Paragraph
+              copyable={{ text: configSnippet }}
               style={{
                 marginBottom: 0,
                 fontFamily:
@@ -204,20 +172,10 @@ const McpConfigTab = () => {
                       {item.description}
                     </Typography.Text>
                   </Space>
-                  <Button
-                    onClick={async () => {
-                      await handleCopy(
-                        item.prompt,
-                        `${item.title}已复制`,
-                        `${item.title}复制失败，请稍后重试`,
-                      );
-                    }}
-                  >
-                    复制示例
-                  </Button>
                 </Space>
 
                 <Typography.Paragraph
+                  copyable={{ text: item.prompt }}
                   style={{
                     marginBottom: 0,
                     fontFamily:
@@ -234,19 +192,6 @@ const McpConfigTab = () => {
       </Card>
     </Space>
   );
-};
-
-const handleCopy = async (
-  text: string,
-  successMessage: string,
-  errorMessage: string,
-) => {
-  try {
-    await copyTextToClipboard(text);
-    message.success(successMessage);
-  } catch {
-    message.error(errorMessage);
-  }
 };
 
 const getDisplayText = (value?: string) => {
@@ -285,15 +230,23 @@ const buildMcpConfigSnippet = (
   );
 };
 
-const renderTokenContent = (token?: Awaited<ReturnType<typeof ApiPassport.getMcpToken>>) => {
+const renderTokenContent = (
+  token?: Awaited<ReturnType<typeof ApiPassport.getMcpToken>>,
+) => {
   if (!token) {
     return <Typography.Text type={'secondary'}>MCP token 加载中...</Typography.Text>;
   }
 
   return (
     <Descriptions column={1} size={'small'}>
+      <Descriptions.Item label={'MCP token'}>
+        <Typography.Text copyable={{ text: token.token }}>
+          点击右侧图标复制 MCP token
+        </Typography.Text>
+      </Descriptions.Item>
       <Descriptions.Item label={'Authorization 头'}>
         <Typography.Paragraph
+          copyable={{ text: token.authorizationHeader }}
           style={{
             marginBottom: 0,
             fontFamily:

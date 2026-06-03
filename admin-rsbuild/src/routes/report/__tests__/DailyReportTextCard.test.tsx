@@ -1,16 +1,12 @@
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 import DailyReportTextCard from '../#DailyReportTextCard';
 
 describe('DailyReportTextCard', () => {
-  it('点击一键复制时调用复制函数并传入指定文本', async () => {
-    const user = userEvent.setup();
-    const copyText = vi.fn().mockResolvedValue(undefined);
-
-    render(
+  it('日报文本使用 Typography copyable 提供复制入口', () => {
+    const { container } = render(
       <DailyReportTextCard
         report={{
           reportType: 'daily',
@@ -31,15 +27,12 @@ describe('DailyReportTextCard', () => {
           ],
           dynamics: [],
         }}
-        copyText={copyText}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: '一键复制' }));
-
-    expect(copyText).toHaveBeenCalledTimes(1);
-    expect(copyText).toHaveBeenCalledWith(
-      '一、演示项目\n  1. 补前端报表页（进行中，已联调接口）',
-    );
+    expect(screen.getByText(/一、演示项目/)).toBeDefined();
+    expect(screen.getByText(/补前端报表页/)).toBeDefined();
+    expect(container.querySelector('.ant-typography-copy')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '一键复制' })).toBeNull();
   });
 });

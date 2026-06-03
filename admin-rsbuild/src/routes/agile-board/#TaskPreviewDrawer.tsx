@@ -10,7 +10,10 @@ import { useKDrawer } from '@/components/KDrawer';
 import queryKey from '@/constants/queryKey';
 
 import TaskDetailView from './#TaskDetailView';
-import type { TaskPreviewDrawerTabKey } from './#previewDrawerService';
+import {
+  buildTaskPreviewDrawerTitle,
+  type TaskPreviewDrawerTabKey,
+} from './#previewDrawerService';
 
 interface TaskPreviewDrawerProps {
   /**
@@ -80,7 +83,7 @@ const TaskPreviewDrawer = (props: TaskPreviewDrawerProps) => {
    */
   const openNestedTaskPreviewDrawer = async (task: ProjectTaskDetail) => {
     await drawer.open({
-      title: '任务详情',
+      title: buildTaskPreviewDrawerTitle(task.id),
       size: 840,
       styles: {
         body: {

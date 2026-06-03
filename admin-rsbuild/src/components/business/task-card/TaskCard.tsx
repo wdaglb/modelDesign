@@ -1,7 +1,5 @@
-import { Space, Tooltip, message } from 'antd';
-import { type MouseEvent, type PointerEvent, type ReactNode } from 'react';
-
-import { copyTextToClipboard } from '@/utils';
+import { Space, Tooltip } from 'antd';
+import { type PointerEvent, type ReactNode } from 'react';
 
 import TaskCardPriorityTag, {
   TASK_CARD_PRIORITY_TRIGGER_SELECTOR,
@@ -9,7 +7,7 @@ import TaskCardPriorityTag, {
 import type { TaskCardProps, TaskCardTask } from './TaskCard.types';
 import {
   TaskCardContainer,
-  TaskDynamicAlert,
+  TaskDynamicText,
   TaskBranchText,
   TaskCardHeader,
   TaskCardRoot,
@@ -17,7 +15,7 @@ import {
   TaskHeaderText,
   TaskMetaList,
   TaskMetaText,
-  TaskNumberLink,
+  TaskNumberText,
   TaskPrioritySlot,
   TaskTitleRow,
   TaskTitleText,
@@ -25,11 +23,6 @@ import {
 } from './TaskCard.styled';
 
 const TASK_CARD_COPY_TRIGGER_SELECTOR = '[data-task-card-copy-trigger="true"]';
-
-interface CopyTaskNumberClickParams {
-  event: MouseEvent<HTMLElement>;
-  taskNumberText?: string;
-}
 
 interface TaskTypeTagTone {
   /**
@@ -449,38 +442,6 @@ const TaskCard = (props: TaskCardProps) => {
   }
 
   /**
-   * 点击任务编号时复制内容并阻断卡片点击事件。
-   *
-   * @param params 点击参数
-   */
-  const handleCopyTaskNumberClick = async (
-    params: CopyTaskNumberClickParams,
-  ) => {
-    params.event.preventDefault();
-    params.event.stopPropagation();
-
-    if (!params.taskNumberText) {
-      return;
-    }
-
-    try {
-      await copyTextToClipboard(params.taskNumberText);
-      message.success('任务编号已复制');
-    } catch {
-      message.error('任务编号复制失败，请稍后重试');
-    }
-  };
-
-  /**
-   * 阻断任务编号区域的鼠标事件冒泡，避免触发拖拽。
-   *
-   * @param event 鼠标按下事件
-   */
-  const stopTaskNumberMouseEvent = (event: MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-  };
-
-  /**
    * 阻断任务编号区域的指针事件冒泡，避免触发拖拽。
    *
    * @param event 指针按下事件
@@ -492,19 +453,13 @@ const TaskCard = (props: TaskCardProps) => {
   let headerLeftNode: ReactNode = null;
   if (taskNumberText && taskNumberDisplayText) {
     headerLeftNode = (
-      <TaskNumberLink
+      <TaskNumberText
+        copyable={{ text: taskNumberText }}
         data-task-card-copy-trigger="true"
-        onClick={async (event) => {
-          await handleCopyTaskNumberClick({
-            event,
-            taskNumberText,
-          });
-        }}
-        onMouseDown={stopTaskNumberMouseEvent}
         onPointerDown={stopTaskNumberPointerEvent}
       >
         {taskNumberDisplayText}
-      </TaskNumberLink>
+      </TaskNumberText>
     );
   } else {
     headerLeftNode = (
@@ -571,14 +526,6 @@ const TaskCard = (props: TaskCardProps) => {
           size={stackSize}
           styles={{ item: { width: '100%' } }}
         >
-          {latestDynamicSummary ? (
-            <TaskDynamicAlert
-              type={'warning'}
-              showIcon={false}
-              message={latestDynamicSummary}
-            />
-          ) : null}
-
           <TaskCardHeader>
             {headerLeftNode}
             <TaskPrioritySlot>
@@ -604,6 +551,15 @@ const TaskCard = (props: TaskCardProps) => {
               {props.task.title}
             </TaskTitleText>
           </TaskTitleRow>
+
+          {latestDynamicSummary ? (
+            <TaskDynamicText
+              type={'secondary'}
+              ellipsis={{ tooltip: latestDynamicSummary }}
+            >
+              {latestDynamicSummary}
+            </TaskDynamicText>
+          ) : null}
 
           {metaNode}
         </TaskCardStack>

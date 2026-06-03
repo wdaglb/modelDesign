@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWra
 import io.github.modelDesign.auth.api.AuthCurrentUserApi;
 import io.github.modelDesign.auth.api.dto.AuthCurrentUserDto;
 import io.github.modelDesign.common.exception.BusinessException;
+import io.github.modelDesign.time.ClientTimeZoneContext;
 import io.github.modelDesign.project.domain.Project;
 import io.github.modelDesign.project.domain.ProjectTask;
 import io.github.modelDesign.project.mapper.ProjectTaskMapper;
@@ -209,7 +210,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
         task.setWorkDays(request.getWorkDays());
         task.setCreatorId(currentUser.getUserId());
         task.setAssigneeId(request.getAssigneeId());
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = ClientTimeZoneContext.now();
         task.setAssigneeAssignedAt(projectTaskTimeMetricsSupport.resolveAssigneeAssignedAtOnCreate(
                 request.getAssigneeId(),
                 now
@@ -371,7 +372,7 @@ public class ProjectTaskService extends ServiceImpl<ProjectTaskMapper, ProjectTa
             Long iterationId,
             String status,
             Long parentTaskId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = ClientTimeZoneContext.now();
         LocalDateTime resolvedAssigneeAssignedAt = projectTaskTimeMetricsSupport.resolveAssigneeAssignedAtOnEdit(
                 task.getAssigneeId(),
                 request.getAssigneeId(),

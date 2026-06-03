@@ -1,4 +1,4 @@
-import { Alert, Card, Space, Tag, Typography } from 'antd';
+import { Card, Space, Tag, Typography } from 'antd';
 import styled from 'styled-components';
 
 function resolveTaskCardShadow(isOverlay: boolean, disabled: boolean) {
@@ -86,27 +86,6 @@ function resolveTitleLineHeight(
   return '22px';
 }
 
-function resolveTitleMinHeight(
-  isCompact: boolean,
-  isSubtask: boolean,
-  isDense: boolean,
-  isCompletedSubtask: boolean,
-) {
-  if (isCompletedSubtask) {
-    return 20;
-  }
-
-  if (isDense) {
-    return 40;
-  }
-
-  if (isCompact || isSubtask) {
-    return 40;
-  }
-
-  return 44;
-}
-
 /**
  * 任务卡片根节点。
  */
@@ -149,30 +128,16 @@ export const TaskCardStack = styled(Space)`
 `;
 
 /**
- * 任务动态告警条。
+ * 任务动态弱提示文案。
  *
- * Alert 没有 size 属性，因此这里仅补最小样式把它压缩成单行提示条。
+ * 对齐“我的待办”里最新动态的灰字效果，仅保留单行省略，
+ * 避免 Alert/Tag 容器让卡片标题下方显得过重。
  */
-export const TaskDynamicAlert = styled(Alert)`
-  border: 1px solid #ffd591;
-  border-radius: 8px;
-  background: #fff7e6;
-  padding: 6px 10px;
-
-  .ant-alert-content {
-    min-width: 0;
-  }
-
-  .ant-alert-message {
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 16px;
-    color: #ad4e00;
-    margin-bottom: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+export const TaskDynamicText = styled(Typography.Text)`
+  display: block;
+  width: 100%;
+  font-size: 12px;
+  line-height: 16px;
 `;
 
 /**
@@ -189,7 +154,7 @@ export const TaskCardHeader = styled.div`
 /**
  * 任务编号展示文案。
  */
-export const TaskNumberLink = styled(Typography.Link)`
+export const TaskNumberText = styled(Typography.Text)`
   flex: 1;
   min-width: 0;
   font-size: 12px;
@@ -198,8 +163,10 @@ export const TaskNumberLink = styled(Typography.Link)`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: 'SFMono-Regular', 'Cascadia Code', 'JetBrains Mono', monospace;
-  text-decoration: underline;
-  cursor: copy;
+
+  .ant-typography-copy {
+    margin-inline-start: 4px;
+  }
 `;
 
 /**
@@ -240,13 +207,6 @@ export const TaskTitleText = styled(Typography.Text)<{
   $isCompletedSubtask: boolean;
 }>`
   display: -webkit-box;
-  min-height: ${(props) =>
-    resolveTitleMinHeight(
-      props.$compact,
-      props.$isSubtask,
-      props.$dense,
-      props.$isCompletedSubtask,
-    )}px;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: ${(props) => {

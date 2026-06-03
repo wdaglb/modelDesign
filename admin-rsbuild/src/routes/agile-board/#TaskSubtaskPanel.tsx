@@ -22,9 +22,11 @@ import {
 
 import { ApiProjectTask } from '@/api';
 import type { TaskStatusConfig } from '@/api/modules/project-task-status';
-import type { ProjectTaskDetail, TaskStatusCode } from '@/api/modules/project-task.types';
+import type {
+  ProjectTaskDetail,
+  TaskStatusCode,
+} from '@/api/modules/project-task.types';
 import queryKey from '@/constants/queryKey';
-import { copyTextToClipboard } from '@/utils';
 import useAuthStore from '@/store/auth.ts';
 
 import {
@@ -182,36 +184,6 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
   };
 
   /**
-   * 复制子任务编号，方便与敏捷面板卡片保持一致的分享动作。
-   *
-   * @param task 子任务详情
-   */
-  const handleCopyTaskNumber = async (task: ProjectTaskDetail) => {
-    try {
-      await copyTextToClipboard(resolveTaskNumberText(task));
-      message.success('任务编号已复制');
-    } catch {
-      message.error('任务编号复制失败，请稍后重试');
-    }
-  };
-
-  /**
-   * 复制子任务分享链接，便于直接打开任务详情抽屉。
-   *
-   * @param task 子任务详情
-   */
-  const handleCopyTaskLink = async (task: ProjectTaskDetail) => {
-    try {
-      await copyTextToClipboard(
-        buildAgileBoardTaskShareUrl(task, window.location.origin),
-      );
-      message.success('任务链接已复制');
-    } catch {
-      message.error('任务链接复制失败，请稍后重试');
-    }
-  };
-
-  /**
    * 继续加载更多子任务，分摊单次渲染压力。
    */
   const handleLoadMoreSubtasks = () => {
@@ -274,57 +246,63 @@ const TaskSubtaskPanel = (props: TaskSubtaskPanelProps) => {
             <TaskPreviewSubtaskList>
               {visibleSubtasks.map((item) => {
                 const taskNumberText = resolveTaskNumberText(item);
+                const taskShareUrl = buildAgileBoardTaskShareUrl(
+                  item,
+                  window.location.origin,
+                );
                 return (
                   <TaskPreviewSubtaskCard key={item.id} size={'small'}>
                     <TaskPreviewVerticalStack>
                       <TaskPreviewSubtaskHeader>
-                        <Space orientation={'vertical'} size={4} style={{ minWidth: 0 }}>
-                          <Typography.Link
-                            onClick={async () => {
-                              await handleCopyTaskNumber(item);
-                            }}
+                        <Space
+                          orientation={'vertical'}
+                          size={4}
+                          style={{ minWidth: 0 }}
+                        >
+                          <Typography.Text
+                            copyable={{ text: taskNumberText }}
                           >
                             <TaskPreviewTaskNumberText>
                               {`# ${taskNumberText}`}
                             </TaskPreviewTaskNumberText>
-                          </Typography.Link>
-                          <Typography.Text strong>{item.title}</Typography.Text>
+                          </Typography.Text>
+                          <Typography.Text
+                            strong
+                            copyable={{ text: item.title }}
+                          >
+                            {item.title}
+                          </Typography.Text>
                         </Space>
                         <Space size={0}>
-                          <Button
-                            type={'link'}
-                            size={'small'}
-                            onClick={async () => {
-                              const taskBranchName = resolveTaskBranchName(
-                                item,
-                                currentInfo?.gitUsername,
-                              );
-                              if (!taskBranchName) {
-                                message.warning(
-                                  getTaskBranchUnavailableMessage(
-                                    resolveTaskBranchUnavailableReason(
-                                      item,
-                                      currentInfo?.gitUsername,
-                                    ),
-                                  ),
+                          <Typography.Text
+                            copyable={{
+                              text: async () => {
+                                const taskBranchName = resolveTaskBranchName(
+                                  item,
+                                  currentInfo?.gitUsername,
                                 );
-                                return;
-                              }
-                              await copyTextToClipboard(taskBranchName);
-                              message.success('任务分支名已复制');
+                                if (!taskBranchName) {
+                                  throw new Error(
+                                    getTaskBranchUnavailableMessage(
+                                      resolveTaskBranchUnavailableReason(
+                                        item,
+                                        currentInfo?.gitUsername,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return taskBranchName;
+                              },
                             }}
                           >
                             获取分支名
-                          </Button>
-                          <Button
-                            type={'link'}
-                            size={'small'}
-                            onClick={async () => {
-                              await handleCopyTaskLink(item);
-                            }}
+                          </Typography.Text>
+                          <Typography.Text
+                            copyable={{ text: taskShareUrl }}
+                            type={'secondary'}
                           >
-                            复制链接
-                          </Button>
+                            任务链接
+                          </Typography.Text>
                           <Button
                             size={'small'}
                             loading={editingTaskId === item.id}

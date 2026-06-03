@@ -37,10 +37,8 @@ import { KMarkdownPreview } from '@/components';
 import { resolveTaskTypeTagTone } from '@/components/business/task-card/TaskCard';
 import queryKey from '@/constants/queryKey';
 import useDebounce from '@/hooks/useDebounce';
-import { copyTextToClipboard } from '@/utils';
 
 import {
-  buildAgileBoardTaskShareUrl,
   getBoardStatusText,
   getTaskAssigneeText,
   getTaskPriorityText,
@@ -52,11 +50,11 @@ import {
   TaskDetailChipLabel,
   TaskDetailChipRow,
   TaskDetailChipValue,
-  TaskDetailCopyText,
   TaskDetailDrawerFooterBar,
   TaskDetailDrawerScrollArea,
   TaskDetailDrawerStack,
   TaskDetailDrawerSurface,
+  TaskDetailEntityCopyableTitle,
   TaskDetailEntityCard,
   TaskDetailEntityTitle,
   TaskDetailEntityTitleStack,
@@ -473,10 +471,19 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
 
   const currentInfo = useAuthStore((state) => state.currentInfo);
   const taskNumberText = resolveTaskNumberText(props.task);
-  const taskShareUrl = buildAgileBoardTaskShareUrl(
-    props.task,
-    window.location.origin,
-  );
+  /**
+   * 所属项目优先展示后端已组装的项目名称。
+   *
+   * 敏捷面板详情可能从分享链接、子任务列表等入口打开，部分旧数据或轻量接口
+   * 只带 projectId，因此这里保留 ID 兜底，避免抽屉顶部出现空白上下文。
+   */
+  const projectDisplayText = useMemo(() => {
+    if (props.task.projectName) {
+      return props.task.projectName;
+    }
+
+    return `项目 #${props.task.projectId}`;
+  }, [props.task.projectId, props.task.projectName]);
   const parentTaskLinkText = useMemo(() => {
     if (props.task.parentTaskId === undefined || props.task.parentTaskId === null) {
       return undefined;
@@ -720,53 +727,6 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
   if (remoteDynamicCount !== undefined) {
     dynamicCount = remoteDynamicCount;
   }
-
-  const copyTaskNumber = async () => {
-    try {
-      await copyTextToClipboard(taskNumberText);
-      message.success('任务编号已复制');
-    } catch {
-      message.error('任务编号复制失败，请稍后重试');
-    }
-  };
-
-  /**
-   * 复制任务标题，方便用户在详情抽屉内直接复用标题文案。
-   */
-  const copyTaskTitle = async () => {
-    try {
-      await copyTextToClipboard(props.task.title);
-      message.success('任务标题已复制');
-    } catch {
-      message.error('任务标题复制失败，请稍后重试');
-    }
-  };
-
-  const copyTaskLink = async () => {
-    try {
-      await copyTextToClipboard(taskShareUrl);
-      message.success('任务链接已复制');
-    } catch {
-      message.error('任务链接复制失败，请稍后重试');
-    }
-  };
-
-  /**
-   * 复制建议分支名；若任务类型未配置前缀分组，则直接给出提示，不生成兜底值。
-   */
-  const copyTaskBranchName = async () => {
-    if (!taskBranchName) {
-      message.warning(taskBranchUnavailableMessage);
-      return;
-    }
-
-    try {
-      await copyTextToClipboard(taskBranchName);
-      message.success('任务分支名已复制');
-    } catch {
-      message.error('任务分支名复制失败，请稍后重试');
-    }
-  };
 
   /**
    * 将当前任务上的起止时间重新回填到选择器草稿。
@@ -1239,30 +1199,25 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
           <TaskDetailEntityCard size={'small'}>
             <TaskDetailEntityTitleStack>
               <TaskDetailIdRow>
-                <TaskDetailCopyText
-                  type={'button'}
-                  title={'点击复制任务编号'}
-                  onClick={async () => {
-                    await copyTaskNumber();
-                  }}
+                <Typography.Text
+                  copyable={{ text: taskNumberText }}
+                  style={{ color: '#4e5969', fontSize: 10 }}
                 >
                   {taskNumberText}
-                </TaskDetailCopyText>
+                </Typography.Text>
                 {taskBranchName ? (
-                  <TaskDetailCopyText
-                    type={'button'}
-                    title={'点击复制任务分支名'}
-                    onClick={async () => {
-                      await copyTaskBranchName();
-                    }}
+                  <Typography.Text
+                    copyable={{ text: taskBranchName }}
+                    style={{ color: '#4e5969', fontSize: 10 }}
                   >
                     {taskBranchName}
-                  </TaskDetailCopyText>
+                  </Typography.Text>
                 ) : (
                   <Typography.Text type={'warning'} style={{ fontSize: 10 }}>
                     {taskBranchUnavailableMessage}
                   </Typography.Text>
                 )}
+                <span style={{ flex: 1, minWidth: 16 }} />
                 <Select<number>
                   allowClear
                   disabled={isSavingField('iterationId')}
@@ -1301,15 +1256,9 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                 }}
               >
                 {titleTypeTagNode}
-                <TaskDetailEntityTitle
-                  $clickable
-                  title={'点击复制任务标题'}
-                  onClick={async () => {
-                    await copyTaskTitle();
-                  }}
-                >
-                  {props.task.title}
-                </TaskDetailEntityTitle>
+                <TaskDetailEntityCopyableTitle copyable={{ text: props.task.title }}>
+                  <TaskDetailEntityTitle>{props.task.title}</TaskDetailEntityTitle>
+                </TaskDetailEntityCopyableTitle>
               </div>
             </TaskDetailEntityTitleStack>
 
@@ -1551,6 +1500,12 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
                 />
               </TaskDetailChip>
             </TaskDetailChipRow>
+            <div>
+              <TaskDetailChip>
+                <TaskDetailChipLabel>所属项目</TaskDetailChipLabel>
+                <TaskDetailChipValue>{projectDisplayText}</TaskDetailChipValue>
+              </TaskDetailChip>
+            </div>
           </TaskDetailEntityCard>
 
           <TaskDetailTabsShell>
@@ -1751,13 +1706,6 @@ const TaskDetailView = (props: TaskDetailViewProps) => {
       <TaskDetailDrawerFooterBar>
         <div></div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Button
-            onClick={async () => {
-              await copyTaskLink();
-            }}
-          >
-            复制链接
-          </Button>
           <Button
             type={'primary'}
             onClick={async () => {
