@@ -23,4 +23,14 @@ public class GitlabResolvedConfig {
      * GitLab 明文 Token。
      */
     private String accessToken;
+
+    /**
+     * GitLab provider 编码。
+     */
+    private String providerCode;
+
+    /**
+     * GitLab provider 版本。
+     */
+    private String providerVersion;
 }

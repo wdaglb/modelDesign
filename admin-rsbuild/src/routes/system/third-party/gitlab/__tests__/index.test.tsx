@@ -69,6 +69,8 @@ describe('GitlabConfigPage', () => {
       tokenConfigured: true,
       tokenMasked: '********',
       enabled: true,
+      providerCode: 'gitlab-v4',
+      providerVersion: '1.0.0',
       remark: '',
       createTime: '',
       updateTime: '',
@@ -76,6 +78,8 @@ describe('GitlabConfigPage', () => {
     renderPage();
 
     expect(await screen.findByDisplayValue('https://gitlab.example.com')).toBeDefined();
+    expect(screen.getByDisplayValue('gitlab-v4')).toBeDefined();
+    expect(screen.getByDisplayValue('1.0.0')).toBeDefined();
     expect(screen.queryByText('********')).toBeNull();
     expect(screen.queryByDisplayValue('secret-token')).toBeNull();
     expect(screen.queryByText('当前租户 ID')).toBeNull();
@@ -91,6 +95,8 @@ describe('GitlabConfigPage', () => {
       tokenConfigured: true,
       tokenMasked: '********',
       enabled: true,
+      providerCode: 'gitlab-v4',
+      providerVersion: '1.0.0',
       remark: '',
       createTime: '',
       updateTime: '',
@@ -101,6 +107,8 @@ describe('GitlabConfigPage', () => {
       tokenConfigured: true,
       tokenMasked: '********',
       enabled: true,
+      providerCode: 'gitlab-v4',
+      providerVersion: '1.0.0',
       remark: '',
       createTime: '',
       updateTime: '',
@@ -113,6 +121,8 @@ describe('GitlabConfigPage', () => {
       expect(ApiGitlab.saveCurrentConfig).toHaveBeenCalledWith({
         serverUrl: 'https://gitlab.example.com',
         enabled: true,
+        providerCode: 'gitlab-v4',
+        providerVersion: '1.0.0',
       });
     });
   });
@@ -125,6 +135,8 @@ describe('GitlabConfigPage', () => {
       tokenConfigured: true,
       tokenMasked: '********',
       enabled: true,
+      providerCode: 'gitlab-v4',
+      providerVersion: '1.0.0',
       remark: '',
       createTime: '',
       updateTime: '',

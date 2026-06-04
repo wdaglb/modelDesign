@@ -35,6 +35,20 @@ public class GitlabConfigSaveRequest {
     private Boolean enabled;
 
     /**
+     * GitLab provider 编码。
+     */
+    @Schema(description = "GitLab provider 编码")
+    @Size(max = 100, message = "GitLab provider 编码长度不能超过 100 个字符")
+    private String providerCode;
+
+    /**
+     * GitLab provider 版本。
+     */
+    @Schema(description = "GitLab provider 版本")
+    @Size(max = 100, message = "GitLab provider 版本长度不能超过 100 个字符")
+    private String providerVersion;
+
+    /**
      * 备注。
      */
     @Schema(description = "备注")

@@ -273,6 +273,11 @@ describe('ProjectForm GitLab 仓库绑定', () => {
       isGitlabFallbackError(buildRequestError(502, '调用 GitLab 接口失败')),
     ).toBe(true);
     expect(
+      isGitlabFallbackError(
+        buildRequestError(502, 'GitLab provider jar 不存在：gitlab-v4@1.0.0'),
+      ),
+    ).toBe(true);
+    expect(
       isGitlabFallbackError(buildRequestError(400, 'GitLab 项目名称不能为空')),
     ).toBe(false);
     expect(isGitlabFallbackError(new Error('调用 GitLab 接口失败'))).toBe(false);

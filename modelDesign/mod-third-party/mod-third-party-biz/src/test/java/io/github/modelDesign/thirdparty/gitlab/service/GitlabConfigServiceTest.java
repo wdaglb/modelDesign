@@ -33,8 +33,12 @@ class GitlabConfigServiceTest {
 
             assertEquals("https://gitlab.example.com", saved.getServerUrl());
             assertNotEquals("secret-token", saved.getAccessTokenCipher());
+            assertEquals("gitlab-v4", saved.getProviderCode());
+            assertEquals("1.0.0", saved.getProviderVersion());
             assertTrue(result.getTokenConfigured());
             assertEquals("********", result.getTokenMasked());
+            assertEquals("gitlab-v4", result.getProviderCode());
+            assertEquals("1.0.0", result.getProviderVersion());
         } finally {
             AuthContext.clear();
         }
@@ -58,6 +62,8 @@ class GitlabConfigServiceTest {
             GitlabTenantConfig saved = service.findByTenantId(1L);
             assertEquals("https://gitlab.internal", saved.getServerUrl());
             assertEquals(oldCipher, saved.getAccessTokenCipher());
+            assertEquals("gitlab-v4", saved.getProviderCode());
+            assertEquals("1.0.0", saved.getProviderVersion());
         } finally {
             AuthContext.clear();
         }
@@ -114,6 +120,8 @@ class GitlabConfigServiceTest {
         request.setServerUrl(serverUrl);
         request.setAccessToken(accessToken);
         request.setEnabled(true);
+        request.setProviderCode("gitlab-v4");
+        request.setProviderVersion("1.0.0");
         request.setRemark("remark");
         return request;
     }

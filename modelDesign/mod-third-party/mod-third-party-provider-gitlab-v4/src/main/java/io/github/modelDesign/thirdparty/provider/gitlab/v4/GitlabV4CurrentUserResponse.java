@@ -1,13 +1,13 @@
-package io.github.modelDesign.thirdparty.gitlab.client;
+package io.github.modelDesign.thirdparty.provider.gitlab.v4;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
- * GitLab 当前用户响应。
+ * GitLab v4 当前用户响应。
  */
 @Data
-public class GitlabCurrentUserResponse {
+public class GitlabV4CurrentUserResponse {
     /**
      * GitLab 用户 ID。
      */

@@ -33,6 +33,16 @@ public class GitlabTenantConfig extends BaseEntity {
     private Boolean enabled;
 
     /**
+     * GitLab provider 编码。
+     */
+    private String providerCode;
+
+    /**
+     * GitLab provider 版本。
+     */
+    private String providerVersion;
+
+    /**
      * 备注。
      */
     private String remark;

@@ -24,6 +24,16 @@ public class GitlabConfigService
         extends ServiceImpl<GitlabTenantConfigMapper, GitlabTenantConfig>
         implements IService<GitlabTenantConfig> {
     /**
+     * 默认 GitLab provider 编码。
+     */
+    public static final String DEFAULT_PROVIDER_CODE = "gitlab-v4";
+
+    /**
+     * 默认 GitLab provider 版本。
+     */
+    public static final String DEFAULT_PROVIDER_VERSION = "1.0.0";
+
+    /**
      * 租户上下文服务。
      */
     private final GitlabTenantContextService gitlabTenantContextService;
@@ -60,12 +70,16 @@ public class GitlabConfigService
             entity.setServerUrl(normalizeServerUrl(request.getServerUrl()));
             entity.setAccessTokenCipher(accessTokenCipher);
             entity.setEnabled(resolveEnabled(request.getEnabled()));
+            entity.setProviderCode(resolveProviderCode(request.getProviderCode()));
+            entity.setProviderVersion(resolveProviderVersion(request.getProviderVersion()));
             entity.setRemark(normalizeRemark(request.getRemark()));
             save(entity);
         } else {
             entity.setServerUrl(normalizeServerUrl(request.getServerUrl()));
             entity.setAccessTokenCipher(accessTokenCipher);
             entity.setEnabled(resolveEnabled(request.getEnabled()));
+            entity.setProviderCode(resolveProviderCode(request.getProviderCode()));
+            entity.setProviderVersion(resolveProviderVersion(request.getProviderVersion()));
             entity.setRemark(normalizeRemark(request.getRemark()));
             updateById(entity);
         }
@@ -100,7 +114,9 @@ public class GitlabConfigService
         return new GitlabResolvedConfig(
                 config.getTenantId(),
                 config.getServerUrl(),
-                gitlabTokenCipherService.decrypt(config.getAccessTokenCipher())
+                gitlabTokenCipherService.decrypt(config.getAccessTokenCipher()),
+                resolveProviderCode(config.getProviderCode()),
+                resolveProviderVersion(config.getProviderVersion())
         );
     }
 
@@ -135,6 +151,8 @@ public class GitlabConfigService
                 .tokenConfigured(tokenConfigured)
                 .tokenMasked(maskToken(tokenConfigured))
                 .enabled(config.getEnabled())
+                .providerCode(resolveProviderCode(config.getProviderCode()))
+                .providerVersion(resolveProviderVersion(config.getProviderVersion()))
                 .remark(config.getRemark())
                 .createTime(config.getCreateTime())
                 .updateTime(config.getUpdateTime())
@@ -173,6 +191,20 @@ public class GitlabConfigService
             return Boolean.TRUE;
         }
         return enabled;
+    }
+
+    private String resolveProviderCode(String providerCode) {
+        if (StringUtils.hasText(providerCode)) {
+            return providerCode.trim();
+        }
+        return DEFAULT_PROVIDER_CODE;
+    }
+
+    private String resolveProviderVersion(String providerVersion) {
+        if (StringUtils.hasText(providerVersion)) {
+            return providerVersion.trim();
+        }
+        return DEFAULT_PROVIDER_VERSION;
     }
 
     private String maskToken(boolean tokenConfigured) {

@@ -83,7 +83,9 @@
 │   │   └── mod-system-biz/           # 系统模块业务实现
 │   ├── mod-third-party/              # 第三方集成模块
 │   │   ├── mod-third-party-api/      # 第三方模块 API 定义
-│   │   └── mod-third-party-biz/      # 第三方模块业务实现
+│   │   ├── mod-third-party-biz/      # 第三方模块业务实现
+│   │   └── mod-third-party-provider-gitlab-v4/
+│   │       └── GitLab API v4 provider jar 模块
 │   ├── mvnw                          # Maven Wrapper
 │   ├── mvnw.cmd                      # Windows Maven Wrapper
 │   └── pom.xml                       # 后端父级 Maven 配置
@@ -121,6 +123,36 @@ npm run test:run -- src/__tests__/initialState.test.ts
 ./mvnw -pl boot -am -Dtest=AuthServiceTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
+
+## GitLab Provider Jar
+
+GitLab API 实现通过 provider jar 接入，后端主服务只保留 SPI、
+租户配置、provider 加载与调用编排逻辑。默认 provider 为：
+
+- providerCode：`gitlab-v4`
+- providerVersion：`1.0.0`
+
+默认预置目录：
+
+```text
+providers/
+└── gitlab/
+    └── gitlab-v4/
+        └── 1.0.0/
+            └── mod-third-party-provider-gitlab-v4-0.0.1-SNAPSHOT.jar
+```
+
+可通过后端配置调整目录：
+
+```yaml
+model-design:
+  gitlab:
+    provider-dir: ./providers/gitlab
+```
+
+运行时按租户配置的 `providerCode` 和 `providerVersion` 定位 provider jar。
+provider 首次调用时加载；jar 文件内容变化后，后续新请求会自动加载新
+provider，已经开始执行的旧请求继续使用旧 provider 完成。
 
 ## 开源协议
 

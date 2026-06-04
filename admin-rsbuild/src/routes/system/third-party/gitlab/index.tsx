@@ -49,6 +49,16 @@ interface GitlabConfigFormValues {
    * 是否启用当前配置。
    */
   enabled: boolean;
+
+  /**
+   * GitLab provider 编码。
+   */
+  providerCode: string;
+
+  /**
+   * GitLab provider 版本。
+   */
+  providerVersion: string;
 }
 
 function RouteComponent() {
@@ -91,6 +101,8 @@ function RouteComponent() {
         serverUrl: currentConfigQuery.data.serverUrl,
         accessToken: '',
         enabled: currentConfigQuery.data.enabled,
+        providerCode: currentConfigQuery.data.providerCode || 'gitlab-v4',
+        providerVersion: currentConfigQuery.data.providerVersion || '1.0.0',
       });
       return;
     }
@@ -99,6 +111,8 @@ function RouteComponent() {
       serverUrl: '',
       accessToken: '',
       enabled: true,
+      providerCode: 'gitlab-v4',
+      providerVersion: '1.0.0',
     });
   }, [currentConfigQuery.data, form]);
 
@@ -142,6 +156,8 @@ function RouteComponent() {
             const payload: GitlabConfigSaveParams = {
               serverUrl: values.serverUrl.trim(),
               enabled: values.enabled,
+              providerCode: values.providerCode.trim(),
+              providerVersion: values.providerVersion.trim(),
             };
             if (values.accessToken?.trim()) {
               payload.accessToken = values.accessToken.trim();
@@ -186,6 +202,24 @@ function RouteComponent() {
           </Form.Item>
 
           <Form.Item
+            name={'providerCode'}
+            label={'Provider 编码'}
+            rules={[{ required: true, message: '请输入 Provider 编码' }]}
+            extra={'用于匹配预置目录中的 GitLab provider，例如 gitlab-v4。'}
+          >
+            <Input placeholder={'gitlab-v4'} autoComplete={'off'} />
+          </Form.Item>
+
+          <Form.Item
+            name={'providerVersion'}
+            label={'Provider 版本'}
+            rules={[{ required: true, message: '请输入 Provider 版本' }]}
+            extra={'用于匹配预置目录中的 provider 版本，例如 1.0.0。'}
+          >
+            <Input placeholder={'1.0.0'} autoComplete={'off'} />
+          </Form.Item>
+
+          <Form.Item
             name={'enabled'}
             label={'启用配置'}
             valuePropName={'checked'}
@@ -220,6 +254,10 @@ function RouteComponent() {
                     serverUrl: currentConfigQuery.data.serverUrl,
                     accessToken: '',
                     enabled: currentConfigQuery.data.enabled,
+                    providerCode:
+                      currentConfigQuery.data.providerCode || 'gitlab-v4',
+                    providerVersion:
+                      currentConfigQuery.data.providerVersion || '1.0.0',
                   });
                   return;
                 }

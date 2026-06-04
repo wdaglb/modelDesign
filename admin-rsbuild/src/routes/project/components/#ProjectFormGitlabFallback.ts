@@ -29,6 +29,7 @@ const GITLAB_FALLBACK_ERROR_KEYWORDS = [
   'GitLab 服务器地址配置错误',
   'GitLab 接口响应为空',
   'GitLab Token 无效或权限不足',
+  'GitLab provider',
 ];
 
 /**

@@ -1,17 +1,21 @@
 package io.github.modelDesign.thirdparty.gitlab.service;
 
-import io.github.modelDesign.thirdparty.gitlab.client.GitlabClient;
-import io.github.modelDesign.thirdparty.gitlab.client.GitlabCurrentUserResponse;
-import io.github.modelDesign.thirdparty.gitlab.client.GitlabProjectPageResult;
-import io.github.modelDesign.thirdparty.gitlab.client.GitlabProjectResponse;
+import io.github.modelDesign.common.exception.BusinessException;
+import io.github.modelDesign.thirdparty.api.gitlab.GitlabApiProvider;
+import io.github.modelDesign.thirdparty.api.gitlab.GitlabCurrentUserResult;
+import io.github.modelDesign.thirdparty.api.gitlab.GitlabProjectPageResult;
+import io.github.modelDesign.thirdparty.api.gitlab.GitlabProjectQuery;
+import io.github.modelDesign.thirdparty.api.gitlab.GitlabProjectResult;
+import io.github.modelDesign.thirdparty.api.gitlab.GitlabProviderContext;
+import io.github.modelDesign.thirdparty.api.gitlab.GitlabProviderException;
+import io.github.modelDesign.thirdparty.gitlab.provider.GitlabProviderRegistry;
 import io.github.modelDesign.thirdparty.gitlab.request.GitlabProjectListRequest;
 import io.github.modelDesign.thirdparty.gitlab.response.GitlabConnectionTestVo;
 import io.github.modelDesign.thirdparty.gitlab.response.GitlabPageResponse;
 import io.github.modelDesign.thirdparty.gitlab.response.GitlabProjectVo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * GitLab 集成服务。
@@ -25,9 +29,9 @@ public class GitlabIntegrationService {
     private final GitlabConfigService gitlabConfigService;
 
     /**
-     * GitLab API v4 客户端。
+     * GitLab provider 注册表。
      */
-    private final GitlabClient gitlabClient;
+    private final GitlabProviderRegistry gitlabProviderRegistry;
 
     /**
      * 测试当前租户 GitLab 连接。
@@ -36,9 +40,9 @@ public class GitlabIntegrationService {
      */
     public GitlabConnectionTestVo testCurrentConnection() {
         GitlabResolvedConfig config = gitlabConfigService.requireCurrentResolvedConfig();
-        GitlabCurrentUserResponse currentUser = gitlabClient.getCurrentUser(
-                config.getServerUrl(),
-                config.getAccessToken()
+        GitlabApiProvider provider = resolveProvider(config);
+        GitlabCurrentUserResult currentUser = callProvider(
+                () -> provider.getCurrentUser(toProviderContext(config))
         );
         return GitlabConnectionTestVo.builder()
                 .success(true)
@@ -57,12 +61,16 @@ public class GitlabIntegrationService {
      */
     public GitlabPageResponse<GitlabProjectVo> listCurrentProjects(GitlabProjectListRequest request) {
         GitlabResolvedConfig config = gitlabConfigService.requireCurrentResolvedConfig();
-        GitlabProjectPageResult result = gitlabClient.listProjects(
-                config.getServerUrl(),
-                config.getAccessToken(),
-                request.getCurrent(),
-                request.getPageSize(),
-                request.getKeyword()
+        GitlabApiProvider provider = resolveProvider(config);
+        GitlabProjectPageResult result = callProvider(
+                () -> provider.listProjects(
+                        toProviderContext(config),
+                        GitlabProjectQuery.builder()
+                                .current(request.getCurrent())
+                                .pageSize(request.getPageSize())
+                                .keyword(request.getKeyword())
+                                .build()
+                )
         );
         return new GitlabPageResponse<>(
                 result.getItems().stream().map(this::toProjectVo).toList(),
@@ -70,7 +78,29 @@ public class GitlabIntegrationService {
         );
     }
 
-    private GitlabProjectVo toProjectVo(GitlabProjectResponse project) {
+    private GitlabApiProvider resolveProvider(GitlabResolvedConfig config) {
+        return gitlabProviderRegistry.getProvider(
+                config.getProviderCode(),
+                config.getProviderVersion()
+        );
+    }
+
+    private GitlabProviderContext toProviderContext(GitlabResolvedConfig config) {
+        return GitlabProviderContext.builder()
+                .serverUrl(config.getServerUrl())
+                .accessToken(config.getAccessToken())
+                .build();
+    }
+
+    private <T> T callProvider(GitlabProviderCall<T> call) {
+        try {
+            return call.execute();
+        } catch (GitlabProviderException exception) {
+            throw new BusinessException(HttpStatus.BAD_GATEWAY.value(), exception.getMessage());
+        }
+    }
+
+    private GitlabProjectVo toProjectVo(GitlabProjectResult project) {
         return GitlabProjectVo.builder()
                 .id(project.getId())
                 .name(project.getName())
@@ -80,5 +110,19 @@ public class GitlabIntegrationService {
                 .defaultBranch(project.getDefaultBranch())
                 .lastActivityAt(project.getLastActivityAt())
                 .build();
+    }
+
+    /**
+     * GitLab provider 调用函数。
+     *
+     * @param <T> 返回值类型
+     */
+    private interface GitlabProviderCall<T> {
+        /**
+         * 执行 provider 调用。
+         *
+         * @return provider 调用结果
+         */
+        T execute();
     }
 }

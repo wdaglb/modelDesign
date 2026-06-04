@@ -31,6 +31,16 @@ export interface GitlabConfig {
   enabled: boolean;
 
   /**
+   * GitLab provider 编码。
+   */
+  providerCode: string;
+
+  /**
+   * GitLab provider 版本。
+   */
+  providerVersion: string;
+
+  /**
    * 备注。
    */
   remark: string;
@@ -64,6 +74,16 @@ export interface GitlabConfigSaveParams {
    * 当前租户 GitLab 配置是否启用。
    */
   enabled: boolean;
+
+  /**
+   * GitLab provider 编码。
+   */
+  providerCode?: string;
+
+  /**
+   * GitLab provider 版本。
+   */
+  providerVersion?: string;
 
   /**
    * 备注。

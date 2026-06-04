@@ -14,6 +14,7 @@
     <modules>
         <module>mod-third-party-api</module>
         <module>mod-third-party-biz</module>
+        <module>mod-third-party-provider-gitlab-v4</module>
     </modules>
 
     <properties>

@@ -26,4 +26,9 @@ public class GitlabProperties {
      * GitLab HTTP 读取超时时间，单位秒。
      */
     private long readTimeoutSeconds = 15L;
+
+    /**
+     * GitLab provider jar 预置目录。
+     */
+    private String providerDir = "./providers/gitlab";
 }

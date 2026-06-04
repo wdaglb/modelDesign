@@ -44,6 +44,18 @@ public class GitlabConfigVo {
     private Boolean enabled;
 
     /**
+     * GitLab provider 编码。
+     */
+    @Schema(description = "GitLab provider 编码")
+    private String providerCode;
+
+    /**
+     * GitLab provider 版本。
+     */
+    @Schema(description = "GitLab provider 版本")
+    private String providerVersion;
+
+    /**
      * 备注。
      */
     @Schema(description = "备注")
