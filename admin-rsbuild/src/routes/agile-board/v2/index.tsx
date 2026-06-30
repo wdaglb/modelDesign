@@ -606,13 +606,14 @@ function RouteComponent() {
       return;
     }
 
-    sharedPreviewOpeningTaskIdRef.current = search.taskId;
+    const sharedTaskId = search.taskId;
+    sharedPreviewOpeningTaskIdRef.current = sharedTaskId;
 
     let cancelled = false;
 
     const openSharedTask = async () => {
       try {
-        const sharedTask = await ApiProjectTask.getDetail(search.taskId!);
+        const sharedTask = await ApiProjectTask.getDetail(sharedTaskId);
 
         if (cancelled) {
           return;
@@ -642,6 +643,15 @@ function RouteComponent() {
 
     return () => {
       cancelled = true;
+
+      /**
+       * 初始化数据变化会让 openTaskPreview 的引用更新，从而触发
+       * 本 effect 清理。如果只取消请求但不释放进行中标记，下一轮
+       * 会误判同一任务仍在打开流程里，导致 taskId 无法再次开抽屉。
+       */
+      if (sharedPreviewOpeningTaskIdRef.current === sharedTaskId) {
+        sharedPreviewOpeningTaskIdRef.current = undefined;
+      }
     };
   }, [clearPreviewSearch, openTaskPreview, previewTaskId, search.taskId]);
 
